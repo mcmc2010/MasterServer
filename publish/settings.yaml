@@ -1,0 +1,3 @@
+logging:
+  level: Information
+  file: "logs/main.log"
