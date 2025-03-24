@@ -1,0 +1,2 @@
+.\publish\MasterServer.exe
+pause
