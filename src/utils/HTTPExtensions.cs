@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Sockets;
 using Microsoft.AspNetCore.Http;
 
+
 namespace Utils
 {
     public static class HTTPExtensions
@@ -39,6 +40,12 @@ namespace Utils
             return false;
         }
 
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
         public static IPAddress GetClientAddress(this HttpContext context)
         {
             IPAddress? address = null;
@@ -84,6 +91,20 @@ namespace Utils
             }
 
             return address;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="content"></param>
+        /// <param name="code"></param>
+        /// <returns></returns>
+        public static Task ResponseJsonAsync(this HttpContext context, object content, HttpStatusCode code = HttpStatusCode.OK)
+        {
+            context.Response.StatusCode = (int)code;
+            context.Response.ContentType = "application/json";
+            return context.Response.WriteAsJsonAsync(content);
         }
     }
 }
