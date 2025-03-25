@@ -1,12 +1,12 @@
 {
   "runtimeTarget": {
-    "name": ".NETCoreApp,Version=v8.0/win-x64",
+    "name": ".NETCoreApp,Version=v8.0/linux-x64",
     "signature": ""
   },
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v8.0": {},
-    ".NETCoreApp,Version=v8.0/win-x64": {
+    ".NETCoreApp,Version=v8.0/linux-x64": {
       "MasterServer/1.0.0": {
         "dependencies": {
           "Microsoft.AspNetCore": "2.3.0",
@@ -15,14 +15,14 @@
           "Microsoft.Extensions.Hosting": "9.0.3",
           "Microsoft.Extensions.Hosting.Systemd": "9.0.3",
           "YamlDotNet": "16.3.0",
-          "runtimepack.Microsoft.NETCore.App.Runtime.win-x64": "8.0.10",
-          "runtimepack.Microsoft.AspNetCore.App.Runtime.win-x64": "8.0.10"
+          "runtimepack.Microsoft.NETCore.App.Runtime.linux-x64": "8.0.10",
+          "runtimepack.Microsoft.AspNetCore.App.Runtime.linux-x64": "8.0.10"
         },
         "runtime": {
           "MasterServer.dll": {}
         }
       },
-      "runtimepack.Microsoft.NETCore.App.Runtime.win-x64/8.0.10": {
+      "runtimepack.Microsoft.NETCore.App.Runtime.linux-x64/8.0.10": {
         "runtime": {
           "Microsoft.CSharp.dll": {
             "assemblyVersion": "8.0.0.0",
@@ -686,51 +686,51 @@
           }
         },
         "native": {
-          "Microsoft.DiaSymReader.Native.amd64.dll": {
-            "fileVersion": "14.40.33810.0"
+          "createdump": {
+            "fileVersion": "0.0.0.0"
           },
-          "System.IO.Compression.Native.dll": {
-            "fileVersion": "8.0.1024.46610"
+          "libSystem.Globalization.Native.so": {
+            "fileVersion": "0.0.0.0"
           },
-          "clretwrc.dll": {
-            "fileVersion": "8.0.1024.46610"
+          "libSystem.IO.Compression.Native.so": {
+            "fileVersion": "0.0.0.0"
           },
-          "clrgc.dll": {
-            "fileVersion": "8.0.1024.46610"
+          "libSystem.Native.so": {
+            "fileVersion": "0.0.0.0"
           },
-          "clrjit.dll": {
-            "fileVersion": "8.0.1024.46610"
+          "libSystem.Net.Security.Native.so": {
+            "fileVersion": "0.0.0.0"
           },
-          "coreclr.dll": {
-            "fileVersion": "8.0.1024.46610"
+          "libSystem.Security.Cryptography.Native.OpenSsl.so": {
+            "fileVersion": "0.0.0.0"
           },
-          "createdump.exe": {
-            "fileVersion": "8.0.1024.46610"
+          "libclrgc.so": {
+            "fileVersion": "0.0.0.0"
           },
-          "hostfxr.dll": {
-            "fileVersion": "8.0.1024.46610"
+          "libclrjit.so": {
+            "fileVersion": "0.0.0.0"
           },
-          "hostpolicy.dll": {
-            "fileVersion": "8.0.1024.46610"
+          "libcoreclr.so": {
+            "fileVersion": "0.0.0.0"
           },
-          "mscordaccore.dll": {
-            "fileVersion": "8.0.1024.46610"
+          "libcoreclrtraceptprovider.so": {
+            "fileVersion": "0.0.0.0"
           },
-          "mscordaccore_amd64_amd64_8.0.1024.46610.dll": {
-            "fileVersion": "8.0.1024.46610"
+          "libhostfxr.so": {
+            "fileVersion": "0.0.0.0"
           },
-          "mscordbi.dll": {
-            "fileVersion": "8.0.1024.46610"
+          "libhostpolicy.so": {
+            "fileVersion": "0.0.0.0"
           },
-          "mscorrc.dll": {
-            "fileVersion": "8.0.1024.46610"
+          "libmscordaccore.so": {
+            "fileVersion": "0.0.0.0"
           },
-          "msquic.dll": {
-            "fileVersion": "2.3.5.0"
+          "libmscordbi.so": {
+            "fileVersion": "0.0.0.0"
           }
         }
       },
-      "runtimepack.Microsoft.AspNetCore.App.Runtime.win-x64/8.0.10": {
+      "runtimepack.Microsoft.AspNetCore.App.Runtime.linux-x64/8.0.10": {
         "runtime": {
           "Microsoft.AspNetCore.Antiforgery.dll": {
             "assemblyVersion": "8.0.0.0",
@@ -1167,11 +1167,6 @@
           "System.Threading.RateLimiting.dll": {
             "assemblyVersion": "8.0.0.0",
             "fileVersion": "8.0.23.53103"
-          }
-        },
-        "native": {
-          "aspnetcorev2_inprocess.dll": {
-            "fileVersion": "18.0.24262.10"
           }
         }
       },
@@ -1817,11 +1812,7 @@
       },
       "System.Diagnostics.EventLog/9.0.3": {
         "runtime": {
-          "runtimes/win/lib/net8.0/System.Diagnostics.EventLog.Messages.dll": {
-            "assemblyVersion": "9.0.0.0",
-            "fileVersion": "0.0.0.0"
-          },
-          "runtimes/win/lib/net8.0/System.Diagnostics.EventLog.dll": {
+          "lib/net8.0/System.Diagnostics.EventLog.dll": {
             "assemblyVersion": "9.0.0.0",
             "fileVersion": "9.0.325.11113"
           }
@@ -1883,12 +1874,12 @@
       "serviceable": false,
       "sha512": ""
     },
-    "runtimepack.Microsoft.NETCore.App.Runtime.win-x64/8.0.10": {
+    "runtimepack.Microsoft.NETCore.App.Runtime.linux-x64/8.0.10": {
       "type": "runtimepack",
       "serviceable": false,
       "sha512": ""
     },
-    "runtimepack.Microsoft.AspNetCore.App.Runtime.win-x64/8.0.10": {
+    "runtimepack.Microsoft.AspNetCore.App.Runtime.linux-x64/8.0.10": {
       "type": "runtimepack",
       "serviceable": false,
       "sha512": ""
@@ -2392,8 +2383,39 @@
     }
   },
   "runtimes": {
-    "win-x64": [
-      "win",
+    "android-x64": [
+      "android",
+      "linux-bionic-x64",
+      "linux-bionic",
+      "linux-x64",
+      "linux",
+      "unix-x64",
+      "unix",
+      "any",
+      "base"
+    ],
+    "linux-bionic-x64": [
+      "linux-bionic",
+      "linux-x64",
+      "linux",
+      "unix-x64",
+      "unix",
+      "any",
+      "base"
+    ],
+    "linux-musl-x64": [
+      "linux-musl",
+      "linux-x64",
+      "linux",
+      "unix-x64",
+      "unix",
+      "any",
+      "base"
+    ],
+    "linux-x64": [
+      "linux",
+      "unix-x64",
+      "unix",
       "any",
       "base"
     ]
