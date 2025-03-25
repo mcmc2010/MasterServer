@@ -1,6 +1,6 @@
 
 
-namespace Server
+namespace Utils
 {
     public interface ISingleton
     {

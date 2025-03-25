@@ -7,4 +7,4 @@ http_server:
    certs: "certs/https.pfx"
 logging:
   level: Information
-  file: "logs/main.log"
+  file: "logs/http.log"

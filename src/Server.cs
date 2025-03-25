@@ -1,5 +1,6 @@
 
 using System.Net;
+using Logger;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -82,10 +83,11 @@ namespace Server
     /// <summary>
     /// 
     /// </summary>
-    public partial class ServerApplication : SingletonT<ServerApplication>, ISingleton
+    public partial class ServerApplication : Utils.SingletonT<ServerApplication>, Utils.ISingleton
     {
         private string[]? _arguments = null;
         private ConfigEntry? _config = null;
+
         private WebApplication? _webserver = null;
 
         private CancellationTokenSource? _cts = null;
@@ -167,15 +169,16 @@ namespace Server
             //builder.Logging.AddFile("logs/main.log", minimumLevel: LogLevel.Information);
             builder.Logging.SetMinimumLevel(_config.Logging.Getlevel());
             // 注册自定义文件日志提供程序
-            builder.Logging.AddProvider(new Logger.FileLoggerProvider(_config.Logging.File));
+            builder.Logging.AddProvider(new Logger.Extensions.FileLoggerProvider(_config.Logging.File));
 
             // 
             _webserver = builder.Build();
 
             //
             RegisterHandlers();
-
+            
             //
+            Logger.LoggerFactory.Instance?.Log("[Server] Starting HTTPServer.");
             return true;
         }
 
