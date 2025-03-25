@@ -70,7 +70,7 @@ namespace Logger {
                 var originalColor = Console.ForegroundColor;
                 
                 Console.ForegroundColor = GetConsoleColor(entry.Level);
-                Console.WriteLine($"[{entry.Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{entry.Level}] {_name}: {entry.Message}");
+                Console.WriteLine($"[{entry.Timestamp:HH:mm:ss.fff}] [{entry.Level}] {_name}: {entry.Message}");
                 
                 if (entry.Exception != null)
                 {
@@ -132,12 +132,12 @@ namespace Logger {
 
         private void _Log(LogEntry entry)
         {
-            string text = $"[{entry.Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{entry.Level}] {_name}: {entry.Message}";
+            string text = $"[{entry.Timestamp:HH:mm:ss.fff}] [{entry.Level}] {_name}: {entry.Message}" + System.Environment.NewLine;
             
             if (entry.Exception != null)
             {
-                text += System.Environment.NewLine + $"Exception: {entry.Exception.GetType().Name}: {entry.Exception.Message}";
-                text += System.Environment.NewLine + entry.Exception.StackTrace;
+                text += $"Exception: {entry.Exception.GetType().Name}: {entry.Exception.Message}" + System.Environment.NewLine;
+                text += entry.Exception.StackTrace + System.Environment.NewLine;
             }
 
             lock (_lock)
@@ -165,7 +165,7 @@ namespace Logger {
                 string content = "";
                 lock (_lock)
                 {                
-                    content = string.Join(System.Environment.NewLine, _queue);
+                    content = string.Join("", _queue);
                     _queue.Clear();
                 }
 
@@ -228,13 +228,13 @@ namespace Logger {
 
     public static class LoggerExtensions
     {
-        public static void Log(this ILogger logger, string message) 
+        public static void LogTrace(this ILogger logger, string message) 
             => logger.Log(LogLevel.All, message);
 
         public static void LogDebug(this ILogger logger, string message) 
             => logger.Log(LogLevel.Debug, message);
 
-        public static void LogInformation(this ILogger logger, string message) 
+        public static void Log(this ILogger logger, string message) 
             => logger.Log(LogLevel.Information, message);
 
         public static void LogWarning(this ILogger logger, string message) 
@@ -258,7 +258,7 @@ namespace Logger {
             logger.File?.Finish();
         }
 
-        public static void Log(this LoggerEntry logger, string message) 
+        public static void LogTrace(this LoggerEntry logger, string message) 
         {
             logger.Console?.Log(LogLevel.All, message);
             logger.File?.Log(LogLevel.All, message);
@@ -268,7 +268,7 @@ namespace Logger {
             logger.Console?.Log(LogLevel.Debug, message);
             logger.File?.Log(LogLevel.Debug, message);
         }
-        public static void LogInformation(this LoggerEntry logger, string message) 
+        public static void Log(this LoggerEntry logger, string message) 
         {
             logger.Console?.Log(LogLevel.Information, message);
             logger.File?.Log(LogLevel.Information, message);

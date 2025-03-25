@@ -190,7 +190,7 @@ namespace Server
             });
 
             //
-            Logger.LoggerFactory.Instance?.Log("[Server] Starting HTTPServer.");
+            Logger.LoggerFactory.Instance?.Log("[Server] Starting HTTPServer");
             return true;
         }
 

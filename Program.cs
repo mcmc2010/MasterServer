@@ -4,11 +4,11 @@ using Logger;
 
 try
 {
-    var logger = Logger.LoggerFactory.CreateLogger("main");
-
-
     //
     var config = Server.ServerConfig.LoadFromFile("settings.yaml");
+    var logger = Logger.LoggerFactory.CreateLogger("main");
+    logger.Log("Init Logger Completed");
+
     //
     Server.UserManager.NewInstance(args, config);
 
