@@ -3,7 +3,7 @@ using System.Net.Sockets;
 using Microsoft.AspNetCore.Http;
 
 
-namespace Utils
+namespace Extensions
 {
     public static class HTTPExtensions
     {
@@ -92,6 +92,37 @@ namespace Utils
 
             return address;
         }
+
+
+        public static void QueryString(this HttpContext context, string key, out string value, string defval = "")
+        {
+            value = defval;
+
+            string[] values;
+            QueryString(context, key, out values);
+            if(values.Length > 0)
+            {
+                value = values[0];
+            }
+        }
+
+        public static void QueryString(this HttpContext context, string key, out string[] values)
+        {
+            values = new string[] { };
+
+            Microsoft.Extensions.Primitives.StringValues vs;
+            // 获取timestamp参数并转换为整数
+            if (!context.Request.Query.TryGetValue("timestamp", out vs))
+            {
+            }
+
+            // 处理多值参数的情况
+            if (vs.Count > 0)
+            {
+                values = vs.ToArray<string>();
+            }
+        }
+
 
         /// <summary>
         /// 

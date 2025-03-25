@@ -98,5 +98,35 @@ namespace Utils
             }
             return value;
         }
+
+
+        public static int GetTimestamp()
+        {
+            var now = DateTime.UtcNow;
+            var dt = new DateTime(1970, 1, 1);
+            double t = (now - dt).TotalSeconds;
+            return (int)t;
+        }
+
+        public static long GetLongTimestamp()
+        {
+            var now = DateTime.UtcNow;
+            var dt = new DateTime(1970, 1, 1);
+            double t = (now - dt).TotalMilliseconds;
+            return (long)t;
+        }
+
+        public static float GetTimeDelay(long A, long B, float max = 0.460f)
+        {
+            float delay = 0.030f;
+            if(A > 0)
+            {
+                delay = (B - A) * 0.001f;
+                if(delay >= max) {
+                    delay = max;
+                }
+            }
+            return delay;
+        }
     }
 }

@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Utils;
+using Extensions;
 
 #if LINUX
 using Microsoft.Extensions.DependencyInjection;
@@ -88,6 +88,7 @@ namespace Server
     {
         private string[]? _arguments = null;
         private ConfigEntry? _config = null;
+        private LoggerEntry? _logger = null;
 
         private WebApplication? _webserver = null;
 
@@ -108,6 +109,7 @@ namespace Server
                 return ;
             }
             _config = config;
+            _logger = Logger.LoggerFactory.Instance;
 
             //
         }
@@ -190,7 +192,7 @@ namespace Server
             });
 
             //
-            Logger.LoggerFactory.Instance?.Log("[Server] Starting HTTPServer");
+            _logger?.Log("[Server] Starting HTTPServer");
             return true;
         }
 
@@ -202,6 +204,7 @@ namespace Server
             }
 
             _webserver.Map("/", HandleHello);
+            _webserver.Map("/api/ping", HandlePing);
         }
 
         public Task<int> StartWorking()
@@ -221,7 +224,8 @@ namespace Server
 
         private async Task<int> ProcessWorking()
         {
-            
+            _logger?.Log("[Server] Start Working");
+
             this._cts = new CancellationTokenSource();
             // 注册终止信号处理
             Console.CancelKeyPress += OnCancelExit;
@@ -242,7 +246,8 @@ namespace Server
 
                 }
             }
-            
+
+            _logger?.Log("[Server] End Working");
             Console.CancelKeyPress -= OnCancelExit;
             AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
             await Task.Delay(100);
