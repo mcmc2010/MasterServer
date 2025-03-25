@@ -17,8 +17,7 @@ namespace Server
                 Address = address.ToString()
             };
 
-            context.Response.StatusCode = (int)HttpStatusCode.OK;
-            await context.Response.WriteAsJsonAsync(result);
+            await context.ResponseJsonAsync(result);
         }
     }
 }

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Utils;
 
 #if LINUX
 using Microsoft.Extensions.DependencyInjection;
@@ -154,7 +155,7 @@ namespace Server
                     if(v.HasSSL && v.Certificates.Trim().Length > 0) {
                         options.Listen(IPAddress.Any, 5443, listen =>
                         {
-                            listen.UseHttps(v.Certificates.Trim(), ""); // 配置 HTTPS
+                            listen.UseHttps(v.Certificates.Trim(), null); // 配置 HTTPS
                         });
                     }
                     else
@@ -177,6 +178,17 @@ namespace Server
             //
             RegisterHandlers();
             
+            // 捕获所有未匹配的路由，返回默认 JSON
+            _webserver.MapFallback(async context =>
+            {
+                var result = new {
+                    Status = "error",
+                    Code = (int)HttpStatusCode.NotFound,
+                    Message = "Not Found"
+                };
+                await context.ResponseJsonAsync(result, HttpStatusCode.NotFound);
+            });
+
             //
             Logger.LoggerFactory.Instance?.Log("[Server] Starting HTTPServer.");
             return true;
