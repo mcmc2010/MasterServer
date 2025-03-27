@@ -3,7 +3,7 @@ using System.Net.Sockets;
 using Microsoft.AspNetCore.Http;
 
 
-namespace Extensions
+namespace AMToolkits.Extensions
 {
     public static class HTTPExtensions
     {
@@ -136,6 +136,33 @@ namespace Extensions
             context.Response.StatusCode = (int)code;
             context.Response.ContentType = "application/json";
             return context.Response.WriteAsJsonAsync(content);
+        }
+
+        public async static Task ResponseError(this HttpContext context, HttpStatusCode code = HttpStatusCode.BadRequest, string message = "")
+        {
+            object? data = null;
+            if(message.Length == 0) {
+                message = "Bad Request";
+            }
+
+            var result = new {
+                Code = code,
+                Status = "error",
+                Message = message,
+                Data = data
+            };
+            await context.ResponseJsonAsync(result, code);
+        }
+
+        
+        public async static Task ResponseResult(this HttpContext context, object? data = null, HttpStatusCode code = HttpStatusCode.OK)
+        {
+            var result = new {
+                Code = code,
+                Status = "success",
+                Data = data
+            };
+            await context.ResponseJsonAsync(result, code);
         }
     }
 }

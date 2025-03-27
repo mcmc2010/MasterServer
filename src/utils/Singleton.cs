@@ -1,6 +1,6 @@
 
 
-namespace Utils
+namespace AMToolkits.Utility
 {
     public interface ISingleton
     {

@@ -18,6 +18,8 @@ namespace Logger {
         void Log(LogLevel level, string message, Exception? exception = null);
         bool IsEnabled(LogLevel level);
 
+        void SetOutputName(string name);
+
         void Finish();
     }
 
@@ -39,6 +41,7 @@ namespace Logger {
     public sealed class ConsoleLogger : ILogger
     {
         private readonly string _name;
+        private string _output_name;
         private readonly LogLevel _min_level;
         private readonly object _lock = new object();
 
@@ -46,6 +49,8 @@ namespace Logger {
         {
             _name = name;
             _min_level = level;
+
+            _output_name = name;
         }
 
         public void Finish()
@@ -54,6 +59,11 @@ namespace Logger {
         }
 
         public bool IsEnabled(LogLevel level) => level >= _min_level;
+
+        public void SetOutputName(string name)
+        {
+            _output_name = name;
+        }
 
         public void Log(LogLevel level, string message, Exception? exception = null)
         {
@@ -70,7 +80,7 @@ namespace Logger {
                 var originalColor = Console.ForegroundColor;
                 
                 Console.ForegroundColor = GetConsoleColor(entry.Level);
-                Console.WriteLine($"[{entry.Timestamp:HH:mm:ss.fff}] [{entry.Level}] {_name}: {entry.Message}");
+                Console.WriteLine($"[{entry.Timestamp:HH:mm:ss.fff}] [{entry.Level}] {_output_name}: {entry.Message}");
                 
                 if (entry.Exception != null)
                 {
@@ -100,7 +110,8 @@ namespace Logger {
     public sealed class FileLogger : ILogger
     {
         private readonly string _name;
-        private readonly string _pathname;
+        private string _path_name;
+        private string _output_name;
         private readonly LogLevel _min_level;
         private readonly object _lock = new object();
 
@@ -112,7 +123,9 @@ namespace Logger {
             _name = name;
             _min_level = level;
 
-            _pathname = System.IO.Path.GetFullPath("./logs");
+
+            _output_name = $"{name}.log";
+            _path_name = System.IO.Path.GetFullPath("./logs");
         }
 
         public void Finish()
@@ -121,6 +134,13 @@ namespace Logger {
         }
 
         public bool IsEnabled(LogLevel level) => level >= _min_level;
+
+        public void SetOutputName(string name)
+        {
+            string fullname = System.IO.Path.GetFullPath(name);
+            _output_name = System.IO.Path.GetFileName(fullname);
+            _path_name = System.IO.Path.GetDirectoryName(fullname) ?? _path_name;
+        }
 
         public void Log(LogLevel level, string message, Exception? exception = null)
         {
@@ -159,8 +179,9 @@ namespace Logger {
             {
                 _is_busy = true;
 
-                string filename = $"{this._name}_{DateTime.Now:yyyy-MM-dd}.log";
-                filename = Path.Join(_pathname, filename);
+                string filename = System.IO.Path.GetFileNameWithoutExtension(_output_name);
+                filename = $"{filename}_{DateTime.Now:yyyy-MM-dd}.log";
+                filename = System.IO.Path.Join(_path_name, filename);
 
                 string content = "";
                 lock (_lock)
@@ -187,6 +208,13 @@ namespace Logger {
     {
         public ILogger? Console;
         public ILogger? File;
+
+        public void SetOutputFileName(string filename = "")
+        {
+            if(File == null) { return; }
+
+            File.SetOutputName(filename);
+        }
     }
 
     public static class LoggerFactory

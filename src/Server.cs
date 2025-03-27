@@ -1,12 +1,16 @@
 
+using System.Linq;
 using System.Net;
-using Logger;
+
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Extensions;
+
+using AMToolkits.Utility;
+using AMToolkits.Extensions;
+using Logger;
 
 #if LINUX
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +18,11 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Server
 {
+    public class HandlerEventArgs : EventArgs
+    {
+        public WebApplication? app;
+    }
+
 #if LINUX
     public class ServiceWorker : BackgroundService
     {
@@ -84,15 +93,20 @@ namespace Server
     /// <summary>
     /// 
     /// </summary>
-    public partial class ServerApplication : Utils.SingletonT<ServerApplication>, Utils.ISingleton
+    public partial class ServerApplication : SingletonT<ServerApplication>, ISingleton
     {
         private string[]? _arguments = null;
-        private ConfigEntry? _config = null;
+        private ServerConfig? _config = null;
         private LoggerEntry? _logger = null;
 
         private WebApplication? _webserver = null;
 
         private CancellationTokenSource? _cts = null;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public event System.EventHandler<HandlerEventArgs>? RegisterHandlersListner = null;
 
         public ServerApplication()
         {
@@ -102,7 +116,7 @@ namespace Server
         { 
             _arguments = paramters[0] as string[];
 
-            var config = paramters[1] as ConfigEntry;
+            var config = paramters[1] as ServerConfig;
             if(config == null)
             {
                 System.Console.WriteLine("[Server] Config is NULL.");
@@ -168,18 +182,21 @@ namespace Server
             });
 
             //
-            // 添加文件日志提供程序，并设置日志路径和级别
-            //builder.Logging.AddFile("logs/main.log", minimumLevel: LogLevel.Information);
-            builder.Logging.SetMinimumLevel(_config.Logging.Getlevel());
-            // 注册自定义文件日志提供程序
-            builder.Logging.AddProvider(new Logger.Extensions.FileLoggerProvider(_config.Logging.File));
+            var cfg = _config.Logging.FirstOrDefault(v => v.Name.Trim().ToLower() == "http");
+            if(cfg != null && cfg.File.Length > 0) {
+                // 添加文件日志提供程序，并设置日志路径和级别
+                //builder.Logging.AddFile("logs/main.log", minimumLevel: LogLevel.Information);
+                builder.Logging.SetMinimumLevel((Microsoft.Extensions.Logging.LogLevel)cfg.Getlevel());
+                // 注册自定义文件日志提供程序
+                builder.Logging.AddProvider(new Logger.Extensions.FileLoggerProvider(cfg.File));
+            }
 
             // 
             _webserver = builder.Build();
 
             //
             RegisterHandlers();
-            
+     
             // 捕获所有未匹配的路由，返回默认 JSON
             _webserver.MapFallback(async context =>
             {
@@ -190,6 +207,13 @@ namespace Server
                 };
                 await context.ResponseJsonAsync(result, HttpStatusCode.NotFound);
             });
+
+
+            //
+            if(RegisterHandlersListner != null)
+            {
+                RegisterHandlersListner(this, new HandlerEventArgs() { app = _webserver });
+            }
 
             //
             _logger?.Log("[Server] Starting HTTPServer");

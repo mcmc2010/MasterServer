@@ -1,17 +1,92 @@
+#if UNITY_EDITOR || UNITY_ANDROID || UNITY_IOS || UNITY_STANDALONE
+#define USE_UNITY_BUILD
+#endif
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
-#if UNITY_64
+using System.Linq;
+#if USE_UNITY_BUILD
 using UnityEngine;
 #endif
 
-namespace Utils
+namespace AMToolkits.Utility
 {
     /// <summary>
     /// 
     /// </summary>
     public static class Utils
     {
+        public const float NETWORK_DELAY_MAX = 460 * 0.001f;
+        public const float NETWORK_DELAY_MIN = 10 * 0.001f;
+
+        #region  DateTime
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public static int GetTimestamp()
+        {
+            DateTime tn = DateTime.UtcNow;
+            DateTime t0 = new DateTime(1970, 1, 1);
+            TimeSpan span = tn - t0;
+            return (int)span.TotalSeconds;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public static long GetLongTimestamp()
+        {
+            DateTime tn = DateTime.UtcNow;
+            DateTime t0 = new DateTime(1970, 1, 1);
+            TimeSpan span = tn - t0;
+            return (long)span.TotalMilliseconds;
+        }
+
+        /// <summary>
+        /// 单位秒
+        /// </summary>
+        /// <returns></returns>
+        public static float DiffTimestamp(int A, int B)
+        {
+            return (float)(B - A);
+        }
+
+        /// <summary>
+        /// 单位秒
+        /// </summary>
+        /// <param name="A"></param>
+        /// <param name="B"></param>
+        /// <returns></returns>
+        public static float DiffTimestamp(long A,  long B)
+        {
+            return (float)(B - A) * 0.001f;
+        }
+        #endregion
+
+        #region String
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="bytes"></param>
+        /// <returns></returns>
+        public static string ToHexString(this byte[] bytes)
+        {
+            string text = "";
+            if (bytes != null)
+            {
+                for (int i = 0; i < bytes.Length; i++)
+                {
+                    text += string.Format("{0:X2}", bytes[i]);
+                }
+            }
+            return text;
+        }
+
+        #endregion
+
         /// <summary>
         /// 
         /// </summary>
@@ -19,21 +94,17 @@ namespace Utils
         /// <returns></returns>
         public static string MakeUserUID(string key = "")
         {
-#if UNITY_64
+#if USE_UNITY_BUILD
             string uid = UnityEngine.SystemInfo.deviceUniqueIdentifier;
 #else
-            var sb = new System.Text.StringBuilder();
-    
-            // 系统信息
-            sb.Append(System.Environment.MachineName);
-            sb.Append("_"+System.Environment.UserName);
-            sb.Append("_"+System.Environment.OSVersion.VersionString);
-            string uid = sb.ToString();
+            string uid = $"{System.Environment.MachineName}_{System.Environment.UserName}_{System.Environment.OSVersion.VersionString}";
+            uid = uid + "_" + System.Environment.GetFolderPath(Environment.SpecialFolder.Personal);
 
             var sha = System.Security.Cryptography.SHA256.Create();
             // 字符串转 byte 数组
             byte[] hash = System.Text.Encoding.UTF8.GetBytes(uid);
-            uid = System.Convert.ToHexString(hash).ToUpper();
+            hash = sha.ComputeHash(hash);
+            uid = hash.ToHexString();
 #endif
 
             if (key.Trim().Length > 0)
@@ -47,86 +118,8 @@ namespace Utils
             // 计算 MD5 值
             byte[] digest = md5.ComputeHash(buffer);
 
-            uid = "";
-            for (int i = 0; i < digest.Length; i++)
-            {
-                uid += string.Format("{0:X2}", digest[i]);
-            }
+            uid = digest.ToHexString();
             return uid;
-        }
-
-        /// <summary>
-        /// 设计容错率为每秒钟30000的ID
-        /// </summary>
-        /// <returns></returns>
-        public static string GeneratorID_10(DateTime? now = null)
-        {
-
-            char[] chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZ".ToCharArray();
-
-            // 时间戳
-            DateTime epoch = new DateTime(1990, 1, 1);
-            TimeSpan ts = now.GetValueOrDefault(DateTime.Now).ToUniversalTime() - epoch;
-            int timestamp = (int)(ts.TotalSeconds % 1000000000) + 1000000000;
-
-
-            // 随机数
-            var random = new System.Random();
-            int rand = random.Next(10000, 35000);
-
-            string value = string.Format("{0:D10}{1:D5}", timestamp, rand);
-
-            value = "";
-            for (int i = rand; i > 0;)
-            {
-                value += chars[i % chars.Length];
-                i = i / chars.Length;
-            }
-
-            for (int i = timestamp; i > 0;)
-            {
-                value += chars[i % chars.Length];
-                i = i / chars.Length;
-            }
-
-            if(value.Length < 10)
-            {
-                rand = random.Next(0, chars.Length);
-                value += chars[rand];
-                value += "X";
-                value = value.Substring(0, 10);
-            }
-            return value;
-        }
-
-
-        public static int GetTimestamp()
-        {
-            var now = DateTime.UtcNow;
-            var dt = new DateTime(1970, 1, 1);
-            double t = (now - dt).TotalSeconds;
-            return (int)t;
-        }
-
-        public static long GetLongTimestamp()
-        {
-            var now = DateTime.UtcNow;
-            var dt = new DateTime(1970, 1, 1);
-            double t = (now - dt).TotalMilliseconds;
-            return (long)t;
-        }
-
-        public static float GetTimeDelay(long A, long B, float max = 0.460f)
-        {
-            float delay = 0.030f;
-            if(A > 0)
-            {
-                delay = (B - A) * 0.001f;
-                if(delay >= max) {
-                    delay = max;
-                }
-            }
-            return delay;
         }
     }
 }

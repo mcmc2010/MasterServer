@@ -1,0 +1,14 @@
+
+namespace Server
+{
+    public class ErrorMessage
+    {
+        public const string ERROR = "Error";
+        public const string UNKNOW = "Unknow";
+        public const string NOT_FOUND = "Not Found";
+        /// <summary>
+        /// 
+        /// </summary>
+        public const string NotAllowAccess_Unauthorized_NotKey = "Please contact the developer, unauthorized access";
+    }
+}

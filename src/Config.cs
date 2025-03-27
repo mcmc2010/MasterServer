@@ -1,39 +1,44 @@
-using Microsoft.Extensions.Logging;
+
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
 namespace Server {
 
-    public interface IConfigEntry;
+    public interface IConfigEntry
+    {
+
+    }
 
     /// <summary>
     /// 
     /// </summary>
     public class ConfigItem_Logger
     {
+        [YamlMember(Alias = "name")] // 明确映射 YAML 字段名（可选，如果字段名不一致时需要）
+        public string Name { get; set; } = ""; // 默认值
         [YamlMember(Alias = "level")] // 明确映射 YAML 字段名（可选，如果字段名不一致时需要）
         public string Level { get; set; } = "Information"; // 默认值
 
         [YamlMember(Alias = "file")]
         public string File { get; set; } = "logs/main.log"; // 默认路径
 
-        public LogLevel Getlevel() {
+        public Logger.LogLevel Getlevel() {
             //
-            if(Level == LogLevel.Debug.ToString())
+            if(Level == Logger.LogLevel.Debug.ToString())
             {
-                return LogLevel.Debug;
+                return Logger.LogLevel.Debug;
             }
-            else if(Level == LogLevel.Warning.ToString())
+            else if(Level == Logger.LogLevel.Warning.ToString())
             {
-                return LogLevel.Warning;
+                return Logger.LogLevel.Warning;
             }
-            else if(Level == LogLevel.Error.ToString())
+            else if(Level == Logger.LogLevel.Error.ToString())
             {
-                return LogLevel.Error;
+                return Logger.LogLevel.Error;
             }
             else
             {
-                return LogLevel.Information;
+                return Logger.LogLevel.Information;
             }
         }
     }
@@ -53,29 +58,47 @@ namespace Server {
     /// <summary>
     /// 
     /// </summary>
-    public class ConfigEntry : IConfigEntry
+    public class ServerConfig : IConfigEntry
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        [YamlMember(Alias = "secret_key", ApplyNamingConventions = false)]
+        public string SecretKey { get; set; } = "";
+
+        /// <summary>
+        /// 
+        /// </summary>
         [YamlMember(Alias = "http_server", ApplyNamingConventions = false)]
         public ConfigItem_HTTPServer[] HTTPServer { get; set; } = new ConfigItem_HTTPServer[] { }; // 初始化默认配置
 
+        /// <summary>
+        /// 
+        /// </summary>
         [YamlMember(Alias = "logging", ApplyNamingConventions = false)]
-        public ConfigItem_Logger Logging { get; set; } = new ConfigItem_Logger(); // 初始化默认配置
+        public ConfigItem_Logger[] Logging { get; set; } = new ConfigItem_Logger[]{
+            new ConfigItem_Logger() {
+                Name = "main",
+                Level = "Information",
+                File = "logs/main.log"
+            }
+        };
     }
 
     /// <summary>
     /// 
     /// </summary>
-    public class ServerConfig
+    public class ServerConfigLoader
     {
-        private static ConfigEntry _config = new ConfigEntry();
-        public static ConfigEntry Config { get { return _config; } }
+        private static ServerConfig _config = new ServerConfig();
+        public static ServerConfig Config { get { return _config; } }
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="filename"></param>
         /// <returns></returns>
-        public static ConfigEntry LoadFromFile(string filename)
+        public static ServerConfig LoadFromFile(string filename)
         {
             try
             {
@@ -88,11 +111,13 @@ namespace Server {
                     .Build();
 
                 // 反序列化为对象
-                var config = deserializer.Deserialize<ConfigEntry>(yaml);
+                var config = deserializer.Deserialize<ServerConfig>(yaml);
                 if(config != null)
                 {
                     _config = config;
                 }
+
+                _config.SecretKey = _config.SecretKey.Trim().ToUpper();
             }
             catch (Exception ex)
             {
