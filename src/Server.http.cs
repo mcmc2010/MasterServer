@@ -7,7 +7,7 @@ namespace Server
         public int CheckSecretKey(HttpContext context)
         {
             var headers = context.Request.Headers;
-            if (!headers.TryGetValue("X-Secret-Key", out var value))
+            if (!headers.TryGetValue("X-SecretKey", out var value))
             {
                 return -1;
             }
