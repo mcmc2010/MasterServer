@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection.Metadata;
 
 
 
@@ -66,6 +67,8 @@ namespace AMToolkits.Utility
         #endregion
 
         #region UID
+        private static long _generator_idx_index = 0;
+
         /// <summary>
         /// 用于临时校验
         /// 随机6个数字
@@ -161,24 +164,36 @@ namespace AMToolkits.Utility
             return c;
         }
 
+        /// <summary>
+        /// 30年周期
+        /// AA BBBB MM RRRR
+        /// 弱唯一标识，比如账号ID
+        /// </summary>
+        /// <returns></returns>
         public static string GeneratorID12N()
         {
             var now = System.DateTime.UtcNow;
-            int AAA = now.Year % 100 + 100;
+            int AA = now.Year % 30;
+            if(AA < 10) { AA = AA + 10; }
+
             int BBBB = now.DayOfYear * 24;
             // 精度到小时
-            long V = AAA * 10000 + BBBB;
+            long V = AA * 10000 + BBBB;
+
+            int MM = now.Minute / 12;
+            int MS = now.Millisecond / 100;
+            V = V * 100 + MM * 10 + MS;
+
             int RRRR = Guid.Random(1000, 9999);
             V = V * 10000 + RRRR;
 
             string value = V.ToString();
-            value = value + CheckDigit(value).ToString();
             return value;
         }
 
         /// <summary>
         /// 建议使用16位数字标识
-        /// 精度为0.5秒 9999
+        /// 产出如物品ID
         /// 125 2064 0300 6364 7
         /// </summary>
         /// <returns></returns>
@@ -189,11 +204,36 @@ namespace AMToolkits.Utility
             int BBBB = now.DayOfYear * 24;
             // 精度到小时
             long V = AAA * 10000 + BBBB;
-            int CCCC = (now.Minute * 60 + now.Second) * (now.Millisecond / 500 + 1);
-            V = V * 10000 + CCCC;
+            int CCC = (now.Minute * 60 + now.Second) / 5;
+            V = V * 1000 + CCC;
+            V = V * 10 + now.Millisecond / 100;
             int RRRR = Guid.Random(1000, 9999);
             V = V * 10000 + RRRR;
 
+            string value = V.ToString();
+            value = value + CheckDigit(value).ToString();
+            return value;
+        }
+
+        /// <summary>
+        /// 建议使用18位数字标识
+        /// 例如：日志序号，流水单号
+        /// 125 2112 0515 7066 03 1
+        /// </summary>
+        /// <returns></returns>
+        public static string GeneratorID18N()
+        {
+            var now = System.DateTime.UtcNow;
+            int AAA = now.Year % 100 + 100;
+            int BBBB = now.DayOfYear * 24;
+            // 精度到小时
+            long V = AAA * 10000 + BBBB;
+            int CCC = (now.Minute * 60 + now.Second) / 5;
+            V = V * 1000 + CCC;
+            int RRRR = Guid.Random(1000, 9999);
+            V = V * 10000 + RRRR;
+            V = V * 100 + now.Millisecond / 10;
+            V = V * 10 + (++_generator_idx_index % 10);
             string value = V.ToString();
             value = value + CheckDigit(value).ToString();
             return value;

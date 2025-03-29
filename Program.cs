@@ -4,6 +4,10 @@ using Logger;
 
 try
 {
+    System.Console.WriteLine(AMToolkits.Utility.Guid.GeneratorID18N());
+    System.Console.WriteLine(AMToolkits.Utility.Guid.GeneratorID18N());
+    System.Console.WriteLine(AMToolkits.Utility.Guid.GeneratorID18N());
+
     //
     var config = Server.ServerConfigLoader.LoadFromFile("settings.yaml");
     var cfg = config.Logging.FirstOrDefault(v => v.Name.Trim().ToLower() == "main");
