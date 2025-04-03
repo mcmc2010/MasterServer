@@ -8,7 +8,7 @@ dotnet run
 
 ```shell
 # build win64
-dotnet publish -c Release -o ./publish --self-contained true -r win-x64
+dotnet publish MasterServer.csproj -c Release --output ./publish --self-contained true -r win-x64
 ```
 
 ```shell
@@ -18,6 +18,6 @@ dotnet publish -c Release -o ./publish --self-contained true -r win-x64
 # -r linux-arm64     # ARM 64位
 
 # build linux
-dotnet publish -c Release -o ./publish-linux --self-contained true -r linux-x64 /p:DefineConstants="LINUX"
-dotnet publish -c Release -o ./publish-linux --self-contained true -r linux-x64 /p:DefineConstants="LINUX;LINUX_SERVICE"
+dotnet publish MasterServer.csproj -c Release --output ./publish-linux --self-contained true -r linux-x64 /p:DefineConstants="LINUX"
+dotnet publish MasterServer.csproj -c Release --output ./publish-linux --self-contained true -r linux-x64 /p:DefineConstants="LINUX;LINUX_SERVICE"
 ```

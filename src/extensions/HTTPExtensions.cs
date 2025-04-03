@@ -1,3 +1,4 @@
+
 using System.Net;
 using System.Net.Sockets;
 using Microsoft.AspNetCore.Http;
@@ -40,6 +41,64 @@ namespace AMToolkits.Extensions
             return false;
         }
 
+        /// <summary>
+        /// 不可以使用同步函数，只能使用异步函数JsonBodyAsync
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [System.Obsolete("Not using")]
+        public static T? JsonBody<T>(this HttpRequest request)
+        {
+            try {
+                var reader = new StreamReader(request.Body);
+                var json = reader.ReadToEnd();
+                request.Body.Position = 0;
+                if(json.Length == 0) {
+                    return default(T);
+                }
+                
+                var body = System.Text.Json.JsonSerializer.Deserialize<T>(json,
+                                new System.Text.Json.JsonSerializerOptions
+                                {
+                                    IncludeFields = true, 
+                                    PropertyNameCaseInsensitive = true,    // 启用不区分大小写的属性匹配
+                                    ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip  // 自动跳过注释
+                                    //PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+                                }
+                );
+                return body;
+            }
+            catch(Exception e) {
+                System.Console.WriteLine($"{e.Message}");
+                return default(T);
+            }
+        }
+        public static async Task<T?> JsonBodyAsync<T>(this HttpRequest request)
+        {
+            try {
+                var reader = new StreamReader(request.Body);
+                var json = await reader.ReadToEndAsync();
+                if(json.Length == 0) {
+                    return default(T);
+                }
+                
+                var body = System.Text.Json.JsonSerializer.Deserialize<T>(json,
+                                new System.Text.Json.JsonSerializerOptions
+                                {
+                                    IncludeFields = true, 
+                                    PropertyNameCaseInsensitive = true,    // 启用不区分大小写的属性匹配
+                                    ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip  // 自动跳过注释
+                                    //PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+                                }
+                );
+                return body;
+            }
+            catch(Exception e) {
+                System.Console.WriteLine($"{e.Message}");
+                return default(T);
+            }
+        }
 
         /// <summary>
         /// 
@@ -123,7 +182,6 @@ namespace AMToolkits.Extensions
             }
         }
 
-
         /// <summary>
         /// 
         /// </summary>
@@ -131,11 +189,55 @@ namespace AMToolkits.Extensions
         /// <param name="content"></param>
         /// <param name="code"></param>
         /// <returns></returns>
-        public static Task ResponseJsonAsync(this HttpContext context, object content, HttpStatusCode code = HttpStatusCode.OK)
+        private static Task ResponseJsonAsync(this HttpContext context, object content, HttpStatusCode code = HttpStatusCode.OK)
         {
             context.Response.StatusCode = (int)code;
             context.Response.ContentType = "application/json";
-            return context.Response.WriteAsJsonAsync(content);
+            return context.Response.WriteAsJsonAsync(content, 
+                new System.Text.Json.JsonSerializerOptions
+                {
+                    IgnoreReadOnlyFields = true,
+                    IncludeFields = true, 
+                    PropertyNameCaseInsensitive = true,    // 启用不区分大小写的属性匹配
+                    ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip,  // 自动跳过注释
+                    PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+                });
+        }
+
+
+        public async static Task ResponseStatusAsync(this HttpContext context, string status, 
+                                    string message = "",
+                                    HttpStatusCode code = HttpStatusCode.OK)
+        {
+            await context.ResponseStatusAsync(status, message, 0, 0.0f, code);
+        }
+
+
+        public async static Task ResponseStatusAsync(this HttpContext context, string status, 
+                                    string message,
+                                    long timestamp = 0, float delay = 0.0f,
+                                    HttpStatusCode code = HttpStatusCode.OK)
+        {
+            if(timestamp <= 0) {
+                timestamp = AMToolkits.Utility.Utils.GetLongTimestamp();
+            }
+            if(delay < AMToolkits.Utility.Utils.NETWORK_DELAY_MIN) {
+                delay = AMToolkits.Utility.Utils.NETWORK_DELAY_MIN;
+            }
+
+            var address = context.GetClientAddress();
+
+            // 统一规范
+            var result = new {
+                Code = code,
+                Status = status,
+                Message = message,
+                Timestamp = timestamp,
+                Delay = delay,
+                DateTime = DateTime.UtcNow,
+                Address = address.ToString()
+            };
+            await context.ResponseJsonAsync(result, code);
         }
 
         public async static Task ResponseError(this HttpContext context, HttpStatusCode code = HttpStatusCode.BadRequest, string message = "")

@@ -126,6 +126,11 @@ namespace Logger {
 
             _output_name = $"{name}.log";
             _path_name = System.IO.Path.GetFullPath("./logs");
+
+            if(!System.IO.Path.Exists(_path_name))
+            {
+                System.IO.Directory.CreateDirectory(_path_name);
+            }
         }
 
         public void Finish()

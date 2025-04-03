@@ -2,11 +2,33 @@
 //
 using Logger;
 
+bool is_development = true;
+
 try
 {
-    System.Console.WriteLine(AMToolkits.Utility.Guid.GeneratorID18N());
-    System.Console.WriteLine(AMToolkits.Utility.Guid.GeneratorID18N());
-    System.Console.WriteLine(AMToolkits.Utility.Guid.GeneratorID18N());
+    // 获取操作系统信息
+    var os_description = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
+    var os_architecture = System.Runtime.InteropServices.RuntimeInformation.OSArchitecture;
+
+    // 判断是否为开发模式
+    var environment = System.Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") 
+               ?? System.Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") 
+               ?? "Production";
+#if DEBUG
+    environment = "Development";
+#endif
+    if(environment != "Development")
+    {
+        is_development = false;
+    }
+
+    // 输出格式化信息
+    System.Console.WriteLine(
+        $"[System Environment]\n" +
+        $"OS: {os_description}\n" + 
+        $"Architecture: {os_architecture}\n" +
+        $"Development Mode: {(is_development ? "✔ Enabled" : "× Disabled")}\n"
+    );
 
     //
     var config = Server.ServerConfigLoader.LoadFromFile("settings.yaml");

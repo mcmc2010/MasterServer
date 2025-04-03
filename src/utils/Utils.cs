@@ -6,12 +6,46 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
+
 #if USE_UNITY_BUILD
 using UnityEngine;
 #endif
 
 namespace AMToolkits.Utility
 {
+    #region Hash
+    public static class Hash
+    {
+        public static string MD5String(string text)
+        {
+            MD5 md5 = MD5.Create();
+            byte[] buffer = System.Text.Encoding.UTF8.GetBytes(text);
+            byte[] digest = md5.ComputeHash(buffer);
+            System.Text.StringBuilder sb = new System.Text.StringBuilder();
+            for (int i = 0; i < digest.Length; i++)
+            {
+                sb.Append(digest[i].ToString("x2"));
+            }
+            return sb.ToString().ToUpper();
+        }
+
+
+        public static string SHA256String(string text)
+        {
+            SHA256 sha = SHA256.Create();
+            byte[] buffer = System.Text.Encoding.UTF8.GetBytes(text);
+            byte[] digest = sha.ComputeHash(buffer);
+            System.Text.StringBuilder sb = new System.Text.StringBuilder();
+            for (int i = 0; i < digest.Length; i++)
+            {
+                sb.Append(digest[i].ToString("x2"));
+            }
+            return sb.ToString().ToUpper();
+        }
+    }
+    #endregion
+
     /// <summary>
     /// 
     /// </summary>
@@ -21,6 +55,15 @@ namespace AMToolkits.Utility
         public const float NETWORK_DELAY_MIN = 10 * 0.001f;
 
         #region  DateTime
+        /// <summary>
+        /// 不包含时区
+        /// </summary>
+        public const string DATETIME_FORMAT_STRING = "yyyyMMdd-HH:mm:ss";
+        /// <summary>
+        /// 包含时区
+        /// </summary>
+        public const string DATETIME_FORMAT_LONG_STRING = "yyyyMMdd-HH:mm:ss zz";
+
         /// <summary>
         /// 
         /// </summary>
@@ -63,6 +106,63 @@ namespace AMToolkits.Utility
         public static float DiffTimestamp(long A,  long B)
         {
             return (float)(B - A) * 0.001f;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="dt"></param>
+        /// <param name="format"></param>
+        /// <returns></returns>
+        public static string DateTimeToString(DateTime? dt = null, string format = DATETIME_FORMAT_STRING)
+        {
+            try
+            {
+                if (dt == null)
+                {
+                    dt = DateTime.Now;
+                }
+                return ((DateTime)dt).ToString(format);
+            }
+            catch(Exception e)
+            {
+                return "";
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="dt"></param>
+        /// <param name="format"></param>
+        /// <returns>默认赋值了，这里将强制转换为不为NULL</returns>
+        public static DateTime DateTimeFromString(string date, string format = DATETIME_FORMAT_STRING, DateTime? defval = null)
+        {
+            if (defval == null)
+            {
+                defval = DateTime.Now;
+            }
+
+            try
+            {
+                date = date?.Trim();
+                if (date == null || date.Length == 0)
+                {
+                    return (DateTime)defval;
+                }
+
+                DateTime dt = DateTime.Now;
+                if(!DateTime.TryParseExact(date, format, null, System.Globalization.DateTimeStyles.None, out dt))
+                {
+                    return (DateTime)defval;
+                }
+
+                return dt;
+            }
+            catch (Exception e)
+            {
+                return (DateTime)defval;
+            }
         }
         #endregion
 

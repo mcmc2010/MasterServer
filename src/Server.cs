@@ -200,12 +200,7 @@ namespace Server
             // 捕获所有未匹配的路由，返回默认 JSON
             _webserver.MapFallback(async context =>
             {
-                var result = new {
-                    Status = "error",
-                    Code = (int)HttpStatusCode.NotFound,
-                    Message = "Not Found"
-                };
-                await context.ResponseJsonAsync(result, HttpStatusCode.NotFound);
+                await context.ResponseStatusAsync("error", "Not Found", HttpStatusCode.NotFound);
             });
 
 
