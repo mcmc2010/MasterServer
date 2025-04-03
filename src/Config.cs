@@ -14,6 +14,8 @@ namespace Server {
     /// </summary>
     public class ConfigItem_Logger
     {
+        [YamlMember(Alias = "enabled")]
+        public bool Enabled { get; set; } = true; // 默认路径
         [YamlMember(Alias = "name")] // 明确映射 YAML 字段名（可选，如果字段名不一致时需要）
         public string Name { get; set; } = ""; // 默认值
         [YamlMember(Alias = "level")] // 明确映射 YAML 字段名（可选，如果字段名不一致时需要）
@@ -55,6 +57,29 @@ namespace Server {
         public string Certificates { get; set; } = "";
     }
 
+    
+    public class ConfigItem_Database
+    {
+        [YamlMember(Alias = "type")]
+        public string Type { get; set; } = "main"; 
+        [YamlMember(Alias = "name")]
+        public string Name { get; set; } = "game"; 
+        [YamlMember(Alias = "user")]
+        public string UserName { get; set; } = "sa";
+        [YamlMember(Alias = "pass")]
+        public string Password { get; set; } = "123456";
+        [YamlMember(Alias = "address")]
+        public string Address { get; set; } = "127.0.0.1"; 
+        [YamlMember(Alias = "port")]
+        public int Port { get; set; } = 3306; 
+        [YamlMember(Alias = "ssl")]
+        public bool HasSSL { get; set; } = false;
+        [YamlMember(Alias = "ssl_certs", ApplyNamingConventions = false)]
+        public string SSLCertificates { get; set; } = "";
+        [YamlMember(Alias = "ssl_key", ApplyNamingConventions = false)]
+        public string SSLKey { get; set; } = "";
+    }
+
     /// <summary>
     /// 
     /// </summary>
@@ -71,6 +96,11 @@ namespace Server {
         /// </summary>
         [YamlMember(Alias = "http_server", ApplyNamingConventions = false)]
         public ConfigItem_HTTPServer[] HTTPServer { get; set; } = new ConfigItem_HTTPServer[] { }; // 初始化默认配置
+        /// <summary>
+        /// 
+        /// </summary>
+        [YamlMember(Alias = "database", ApplyNamingConventions = false)]
+        public ConfigItem_Database[] Databases = new ConfigItem_Database[]{ };
 
         /// <summary>
         /// 

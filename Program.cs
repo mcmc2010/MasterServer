@@ -27,7 +27,7 @@ try
         $"[System Environment]\n" +
         $"OS: {os_description}\n" + 
         $"Architecture: {os_architecture}\n" +
-        $"Development Mode: {(is_development ? "✔ Enabled" : "× Disabled")}\n"
+        $"Development Mode: {(is_development ? "Enabled" : "Disabled")}\n"
     );
 
     //
@@ -45,8 +45,13 @@ try
     logger.Log("Init Logger Completed");
 
     // 1:
+    var db_manager = Server.DatabaseManager.NewInstance(args, config);
+    logger.Log("Init DatabaseManager Completed");
+
+    // 2:
     var user_manager = Server.UserManager.NewInstance(args, config);
     logger.Log("Init UserManager Completed");
+
 
     // 
     var app = Server.ServerApplication.NewInstance(args, config);

@@ -15,5 +15,20 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="9.0.3" />
     <PackageReference Include="YamlDotNet" Version="16.3.0" />
   </ItemGroup>
-
+  <!-- MYSQL SDK -->
+  <ItemGroup>
+    <Reference Include="MySql.Data">
+      <HintPath>$(ProjectDir)libs\MySql.Data.dll</HintPath>
+      <!-- 必须添加 -->
+      <Private>true</Private> 
+    </Reference>
+    <Reference Include="System.Security.Permissions">
+      <HintPath>$(ProjectDir)libs\System.Security.Permissions.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="System.Configuration.ConfigurationManager">
+      <HintPath>$(ProjectDir)libs\System.Configuration.ConfigurationManager.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
 </Project>

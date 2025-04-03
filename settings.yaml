@@ -6,6 +6,18 @@ http_server:
    port: 5443
    ssl: true
    certs: "certs/https.pfx"
+database:
+   # 主数据库
+   - type: main
+     name: game
+     user: service
+     pass: "game123..."
+     address: "192.168.1.90"
+     port: 3306
+     # SSL 默认:开启
+     ssl: true
+     ssl_certs: "certs/db.crt"
+     ssl_key: "certs/db_rsa_2048.pem.unsecure"
 logging:
   - name: main
     level: Information
@@ -13,3 +25,7 @@ logging:
   - name: http
     level: Information
     file: "logs/http.log"
+  # 数据库日志
+  - name: database
+    level: Information
+    file: "logs/database.log"

@@ -5,6 +5,25 @@ openssl pkcs12 -export -out https.pfx -inkey private.key -in https.crt
 dotnet nuget locals all --clear
 dotnet restore
 dotnet run
+```
+
+### 创建CA证书
+
+```shell
+# openssl new version:
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -pass pass:123456 -out ./certs/ca_rsa_2048.pem
+openssl req -new -x509 -days 365 -key ./certs/ca_rsa_2048.pem -out ./certs/ca.crt -subj "/C=CN/ST=SH/L=SH/O=COM/OU=AM/CN=CA/emailAddress=admin@mcmcx.com" -passout pass:123456
+```
+
+### 创建Database证书
+
+```shell
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -pass pass:123456 -out ./certs/db_rsa_2048.pem
+openssl req -new -key ./certs/db_rsa_2048.pem -passin pass:123456 -out ./certs/db.csr -subj "/C=CN/ST=SH/L=SH/O=COM/OU=AM/CN=HTTPS/emailAddress=admin@mcmcx.com"
+openssl x509 -req -days 365 -in ./certs/db.csr -CA ./certs/ca.crt -CAkey ./certs/ca_rsa_2048.pem -passin pass:123456 -CAcreateserial -out ./certs/db.crt 
+# 去除自定义证书私钥的密码
+openssl rsa -in ./certs/db_rsa_2048.pem -out ./certs/db_rsa_2048.pem.unsecure
+```
 
 ```shell
 # build win64
