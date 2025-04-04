@@ -61,10 +61,12 @@ namespace AMToolkits.Extensions
                 var body = System.Text.Json.JsonSerializer.Deserialize<T>(json,
                                 new System.Text.Json.JsonSerializerOptions
                                 {
+                                    IgnoreReadOnlyFields = true,
                                     IncludeFields = true, 
-                                    PropertyNameCaseInsensitive = true,    // 启用不区分大小写的属性匹配
-                                    ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip  // 自动跳过注释
-                                    //PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+                                    // PropertyNameCaseInsensitive = true,    // 启用不区分大小写的属性匹配
+                                    ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip,  // 自动跳过注释
+                                    // PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase, // 不使用驼峰命名
+                                    PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower
                                 }
                 );
                 return body;
@@ -86,10 +88,12 @@ namespace AMToolkits.Extensions
                 var body = System.Text.Json.JsonSerializer.Deserialize<T>(json,
                                 new System.Text.Json.JsonSerializerOptions
                                 {
+                                    IgnoreReadOnlyFields = true,
                                     IncludeFields = true, 
-                                    PropertyNameCaseInsensitive = true,    // 启用不区分大小写的属性匹配
-                                    ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip  // 自动跳过注释
-                                    //PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+                                    // PropertyNameCaseInsensitive = true,    // 启用不区分大小写的属性匹配
+                                    ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip,  // 自动跳过注释
+                                    // PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase, // 不使用驼峰命名
+                                    PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower
                                 }
                 );
                 return body;
@@ -198,9 +202,10 @@ namespace AMToolkits.Extensions
                 {
                     IgnoreReadOnlyFields = true,
                     IncludeFields = true, 
-                    PropertyNameCaseInsensitive = true,    // 启用不区分大小写的属性匹配
+                    // PropertyNameCaseInsensitive = true,    // 启用不区分大小写的属性匹配
                     ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip,  // 自动跳过注释
-                    PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+                    // PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase, // 不使用驼峰命名
+                    PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower
                 });
         }
 

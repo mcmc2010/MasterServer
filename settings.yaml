@@ -1,3 +1,6 @@
+## 
+##
+##
 secret_key: 00112233445566778899AABBCCDDEEFF
 http_server:
  - address: "0.0.0.0"
@@ -19,9 +22,11 @@ database:
      ssl_certs: "certs/db.crt"
      ssl_key: "certs/db_rsa_2048.pem.unsecure"
 logging:
+  # 默认服务日志
   - name: main
     level: Information
     file: "logs/main.log"
+  # HTTP 服务日志
   - name: http
     level: Information
     file: "logs/http.log"
@@ -29,3 +34,9 @@ logging:
   - name: database
     level: Information
     file: "logs/database.log"
+  # 数据库sql查询日志
+  - name: database_query
+    level: Information
+    file: "logs/database_query.log"
+    is_file: true
+    is_console: false

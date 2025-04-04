@@ -23,7 +23,10 @@ namespace Server {
 
         [YamlMember(Alias = "file")]
         public string File { get; set; } = "logs/main.log"; // 默认路径
-
+        [YamlMember(Alias = "is_console", ApplyNamingConventions = false)]
+        public bool IsConsole { get; set; } = true; // 默认开启
+        [YamlMember(Alias = "is_file", ApplyNamingConventions = false)]
+        public bool IsFile { get; set; } = true; // 默认开启
         public Logger.LogLevel Getlevel() {
             //
             if(Level == Logger.LogLevel.Debug.ToString())
@@ -135,9 +138,11 @@ namespace Server {
                 // 读取 YAML 文件内容
                 string yaml = File.ReadAllText(filename);
 
+
                 // 创建反序列化器
                 var deserializer = new DeserializerBuilder()
-                    .WithNamingConvention(CamelCaseNamingConvention.Instance) // 自动将驼峰命名映射到 PascalCase 属性
+                    .WithNamingConvention(UnderscoredNamingConvention.Instance) // 自动下划线命名
+                    //.WithNamingConvention(CamelCaseNamingConvention.Instance) // 自动驼峰命名
                     .Build();
 
                 // 反序列化为对象

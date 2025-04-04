@@ -8,35 +8,13 @@ namespace Server {
     /// <summary>
     /// 
     /// </summary>
-    public class DatabaseQuery
-    {
-        public string name = "";
-        public string version = "";
-        public MySqlConnection? db = null;
-
-        public object? Query(string query)
-        {
-            if(db == null) {
-                return null;
-            }
-
-            MySqlCommand command = new MySqlCommand(query, db);
-            var result = command.ExecuteScalar();
-            command.Dispose();
-            return result;
-        }
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
     public class DatabaseManager : SingletonT<DatabaseManager>, ISingleton
     {
 
         private string[]? _arguments = null;
         private ServerConfig? _config = null;
         private Logger.LoggerEntry? _logger = null;
-
+        private Logger.LoggerEntry? _logger_query = null;
 
         public DatabaseManager()
         {
@@ -68,17 +46,26 @@ namespace Server {
 
         private void InitLogger()
         {
+            //
             _logger = Logger.LoggerFactory.Instance;
             var cfg = _config?.Logging.FirstOrDefault(v => v.Name.Trim().ToLower() == "database");
-            if(cfg != null && cfg.Enabled) {
+            if(cfg != null) {
                 if(!cfg.Enabled) {
                     _logger = null;
                 }
                 else
                 {
-                    _logger = Logger.LoggerFactory.CreateLogger(cfg.Name, true, true);
+                    _logger = Logger.LoggerFactory.CreateLogger(cfg.Name, cfg.IsConsole, cfg.IsFile);
                     _logger.SetOutputFileName(cfg.File);
                 }
+            }
+
+            //
+            _logger_query = null;
+            cfg = _config?.Logging.FirstOrDefault(v => v.Name.Trim().ToLower() == "database_query");
+            if(cfg != null && cfg.Enabled) {
+                _logger_query = Logger.LoggerFactory.CreateLogger(cfg.Name, cfg.IsConsole, cfg.IsFile);
+                _logger_query.SetOutputFileName(cfg.File);
             }
         }
 
@@ -130,7 +117,8 @@ namespace Server {
                 var query = new DatabaseQuery() {
                     name = type,
                     version = conn.ServerVersion,
-                    db = conn
+                    db = conn,
+                    logger = _logger_query
                 };
                 return query;
             }
