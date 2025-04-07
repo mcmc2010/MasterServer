@@ -15,7 +15,7 @@ database:
      name: game
      user: service
      pass: "game123..."
-     address: "192.168.1.90"
+     address: "127.0.0.1"
      port: 3306
      # SSL 默认:开启
      ssl: true

@@ -54,7 +54,9 @@ namespace Server
 
             // 解析 JSON
             var user = await context.Request.JsonBodyAsync<NAuthUserRequest>();
-            _logger?.Log($"(User) Auth User:{user?.UID} SessionUID:{user?.SessionUID}");
+            if(_logger?.GetLevel() <= LogLevel.Information) {
+                _logger?.Log($"(User) Auth User:{user?.UID} SessionUID:{user?.SessionUID}");
+            }
 
             string uid = AMToolkits.Utility.Guid.GeneratorID12N();
 
@@ -66,11 +68,36 @@ namespace Server
             string date_time = AMToolkits.Utility.Utils.DateTimeToString(DateTime.UtcNow, 
                     AMToolkits.Utility.Utils.DATETIME_FORMAT_LONG_STRING);
 
+            // 0: 第三方验证平台
+            // 1: DB验证用户
+            var user_data = new DBAuthUserData()
+            {
+                server_uid = uid,
+                client_uid = user?.UID ?? "",
+                custom_id = user?.SessionUID ?? "",
+                passphrase = passphrase,
+                token = token,
+                datetime = DateTime.Now,
+            };
+
+            int result_code = this.DBAuthUser(user_data);
+            if(result_code < 0) {
+
+            }
+
+            // HOL
+            result_code = this.DBInitHOL(user_data);
+            if(result_code < 0) {
+
+            }
+
+            _logger?.Log($"(User) Auth User:{user_data.client_uid} - {user_data.server_uid}, Token:{user_data.token} Result: {result_code}");
+
             //
             var result = new NAuthUserResponse {
-                Code = 0,
-                UID = user?.UID ?? "",
-                ServerUID = uid,
+                Code = result_code,
+                UID = user_data.client_uid,
+                ServerUID = user_data.server_uid,
                 Passphrase = passphrase,
                 Token = token,
                 DateTime = date_time

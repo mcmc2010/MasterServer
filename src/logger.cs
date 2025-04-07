@@ -1,5 +1,6 @@
 
 
+using Microsoft.AspNetCore.SignalR;
 
 namespace Logger {
     public enum LogLevel
@@ -15,6 +16,8 @@ namespace Logger {
 
     public interface ILogger
     {
+        LogLevel Level { get; }
+
         void Log(LogLevel level, string message, Exception? exception = null);
         bool IsEnabled(LogLevel level);
 
@@ -43,6 +46,7 @@ namespace Logger {
         private readonly string _name;
         private string _output_name;
         private readonly LogLevel _min_level;
+        public LogLevel Level { get { return _min_level; } }
         private readonly object _lock = new object();
 
         public ConsoleLogger(string name, LogLevel level)
@@ -113,6 +117,7 @@ namespace Logger {
         private string _path_name;
         private string _output_name;
         private readonly LogLevel _min_level;
+        public LogLevel Level { get { return _min_level; } }
         private readonly object _lock = new object();
 
         private bool _is_busy = false;
@@ -289,6 +294,11 @@ namespace Logger {
         {
             logger.Console?.Finish();
             logger.File?.Finish();
+        }
+
+        public static LogLevel GetLevel(this LoggerEntry logger) 
+        {
+            return logger.Console?.Level ?? logger.File?.Level ?? LogLevel.Information;
         }
 
         public static void LogTrace(this LoggerEntry logger, string message) 

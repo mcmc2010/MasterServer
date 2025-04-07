@@ -16,6 +16,8 @@ namespace Server {
         private Logger.LoggerEntry? _logger = null;
         private Logger.LoggerEntry? _logger_query = null;
 
+        private int _query_used_number = 0;
+
         public DatabaseManager()
         {
 
@@ -120,6 +122,8 @@ namespace Server {
                     db = conn,
                     logger = _logger_query
                 };
+
+                _query_used_number ++;
                 return query;
             }
             catch (Exception e)
@@ -141,7 +145,11 @@ namespace Server {
                     query.db.Close();
                     query.db.Dispose();
                     query.db = null;
+
+                    //
+                    _query_used_number --;
                 }
+                query = null;
             }
             catch (Exception e)
             {
