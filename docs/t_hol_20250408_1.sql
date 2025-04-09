@@ -1,4 +1,4 @@
-CREATE TABLE `t_hol` (
+ALTER TABLE `t_hol` (
   `uid` int unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) NOT NULL COMMENT '12位数字ID',
   `value` int DEFAULT '100',

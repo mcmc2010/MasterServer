@@ -52,11 +52,15 @@ try
     var user_manager = Server.UserManager.NewInstance(args, config);
     logger.Log("Init UserManager Completed");
 
+    // 3:
+    var match_manager = Server.GameMatchManager.NewInstance(args, config);
+    logger.Log("Init GameMatchManager Completed");
 
     // 
     var app = Server.ServerApplication.NewInstance(args, config);
     
     app.RegisterHandlersListner += user_manager.OnRegisterHandlers;
+    app.RegisterHandlersListner += match_manager.OnRegisterHandlers;
 
     app.CreateHTTPServer();
 

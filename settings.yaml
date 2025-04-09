@@ -2,6 +2,11 @@
 ##
 ##
 secret_key: 00112233445566778899AABBCCDDEEFF
+jwt_enabled: true
+# 该密钥为开发密钥，请不要用于生产，切记
+jwt_secret_key: ”kmd77171cbkqSu1c“
+# 这个是有效期，默认为24小时，这里是秒为单位
+jwt_expired: 86400
 http_server:
  - address: "0.0.0.0"
    port: 5000
@@ -40,3 +45,9 @@ logging:
     file: "logs/database_query.log"
     is_file: true
     is_console: false
+  # 匹配数量多，不建议使用默认等级
+  - name: game_match
+    level: Error
+    file: "logs/game_match.log"
+    is_file: true
+    is_console: true

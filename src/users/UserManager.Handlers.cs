@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
 using AMToolkits.Extensions;
 using Logger;
+using AMToolkits.Utility;
 
 namespace Server
 {
@@ -34,6 +35,8 @@ namespace Server
         public string Token = "";
         [JsonPropertyName("time")]
         public string DateTime = "";
+        [JsonPropertyName("hash")]
+        public string Hash = "";
     }
 
     public partial class UserManager
@@ -91,6 +94,19 @@ namespace Server
 
             }
 
+            string hash = "";
+            if(_config?.JWTEnabled == true) {
+                hash = JWTAuth.JWTSignData(new Dictionary<string, object>() {
+                    { "uid", user_data.client_uid },
+                    { "server_uid", user_data.server_uid },
+                    { "token", user_data.token }
+                }, _config?.JWTSecretKey ?? "", _config?.JWTExpired ?? -1);
+                // JWT 认证失败
+                if(hash.Length == 0)
+                {
+                    //result_code = -100;
+                }
+            }
             _logger?.Log($"(User) Auth User:{user_data.client_uid} - {user_data.server_uid}, Token:{user_data.token} Result: {result_code}");
 
             //
@@ -100,7 +116,8 @@ namespace Server
                 ServerUID = user_data.server_uid,
                 Passphrase = passphrase,
                 Token = token,
-                DateTime = date_time
+                DateTime = date_time,
+                Hash = hash,
             };
 
             //
