@@ -51,8 +51,9 @@ namespace Server {
         {
             _logger?.Log("[MatchManager] Register Handlers");
 
-            args.app?.Map("api/game/match", HandleStartMatch);
-
+            args.app?.MapPost("api/game/match", HandleMatchStart);
+            args.app?.MapPost("api/game/match_cancel", HandleMatchCancel);
+            args.app?.MapPost("api/game/match_completed", HandleMatchCompleted);
         }
     }
 }

@@ -54,5 +54,54 @@ namespace Server
             }
             return -1;
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="auth_data"></param>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        protected int DBMatchCancel(SessionAuthData auth_data, string id)
+        {
+            id = id.Trim();
+
+            var db = DatabaseManager.Instance.New();
+            try
+            {                
+                // 
+                string sql = 
+                    $"SELECT " + 
+                    $"  h.id AS server_id, h.value AS hol_value, " +
+                    $"  u.client_id " +
+                    $"FROM t_hol AS h " +
+                    $"RIGHT JOIN t_user AS u ON h.id = u.id AND u.status > 0 " +
+                    $"WHERE h.id = ?; ";
+                var result_code = db?.Query(sql, auth_data.id);
+                if(result_code < 0) {
+                    return -1;
+                }
+                
+                int hol_value = (int)(db?.GetResultItem("hol_value")?.Number ?? 100);
+
+                // 
+                sql =
+                    $"UPDATE `t_matches`" +
+                    $"SET " +
+                    $"  `last_time` = NOW(), `flag` = 'cancelled', `status` = 0 " +
+                    $"WHERE `sn` = ? AND `id` = ?;";
+                result_code = db?.Query(sql, id, auth_data.id);
+                if(result_code < 0) {
+                    return -1;
+                }
+
+                return 1;
+            } catch (Exception e) {
+                _logger?.LogError("(Match) Error :" + e.Message);
+            } finally {
+                DatabaseManager.Instance.Free(db);
+            }
+            return -1;
+        }
+
     }
 }
