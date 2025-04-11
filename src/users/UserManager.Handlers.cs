@@ -57,9 +57,6 @@ namespace Server
 
             // 解析 JSON
             var user = await context.Request.JsonBodyAsync<NAuthUserRequest>();
-            if(_logger?.GetLevel() <= LogLevel.Information) {
-                _logger?.Log($"(User) Auth User:{user?.UID} SessionUID:{user?.SessionUID}");
-            }
 
             string uid = AMToolkits.Utility.Guid.GeneratorID12N();
 
@@ -85,28 +82,43 @@ namespace Server
 
             int result_code = this.DBAuthUser(user_data);
             if(result_code < 0) {
-
+                user_data.passphrase = "";
+                user_data.token = "";
             }
 
-            // HOL
-            result_code = this.DBInitHOL(user_data);
-            if(result_code < 0) {
-
+            // 2: HOL
+            if(result_code > 0) {
+                result_code = this.DBInitHOL(user_data);
             }
-
+            
+            // 3: 
             string hash = "";
-            if(_config?.JWTEnabled == true) {
-                hash = JWTAuth.JWTSignData(new Dictionary<string, object>() {
-                    { "uid", user_data.client_uid },
-                    { "server_uid", user_data.server_uid },
-                    { "token", user_data.token }
-                }, _config?.JWTSecretKey ?? "", _config?.JWTExpired ?? -1);
-                // JWT 认证失败
-                if(hash.Length == 0)
-                {
-                    //result_code = -100;
+            if(result_code > 0) {
+
+                // JWT
+                if(_config?.JWTEnabled == true) {
+                    hash = JWTAuth.JWTSignData(new Dictionary<string, object>() {
+                        { "uid", user_data.client_uid },
+                        { "server_uid", user_data.server_uid },
+                        { "token", user_data.token }
+                    }, _config?.JWTSecretKey ?? "", _config?.JWTExpired ?? -1);
+                    // JWT 认证失败
+                    if(hash.Length == 0)
+                    {
+                        //result_code = -100;
+                    }
                 }
+
+                // Add User To Manager
+                this.AddUser(new UserBase() {
+                    ID = user_data.server_uid,
+                    ClientID = user_data.client_uid,
+                    AccessToken = user_data.token,
+                    Passphrase = user_data.passphrase
+                });
             }
+
+            //
             _logger?.Log($"(User) Auth User:{user_data.client_uid} - {user_data.server_uid}, Token:{user_data.token} Result: {result_code}");
 
             //
@@ -114,8 +126,8 @@ namespace Server
                 Code = result_code,
                 UID = user_data.client_uid,
                 ServerUID = user_data.server_uid,
-                Passphrase = passphrase,
-                Token = token,
+                Passphrase = user_data.passphrase,
+                Token = user_data.token,
                 DateTime = date_time,
                 Hash = hash,
             };

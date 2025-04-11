@@ -93,11 +93,17 @@ namespace Server {
         /// </summary>
         [YamlMember(Alias = "secret_key", ApplyNamingConventions = false)]
         public string SecretKey { get; set; } = "";
+        [YamlMember(Alias = "database_auth_enabled", ApplyNamingConventions = false)]
+        public bool DBAuthorizationEnabled { get; set; } = false;
+        [YamlMember(Alias = "database_auth_expired", ApplyNamingConventions = false)]
+        public int DBAuthorizationExpired { get; set; } = 1 * 24 * 60 * 60;
         /// <summary>
         /// JWT 
         /// </summary>
         [YamlMember(Alias = "jwt_enabled", ApplyNamingConventions = false)]
         public bool JWTEnabled { get; set; } = true;
+        [YamlMember(Alias = "jwt_auth_enabled", ApplyNamingConventions = false)]
+        public bool JWTAuthorizationEnabled { get; set; } = true;
         /// <summary>
         /// JWT
         /// </summary>

@@ -10,7 +10,7 @@ namespace Server
         /// <param name="id"></param>
         /// <param name="token"></param>
         /// <returns></returns>
-        private int DBCheckLoginSession(string id, string token)
+        private int DBAuthenticationSession(string id, string token)
         {
             var db = DatabaseManager.Instance.New();
             try
@@ -30,6 +30,7 @@ namespace Server
 
                 string access_token = db?.GetResultItem("token")?.String ?? "";
                 int status = (int)(db?.GetResultItem("status")?.Number ?? 1);
+                DateTime? last_time = db?.GetResultItem("last_time")?.Date;
 
                 // 该账号不允许访问，已封禁
                 if(status == 0)
@@ -43,6 +44,19 @@ namespace Server
                     return 0;
                 }
 
+                // 验证已经过时
+                int expired = _config?.DBAuthorizationExpired ?? 1 * 24 * 60 * 60;
+                if(last_time == null || 
+                    ((System.TimeSpan)(DateTime.Now - last_time)).Seconds >= expired)
+                {
+                    return -6;
+                }
+
+                // 最后更新验证
+                sql = 
+                    $"UPDATE t_user SET last_time = NOW() " +
+                    $"WHERE id = ? AND status > 0;";
+                result_code = db?.Query(sql, id);
                 return 1;
             } catch (Exception e) {
                 _logger?.LogError("(User) Error :" + e.Message);

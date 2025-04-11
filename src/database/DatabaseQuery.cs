@@ -15,21 +15,62 @@ namespace Server
 
         public string String {
             get {
-                return (string)(value ?? "");
+                return AsString();
             }
         }
+
         public long Number {
             get {
-                if(value?.GetType() == typeof(System.UInt32))
-                {
-                    return (long)(UInt32)value;
-                }
-                else if(value?.GetType() == typeof(System.Int32))
-                {
-                    return (long)(Int32)value;
-                }
-                return (long)(value ?? 0);
+                return AsNumber();
             }
+        }
+
+        public DateTime? Date {
+            get {
+                return AsDateTime();
+            }
+        }
+
+        public string AsString(string def = "")
+        {
+            if(value == null || value.GetType() != typeof(System.String)) {
+                return def;
+            }
+            return (string)value;
+        }
+
+        public long AsNumber(long def = 0)
+        {
+            if(value == null) {
+                return def;
+            }
+
+            switch(value)
+            {
+                case uint unv: return unv;
+                case int nv: return nv;
+                case UInt64 unv64: return (long)unv64;
+                case Int64 nv64: return (long)nv64;
+            }
+
+            return def;
+        }
+
+        public DateTime? AsDateTime(DateTime? def = null)
+        {
+            if(value == null) {
+                return def;
+            }
+
+            switch(value)
+            {
+                case uint unv: return DateTimeOffset.FromUnixTimeSeconds(unv).DateTime;
+                case int nv: return DateTimeOffset.FromUnixTimeSeconds(nv).DateTime;
+                case UInt64 unv64: return DateTimeOffset.FromUnixTimeMilliseconds((long)unv64).DateTime;
+                case Int64 nv64: return DateTimeOffset.FromUnixTimeMilliseconds((long)nv64).DateTime;
+                case DateTime dt: return dt;
+            }
+            return def;
         }
     }
 

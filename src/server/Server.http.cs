@@ -1,7 +1,7 @@
 
 using AMToolkits.Utility;
 using Microsoft.AspNetCore.Http;
-
+using Logger;
 
 
 ////
@@ -12,6 +12,9 @@ namespace Server
     {
         public string id = "";
         public int result = 0;
+
+        public string token = "";
+        public string passphrase = "";
     }
 
     /// <summary>
@@ -64,9 +67,11 @@ namespace Server
         /// <returns></returns>
         public int CheckLoginSession(HttpContext context, SessionAuthData? auth_data = null)
         {
-            if(auth_data != null)
+            if(auth_data == null)
             {
-                auth_data.result = -1;
+                auth_data = new SessionAuthData() {
+                    result = -1
+                };
             }
 
             var headers = context.Request.Headers;
@@ -90,28 +95,38 @@ namespace Server
                 hash = values[2].Trim();
             }
             
-            if(auth_data != null)
-            {
-                auth_data.id = key;
-                auth_data.result = 0;
-            }
+            auth_data.result = 0;
 
             // 登陆验证
-            if(_config?.JWTEnabled == true && JWTAuth.JWTVerifyData(hash, _config?.JWTSecretKey ?? "") <= 0)
+            int result_code = 0;
+            if(_config?.JWTEnabled == true && _config?.JWTAuthorizationEnabled == true 
+                && (result_code = JWTAuth.JWTVerifyData(hash, _config?.JWTSecretKey ?? "")) <= 0)
             {
+                auth_data.result = result_code;
                 return 0;
             }
 
             // DB 验证
-            if(DBCheckLoginSession(key, token) <= 0)
+            if(_config?.DBAuthorizationEnabled == true 
+                && (result_code = DBAuthenticationSession(key, token)) <= 0)
             {
+                auth_data.result = result_code;
                 return 0;
             }
 
-            if(auth_data != null)
+            auth_data.id = key;
+            auth_data.result = 1;
+            var user = UserManager.Instance.GetUser(key);
+            if(user != null)
             {
-                auth_data.id = key;
-                auth_data.result = 1;
+                auth_data.token = user.AccessToken;
+                auth_data.passphrase = user.Passphrase;
+            }
+
+            if(user?.AccessToken.ToUpper() != token.ToUpper())
+            {
+                _logger?.LogError($"(User) Auth User:{user?.ID}, Token:{user?.AccessToken} - {token} Error");
+                return 0;
             }
             return 1;
         }
