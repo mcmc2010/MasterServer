@@ -22,11 +22,14 @@ namespace Server
     /// </summary>
     public enum GameMatchState
     {
-        None,
+        Error = -1,
+        None  = 0,
         Start,
         Waiting,
-        Cancel,
-        Error,
+        Matched,
+        Timeout,
+        Cancelled,
+        Game,
         Completed,
     }
 

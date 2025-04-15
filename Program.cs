@@ -1,6 +1,7 @@
 ﻿
 //
 using Logger;
+using Server;
 
 bool is_development = true;
 
@@ -43,6 +44,12 @@ try
     var logger = Logger.LoggerFactory.CreateLogger(cfg.Name);
     logger.SetOutputFileName(cfg.File);
     logger.Log("Init Logger Completed");
+    // 0 - 1:
+    AMToolkits.Utility.ResourcesManager.NewInstance(args);
+    // 0 - 2:
+    AMToolkits.Utility.TableDataManager.NewInstance(args);
+    AMToolkits.Utility.TableDataManager.GetTableData<Game.TAIPlayers>();
+
 
     // 1:
     var db_manager = Server.DatabaseManager.NewInstance(args, config);
@@ -51,6 +58,10 @@ try
     // 2:
     var user_manager = Server.UserManager.NewInstance(args, config);
     logger.Log("Init UserManager Completed");
+
+    // 2 - 1:
+    var ai_manager = Server.AIPlayerManager.NewInstance(args, config);
+    logger.Log("Init AIPlayerManager Completed");
 
     // 3:
     var match_manager = Server.GameMatchManager.NewInstance(args, config);
@@ -66,6 +77,9 @@ try
 
     logger.Finish();
 
+    //
+    match_manager.StartWorking();
+    
     //
     int result = await app.StartWorking();
     app.EndWorking();

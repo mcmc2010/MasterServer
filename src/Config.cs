@@ -83,6 +83,19 @@ namespace Server {
         public string SSLKey { get; set; } = "";
     }
 
+    public class ConfigItem_MatchServer
+    {
+        [YamlMember(Alias = "enabled")]
+        public bool Enabled { get; set; } = true; 
+        [YamlMember(Alias = "poll_max")]
+        public int PollMaxNum { get; set; } = 100; 
+        [YamlMember(Alias = "ai_player_max")]
+        public int AIPlayerMaxNum { get; set; } = 1000; 
+        [YamlMember(Alias = "ai_player_derived")]
+        public bool IsAIPlayerDerived { get; set; } = true;
+
+    }
+
     /// <summary>
     /// 
     /// </summary>
@@ -114,6 +127,11 @@ namespace Server {
         /// </summary>
         [YamlMember(Alias = "jwt_expired", ApplyNamingConventions = false)]
         public int JWTExpired { get; set; } = 1 * 24 * 60 * 60;
+        /// <summary>
+        /// 
+        /// </summary>
+        [YamlMember(Alias = "match_server", ApplyNamingConventions = false)]
+        public ConfigItem_MatchServer MatchServer = new ConfigItem_MatchServer();
         /// <summary>
         /// 
         /// </summary>

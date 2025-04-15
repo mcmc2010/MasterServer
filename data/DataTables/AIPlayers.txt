@@ -1,0 +1,54 @@
+#	机器人配置表											
+#	Id		Name	Value	Gender	Level	HOLValue	Region	Icon	Items	Type	Status
+#	int		string	string	string	int	int	string	string	int	int	int
+#	编号	策划备注	组	(可选)	性别	等级	1-99999 默认100	国家地区	头像（也是Path，不要有空格）	物品ID;可以用|分隔多个物品		
+	100	新手	Test		male	0	100			0		
+	101	新手	Test 1		male	0	100			0		
+	1000	初级	渔夫老周		male	1	100	CHN	1_01	0		
+	1001	初级	咖啡师阿杰		male	1	100	CHN	1_02	0		
+	1002	初级	快递员大刘		male	1	100	CHN	1_03	0		
+	1003	初级	木工师傅		male	1	100	CHN	1_04	0		
+	1004	初级	登山向导强哥		male	1	100	CHN	1_05	0		
+	1005	初级	司机老王		male	1	100	CHN	1_06	0		
+	1006	初级	菜园管家		male	1	100	CHN	1_07	0		
+	1007	初级	图书管理员		male	1	100	CHN	1_08	0		
+	1008	初级	健身教练凯文		male	1	100	CHN	1_09	0		
+	1009	初级	维修工老张		male	1	100	CHN	1_10	0		
+	1010	初级	花艺师小柔		female	1	100	CHN	0_01	0		
+	1011	初级	烘焙助手莉莉		female	1	100	CHN	0_02	0		
+	1012	初级	育儿顾问		female	1	100	CHN	0_03	0		
+	1013	初级	美妆达人薇薇		female	1	100	CHN	0_04	0		
+	1014	初级	护士姐姐		female	1	100	CHN	0_05	0		
+	1015	初级	裁缝阿姨		female	1	100	CHN	0_06	0		
+	1016	初级	茶道老师		female	1	100	CHN	0_07	0		
+	1017	初级	导游安娜		female	1	100	CHN	0_08	0		
+	1018	初级	宠物美容师		female	1	100	CHN	0_09	0		
+	1019	初级	画室助手		female	1	100	CHN	0_10	0		
+	1020	初级	甜品店主		female	1	100	CHN	0_11	0		
+	1021	初级	瑜伽教练		female	1	100	CHN	0_12	0		
+	1022	初级	校园管理员		female	1	100	CHN	0_13	0		
+	1023	初级	闺蜜小助手		female	1	100	CHN	0_14	0		
+	1024	初级	园艺师苗苗		female	1	100	CHN	0_15	0		
+	1025	初级	舞蹈老师		female	1	100	CHN	0_16	0		
+	1026	初级	客服小蜜		female	1	100	CHN	0_17	0		
+	1027	初级	手作达人		female	1	100	CHN	0_18	0		
+	2000	中级	金智妍	___	female	2	100	KOR	0_01	0		
+	2001	中级	李秀贤	___	female	2	100	KOR	0_02	0		
+	2002	中级	朴恩熙	___	female	2	100	KOR	0_03	0		
+	2003	中级	崔美娜	___	female	2	100	KOR	0_04	0		
+	2004	中级	郑惠琳	___	female	2	100	KOR	0_05	0		
+	2005	中级	张艺珍	___	female	2	100	KOR	0_06	0		
+	2006	中级	赵敏智	___	female	2	100	KOR	0_07	0		
+	2007	中级	尹素妍	___	female	2	100	KOR	0_08	0		
+	2008	中级	韩允儿	___	female	2	100	KOR	0_09	0		
+	2009	中级	申慧静	___	female	2	100	KOR	0_10	0		
+	2010	中级	徐彩英	___	female	2	100	KOR	0_11	0		
+	2011	中级	林贞雅	___	female	2	100	KOR	0_12	0		
+	2012	中级	吴瑞妍	___	female	2	100	KOR	0_13	0		
+	2013	中级	姜贤珠	___	female	2	100	KOR	0_14	0		
+	2014	中级	宋雅拉	___	female	2	100	KOR	0_15	0		
+	2015	中级	河智媛	___	female	2	100	KOR	0_16	0		
+	2016	中级	裴恩惠	___	female	2	100	KOR	0_17	0		
+	2017	中级	孙秀雅	___	female	2	100	KOR	0_18	0		
+	2018	中级	黄慧妍	___	female	2	100	KOR	0_19	0		
+	2019	中级	曹珠妍	___	female	2	100	KOR	0_20	0		

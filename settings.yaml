@@ -14,6 +14,14 @@ jwt_auth_enabled: true
 jwt_secret_key: ”kmd77171cbkqSu1c“
 # 这个是有效期，默认为24小时，这里是秒为单位
 jwt_expired: 86400
+match_server: 
+  # 最大AI数量，小于这个数量AI只会创建
+  ai_player_max: 1000
+  # AI是否唯一性，一个基础AI可以衍生多个同名AI
+  # 配置false，需要配置表中有对应数量
+  ai_player_derived: true
+  # 最大处理数量
+  poll_max: 100
 http_server:
  - address: "0.0.0.0"
    port: 5000

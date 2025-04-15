@@ -10,6 +10,10 @@ namespace Server {
     /// </summary>
     public partial class GameMatchManager : SingletonT<GameMatchManager>, ISingleton
     {
+        [AutoInitInstance]
+        protected static GameMatchManager? _instance;
+
+
         private string[]? _arguments = null;
         private ServerConfig? _config = null;
         private Logger.LoggerEntry? _logger = null;
@@ -54,6 +58,35 @@ namespace Server {
             args.app?.MapPost("api/game/match", HandleMatchStart);
             args.app?.MapPost("api/game/match_cancel", HandleMatchCancel);
             args.app?.MapPost("api/game/match_completed", HandleMatchCompleted);
+        }
+
+        public Task<int> StartWorking()
+        {
+            return this.ProcessWorking();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        private async Task<int> ProcessWorking()
+        {
+            if(_config?.MatchServer.Enabled == false)
+            {
+                _logger?.Log("[MatchServer] Not Enabled");
+                return 0;
+            }
+            
+            _logger?.Log("[MatchServer] Start Working");
+
+            //
+            this.QueuesWorking();
+            return 0;
+        }
+
+        private async void QueuesWorking()
+        {
+            DBQueues();
         }
     }
 }

@@ -145,7 +145,7 @@ namespace AMToolkits.Utility
 
             try
             {
-                date = date?.Trim();
+                date = date.Trim();
                 if (date == null || date.Length == 0)
                 {
                     return (DateTime)defval;
