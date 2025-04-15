@@ -1,6 +1,7 @@
 
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using Microsoft.AspNetCore.Http;
 
 
@@ -156,6 +157,37 @@ namespace AMToolkits.Extensions
             return address;
         }
 
+        public static string GetOSPlatform(this HttpContext context) 
+        {
+            string value = "";
+            context.QueryString("platform", out value);
+            if(string.Compare(value, AMToolkits.Utility.OSPlatform.Window, true) == 0)
+            {
+                return AMToolkits.Utility.OSPlatform.Window;
+            }
+            else if(string.Compare(value, AMToolkits.Utility.OSPlatform.Linux, true) == 0)
+            {
+                return AMToolkits.Utility.OSPlatform.Linux;
+            }
+            else if(string.Compare(value, AMToolkits.Utility.OSPlatform.MacOS, true) == 0)
+            {
+                return AMToolkits.Utility.OSPlatform.MacOS;
+            }
+            else if(string.Compare(value, AMToolkits.Utility.OSPlatform.iOS, true) == 0)
+            {
+                return AMToolkits.Utility.OSPlatform.iOS;
+            }
+            else if(string.Compare(value, AMToolkits.Utility.OSPlatform.Android, true) == 0)
+            {
+                return AMToolkits.Utility.OSPlatform.Android;
+            }
+            else if(string.Compare(value, AMToolkits.Utility.OSPlatform.Web, true) == 0)
+            {
+                return AMToolkits.Utility.OSPlatform.Web;
+            }
+            return "Unknow";
+        }
+
 
         public static void QueryString(this HttpContext context, string key, out string value, string defval = "")
         {
@@ -175,7 +207,7 @@ namespace AMToolkits.Extensions
 
             Microsoft.Extensions.Primitives.StringValues vs;
             // 获取timestamp参数并转换为整数
-            if (!context.Request.Query.TryGetValue("timestamp", out vs))
+            if (!context.Request.Query.TryGetValue(key, out vs))
             {
             }
 

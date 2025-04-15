@@ -14,6 +14,19 @@ using UnityEngine;
 
 namespace AMToolkits.Utility
 {
+    #region OSPlatform
+    public static class OSPlatform
+    {
+        public const string MacOS = "MacOS";
+        public const string Window = "Window";
+        public const string Linux = "Linux";
+        public const string iOS = "iOS";
+        public const string Android = "Android";
+        public const string Web = "Web";
+    }
+    #endregion
+
+
     #region Hash
     public static class Hash
     {

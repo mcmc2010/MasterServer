@@ -28,9 +28,9 @@ namespace Server
                     return 0;
                 }
 
-                string access_token = db?.GetResultItem("token")?.String ?? "";
-                int status = (int)(db?.GetResultItem("status")?.Number ?? 1);
-                DateTime? last_time = db?.GetResultItem("last_time")?.Date;
+                string access_token = db?.ResultItems["token"]?.String ?? "";
+                int status = (int)(db?.ResultItems["status"]?.Number ?? 1);
+                DateTime? last_time = db?.ResultItems["last_time"]?.Date;
 
                 // 该账号不允许访问，已封禁
                 if(status == 0)

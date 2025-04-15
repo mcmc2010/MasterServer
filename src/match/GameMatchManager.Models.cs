@@ -12,26 +12,30 @@ namespace Server
 
                 string type_name = type == GameMatchType.Normal ? "normal" : "ranking";
                 
+
+                List<DatabaseResultItemSet>? list = null;
+
                 // 
                 string sql = 
                     $"SELECT " +
-	                $"  sn, id AS server_id, hol, " +
-                    $"  flag, create_time, last_time, " +
-                    $"  TIMESTAMPDIFF(SECOND, create_time, NOW()) AS wait_time " +
-                    $"FROM `t_matches` " +
+	                $"  m.sn, m.id AS server_id, u.name, m.hol AS hol_value, " +
+                    $"  m.flag, m.create_time, m.last_time, " +
+                    $"  TIMESTAMPDIFF(SECOND, m.create_time, NOW()) AS wait_time " +
+                    $"FROM `t_matches` AS m " +
+                    $"RIGHT JOIN `t_user` AS u ON u.id = m.id " +
                     $"WHERE " + 
-	                $"  type = 'normal' AND level = 0 " +
-                    $"  AND create_time > (NOW() - INTERVAL 30 MINUTE) " +
-                    $"  -- AND last_time > (NOW() - INTERVAL 5 SECOND)  -- 仅保留最近5秒内有更新的记录 " +
-	                $"  AND flag = 'waiting' AND `status` > 0" +
-                    $"ORDER BY create_time ASC  -- 按等待时间倒序排列 " +
+	                $"  m.type = 'normal' AND m.level = 0 " +
+                    $"  -- AND m.create_time > (NOW() - INTERVAL 30 MINUTE) " +
+                    $"  -- AND m.last_time > (NOW() - INTERVAL 5 SECOND)  -- 仅保留最近5秒内有更新的记录 " +
+	                $"  AND m.flag = 'waiting' AND m.status > 0" +
+                    $"ORDER BY m.create_time ASC  -- 按等待时间倒序排列 " +
                     $"LIMIT 100; ";
-                var result_code = db?.Query(sql);
-                if(result_code < 0) {
+                var result_code = db?.QueryWithList(sql, out list);
+                if(result_code < 0 || list == null) {
                     return -1;
                 }
                 
-                int hol_value = (int)(db?.GetResultItem("hol_value")?.Number ?? 100);
+                _logger?.Log($"{TAGName} (Queue) Count:{list.Count}");
 
                 return 1;
             } catch (Exception e) {
@@ -70,7 +74,7 @@ namespace Server
                     return -1;
                 }
                 
-                int hol_value = (int)(db?.GetResultItem("hol_value")?.Number ?? 100);
+                int hol_value = (int)(db?.ResultItems["hol_value"]?.Number ?? 100);
 
                 // 
                 sql =
@@ -119,7 +123,7 @@ namespace Server
                     return -1;
                 }
                 
-                int hol_value = (int)(db?.GetResultItem("hol_value")?.Number ?? 100);
+                int hol_value = (int)(db?.ResultItems["hol_value"]?.Number ?? 100);
 
                 // 
                 sql =

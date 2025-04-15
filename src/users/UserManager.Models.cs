@@ -1,3 +1,4 @@
+//// 新增设备纪录
 
 using Logger;
 
@@ -14,6 +15,7 @@ namespace Server
         public string passphrase = "";
         public string token = "";
         public DateTime datetime = DateTime.Now;
+        public string device = "";
     }
 
     /// <summary>
@@ -51,12 +53,12 @@ namespace Server
                     sql =
                         $"INSERT INTO `t_user` " +
                         $"(`id`,`client_id`," +
-                        $"`token`,`passphrase`,`playfab_id`)" +
-                        $"VALUES(?, ?,  ?,?,  ?);";
+                        $"`token`,`passphrase`,`playfab_id`, `device`)" +
+                        $"VALUES(?, ?,  ?,?,?, ?);";
                     result_code = db?.Query(sql, 
                         user_data.server_uid, user_data.client_uid, 
                         user_data.token, user_data.passphrase,
-                        user_data.custom_id);
+                        user_data.custom_id, user_data.device);
                     if(result_code < 0) {
                         return -1;
                     }
@@ -64,10 +66,10 @@ namespace Server
                 // 更新
                 else
                 {
-                    int uid = (int)(db?.GetResultItem("uid")?.Number ?? -1);
-                    int status = (int)(db?.GetResultItem("status")?.Number ?? 1);
+                    int uid = (int)(db?.ResultItems["uid"]?.Number ?? -1);
+                    int status = (int)(db?.ResultItems["status"]?.Number ?? 1);
 
-                    user_data.server_uid = db?.GetResultItem("server_id")?.String ?? "";
+                    user_data.server_uid = db?.ResultItems["server_id"]?.String ?? "";
                     if(user_data.server_uid.Length == 0)
                     {
                         return -1;
@@ -83,10 +85,10 @@ namespace Server
                         $"UPDATE `t_user` " +
                         $"SET " + 
                         $"    `token` = ?, `passphrase` = ?, " +
-                        $"    `last_time` = NOW() " +
+                        $"    `device` = ?, `last_time` = NOW() " +
                         $"WHERE `id` = ? AND `uid` = ?;";
                     result_code = db?.Query(sql, 
-                        user_data.token, user_data.passphrase,
+                        user_data.token, user_data.passphrase, user_data.device,
                         user_data.server_uid, uid);
 
                 }

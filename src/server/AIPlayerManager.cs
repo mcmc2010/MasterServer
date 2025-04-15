@@ -72,7 +72,7 @@ namespace Server
                 _template_data_list.Add(template);
             }
 
-            _logger?.LogWarning($"{TAGName} Loaded TemplateData : {_template_data_list.Count}");
+            _logger?.Log($"{TAGName} Loaded TemplateData : {_template_data_list.Count}");
         }
     }
 }

@@ -55,6 +55,9 @@ namespace Server
                 return;
             }
 
+            //
+            var platform = context.GetOSPlatform();
+
             // 解析 JSON
             var user = await context.Request.JsonBodyAsync<NAuthUserRequest>();
 
@@ -78,6 +81,7 @@ namespace Server
                 passphrase = passphrase,
                 token = token,
                 datetime = DateTime.Now,
+                device = $"{platform}"
             };
 
             int result_code = this.DBAuthUser(user_data);
