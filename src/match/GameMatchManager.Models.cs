@@ -2,6 +2,19 @@ using Logger;
 
 namespace Server
 {
+    [System.Serializable]
+    public class GameMatchQueueItem
+    {
+        public string sn = "";
+        public string server_id = "";
+        public string name = "";
+        public int hol_value = 0;
+        public DateTime? create_time = null;
+        public DateTime? last_time = null;
+        public int wait_time = -1;
+        public int status = 0;
+    }
+
     public partial class GameMatchManager 
     {
         protected int DBQueues(GameMatchType type = GameMatchType.Normal)
@@ -20,7 +33,7 @@ namespace Server
                     $"SELECT " +
 	                $"  m.sn, m.id AS server_id, u.name, m.hol AS hol_value, " +
                     $"  m.flag, m.create_time, m.last_time, " +
-                    $"  TIMESTAMPDIFF(SECOND, m.create_time, NOW()) AS wait_time " +
+                    $"  TIMESTAMPDIFF(SECOND, m.create_time, NOW()) AS wait_time, m.status " +
                     $"FROM `t_matches` AS m " +
                     $"RIGHT JOIN `t_user` AS u ON u.id = m.id " +
                     $"WHERE " + 
@@ -36,6 +49,10 @@ namespace Server
                 }
                 
                 _logger?.Log($"{TAGName} (Queue) Count:{list.Count}");
+                foreach(var v in list)
+                {
+                    var item = v.To<GameMatchQueueItem>();
+                }
 
                 return 1;
             } catch (Exception e) {

@@ -1,6 +1,7 @@
 
 using System.Collections;
 using System.Reflection;
+using System.Text.Json;
 
 namespace Server
 {
@@ -76,10 +77,104 @@ namespace Server
     /// <summary>
     /// 
     /// </summary>
+    public class DatabaseResultJsonConverter<T> : System.Text.Json.Serialization.JsonConverter<T>
+    {
+        public override T? Read(ref Utf8JsonReader reader, Type convert, JsonSerializerOptions options)
+        {
+            JsonDocument doc = JsonDocument.ParseValue(ref reader);
+            JsonElement root = doc.RootElement;
+            // 提取内层 name 值
+            JsonElement value;
+            root.TryGetProperty("value", out value);
+            if(value.ValueKind == JsonValueKind.Null || value.ValueKind == JsonValueKind.Undefined)
+            {
+                return default(T);
+            }
+            if(convert == typeof(string))
+            {
+                return (T?)(object?)value.GetString();
+            }
+            else if(convert == typeof(System.Int32))
+            {
+                return (T?)(object?)value.GetInt32();
+            }
+            else if(convert == typeof(System.Int64))
+            {
+                return (T?)(object?)value.GetInt64();
+            }
+            else if(convert == typeof(System.Double))
+            {
+                return (T?)(object?)value.GetDouble();
+            }
+            else if(convert == typeof(System.Boolean))
+            {
+                return (T?)(object?)value.GetBoolean();
+            }
+            else if(convert == typeof(System.DateTime))
+            {
+                return (T?)(object?)value.GetDateTime();
+            }
+            //return System.Text.Json.JsonSerializer.Deserialize(value.GetRawText(), convert, options);
+            return default(T);
+        }
+
+        public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
+        {
+            JsonSerializer.Serialize(writer, value, options);
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
     public class DatabaseResultItemSet : IDictionary<string, DatabaseResultItem>
     {
         private List<DatabaseResultItem> _result = new List<DatabaseResultItem>();
 
+        public T? To<T>() where T : new()
+        {
+            string json = this.ToJson();
+            T? o = System.Text.Json.JsonSerializer.Deserialize<T>(json, 
+                            new System.Text.Json.JsonSerializerOptions
+                            {
+                                IncludeFields = true, 
+                                IgnoreReadOnlyFields = true,
+                                IgnoreReadOnlyProperties = true,
+                                // PropertyNameCaseInsensitive = true,    // 启用不区分大小写的属性匹配
+                                // ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip,  // 自动跳过注释
+                                // PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase, // 不使用驼峰命名
+                                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower,
+                                Converters = { 
+                                    new DatabaseResultJsonConverter<string>(), 
+                                    new DatabaseResultJsonConverter<System.Int32>(),
+                                    new DatabaseResultJsonConverter<System.Int64>(),
+                                    new DatabaseResultJsonConverter<System.Double>(),
+                                    new DatabaseResultJsonConverter<System.Boolean>(),
+                                    new DatabaseResultJsonConverter<System.DateTime>(),
+                                }
+                            });
+            return o;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public string ToJson()
+        {
+            string json = System.Text.Json.JsonSerializer.Serialize<DatabaseResultItemSet>(this,                                
+                            new System.Text.Json.JsonSerializerOptions
+                            {
+                                IncludeFields = true, 
+                                IgnoreReadOnlyFields = true,
+                                IgnoreReadOnlyProperties = true,
+                                // PropertyNameCaseInsensitive = true,    // 启用不区分大小写的属性匹配
+                                // ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip,  // 自动跳过注释
+                                // PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase, // 不使用驼峰命名
+                                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower
+                            });
+            return json;
+        }
 
         /// <summary>
         /// 包含 Key 属性, 此处需要null，并且为只读，添加项目只能用Add
