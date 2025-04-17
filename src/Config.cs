@@ -89,6 +89,10 @@ namespace Server {
         public bool Enabled { get; set; } = true; 
         [YamlMember(Alias = "poll_max")]
         public int PollMaxNum { get; set; } = 100; 
+
+
+        [YamlMember(Alias = "ai_player_enabled")]
+        public bool IsAIPlayerEnabled { get; set; } = true;
         [YamlMember(Alias = "ai_player_max")]
         public int AIPlayerMaxNum { get; set; } = 1000; 
         [YamlMember(Alias = "ai_player_derived")]

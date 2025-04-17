@@ -15,6 +15,8 @@ jwt_secret_key: ”kmd77171cbkqSu1c“
 # 这个是有效期，默认为24小时，这里是秒为单位
 jwt_expired: 86400
 match_server: 
+  # AI玩家,开启该项，仅仅匹配AI，不匹配玩家
+  ai_player_enabled: true
   # 最大AI数量，小于这个数量AI只会创建
   ai_player_max: 1000
   # AI是否唯一性，一个基础AI可以衍生多个同名AI

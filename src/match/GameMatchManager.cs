@@ -81,12 +81,74 @@ namespace Server {
 
             //
             this.QueuesWorking();
+
+            this.AddAIPlayer(0);
             return 0;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
         private async void QueuesWorking()
         {
-            DBQueues();
+            List<GameMatchQueueItem> queue_players = new List<GameMatchQueueItem>();
+            // 从数据库中获取可以匹配的玩家
+            int result = DBQueues(queue_players);
+            if(result <= 0 || queue_players.Count == 0) 
+            {
+                return;
+            }
+
+            _logger?.Log($"{TAGName} (Queue) Count:{queue_players.Count}");
+        }
+
+        public int AddAIPlayer(int level = 0)
+        {
+            // 未开启
+            if(_config?.MatchServer.IsAIPlayerEnabled == false)
+            {
+                return 0;
+            }
+
+            // 获取当前AI数量
+            int count = this.DBAIPlayerCount();
+            // 如果当前AI数量已经达到设置，就不可以再创建
+            if(count >= _config?.MatchServer.AIPlayerMaxNum)
+            {
+                return 0;
+            }
+
+            AIPlayerTemplateData? new_template_data = null;
+            // AI 不可以重复
+            if(_config?.MatchServer.IsAIPlayerDerived == false)
+            {
+                List<AIPlayerData> ai_players = new List<AIPlayerData>();
+                // 从数据库中获取已经存在的AI
+                if(this.DBAIPlayerData(ai_players) <= 0)
+                {
+                    return -1;
+                }
+                
+                // 随机一个AI
+                new_template_data = AIPlayerManager.Instance.Rand(ai_players, -1);
+            }
+            else
+            {
+                List<AIPlayerTemplateData> without = new List<AIPlayerTemplateData>();
+                // 随机一个AI
+                new_template_data = AIPlayerManager.Instance.Rand(without, -1);
+            }
+
+            if(new_template_data != null)
+            {
+                var ai_player_data = AIPlayerManager.Instance.CreatePlayerData(new_template_data);
+                if(this.DBAIPlayerDataAdd(ai_player_data) < 0)
+                {
+                    return -1;
+                }
+            }
+
+            return 0;
         }
     }
 }

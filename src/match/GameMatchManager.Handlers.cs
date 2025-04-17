@@ -137,7 +137,14 @@ namespace Server
 
             string id = AMToolkits.Utility.Guid.GeneratorID18N();
             int result_code = this.DBMatchStart(auth_data, id, match.Type, match.Level);
-                        
+            if(result_code > 0)
+            {
+                if(_config?.MatchServer.IsAIPlayerEnabled == true) {
+                    // 增加AI玩家
+                    this.AddAIPlayer(match.Level);
+                }
+            }   
+
             //
             var result = new NGameMatchStartResponse {
                 Code = result_code,

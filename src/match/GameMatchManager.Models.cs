@@ -17,7 +17,118 @@ namespace Server
 
     public partial class GameMatchManager 
     {
-        protected int DBQueues(GameMatchType type = GameMatchType.Normal)
+        protected int DBAIPlayerCount()
+        {
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                // 
+                string sql = 
+                    $"SELECT " +
+	                $" COUNT(uid) as count, MAX(uid) as max " +
+                    $"FROM `t_aiplayers` " +
+                    $"WHERE status > 0; ";
+                var result_code = db?.Query(sql);
+                if(result_code < 0) {
+                    return -1;
+                }
+                
+                int count = (int)(db?.ResultItems["count"]?.Number ?? 0);
+                int max = (int)(db?.ResultItems["max"]?.Number ?? 0);
+                return count;
+            } catch (Exception e) {
+                _logger?.LogError("(Match) Error :" + e.Message);
+            } finally {
+                DatabaseManager.Instance.Free(db);
+            }
+            return -1;
+        }
+
+        /// <summary>
+        /// 这将获取全部有效AI，如果IsAIPlayerDerived为False时可以用
+        /// 其它情况不建议使用
+        /// </summary>
+        /// <returns></returns>
+        protected int DBAIPlayerData(List<AIPlayerData> list)
+        {
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                list.Clear();
+                
+                //
+                List<DatabaseResultItemSet>? result_list = null;
+                
+                // 默认只取1000条，这是比较消耗性能的
+                string sql = 
+                    $"SELECT " +
+	                $" id, tid, name, level, hol_value, items, status " +
+                    $"FROM `t_aiplayers` " +
+                    $"WHERE status >= 0 " +
+                    $"LIMIT ?; ";
+                var result_code = db?.QueryWithList(sql, out result_list, 1000);
+                if(result_code < 0 || result_list == null) {
+                    return -1;
+                }
+                
+                foreach(var v in result_list)
+                {
+                    var item = v.To<AIPlayerData>();
+                    if(item == null) { continue; }
+
+                    //
+                    AIPlayerManager.Instance.InitPlayerData(item);
+
+                    //
+                    list.Add(item);
+                }
+
+                return 1;
+            } catch (Exception e) {
+                _logger?.LogError("(Match) Error :" + e.Message);
+            } finally {
+                DatabaseManager.Instance.Free(db);
+            }
+            return -1;
+        }
+
+        protected int DBAIPlayerDataAdd(AIPlayerData data)
+        {
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                
+                // 默认只取1000条，这是比较消耗性能的
+                string sql = 
+                    $"INSERT INTO `t_aiplayers` " +
+                    $"  (`id`, `tid`, `name`, `level`, `hol_value`, `items`, `gender`, `region`) " +
+                    $"VALUES " +
+                    $"  (?,?, ?,?,100, ?, ?,?);";
+                var result_code = db?.Query(sql, 
+                    data.ID, data.TID, data.Name, data.Level, 
+                    data.Items, 
+                    data.TemplateData?.Gender == UserGender.Male ? "male" : "female", 
+                    data.TemplateData?.Region ?? "");
+                if(result_code < 0) {
+                    return -1;
+                }
+                
+                return 1;
+            } catch (Exception e) {
+                _logger?.LogError("(Match) Error :" + e.Message);
+            } finally {
+                DatabaseManager.Instance.Free(db);
+            }
+            return -1;
+        }
+
+        /// <summary>
+        /// 取匹配队列
+        /// </summary>
+        /// <param name="list"></param>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        protected int DBQueues(List<GameMatchQueueItem> list, GameMatchType type = GameMatchType.Normal)
         {
             var db = DatabaseManager.Instance.New();
             try
@@ -26,7 +137,10 @@ namespace Server
                 string type_name = type == GameMatchType.Normal ? "normal" : "ranking";
                 
 
-                List<DatabaseResultItemSet>? list = null;
+                list.Clear();
+
+                //
+                List<DatabaseResultItemSet>? result_list = null;
 
                 // 
                 string sql = 
@@ -43,15 +157,21 @@ namespace Server
 	                $"  AND m.flag = 'waiting' AND m.status > 0" +
                     $"ORDER BY m.create_time ASC  -- 按等待时间倒序排列 " +
                     $"LIMIT 100; ";
-                var result_code = db?.QueryWithList(sql, out list);
-                if(result_code < 0 || list == null) {
+                var result_code = db?.QueryWithList(sql, out result_list);
+                if(result_code < 0 || result_list == null) {
                     return -1;
                 }
                 
-                _logger?.Log($"{TAGName} (Queue) Count:{list.Count}");
-                foreach(var v in list)
+                
+                foreach(var v in result_list)
                 {
                     var item = v.To<GameMatchQueueItem>();
+                    if(item == null) { continue; }
+                    //  取等待中的玩家
+                    if(item.status != 1 || item.create_time == null) { continue; }
+
+                    //
+                    list.Add(item);
                 }
 
                 return 1;

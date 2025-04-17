@@ -4,6 +4,12 @@ using Microsoft.AspNetCore.Builder;
 
 namespace Server
 {
+    public enum UserGender
+    {
+        Female = 0,
+        Male = 1
+    }
+
     [System.Serializable]
     public class UserBase
     {
