@@ -141,15 +141,13 @@ namespace Server {
 
             try
             {
-                if(query.db != null) {
-                    query.db.Close();
-                    query.db.Dispose();
-                    query.db = null;
-
-                    //
+                // 尝试回滚
+                if(query != null) {
+                    query.Release();
+                    
                     _query_used_number --;
+                    query = null;
                 }
-                query = null;
             }
             catch (Exception e)
             {

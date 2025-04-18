@@ -14,6 +14,7 @@ namespace Server
         public string name = "";
         public string version = "";
         public MySqlConnection? db = null;
+        private MySqlTransaction? _transaction = null;
         internal Logger.LoggerEntry? logger = null;
 
         private int _affected = -1;
@@ -22,6 +23,63 @@ namespace Server
         private DatabaseResultItemSet _result = new DatabaseResultItemSet();
         public DatabaseResultItemSet ResultItems {
             get { return _result; }
+        }
+
+        public void Release()
+        {
+            _result.Clear();
+            
+            if(_transaction != null)
+            {
+                _transaction.Rollback();
+                _transaction.Dispose();
+                _transaction = null;
+            }
+
+            if(db != null)
+            {
+                db.Close();
+                db.Dispose();
+                db = null;
+            }
+
+        }
+
+
+        public int Transaction()
+        {
+            if(db == null) {
+                return -1;
+            }
+
+            if(_transaction != null)
+            {
+                _transaction.Dispose();
+                _transaction = null;
+            }
+
+            _transaction = db.BeginTransaction();
+            return 1;
+        }
+
+        public void Commit()
+        {
+            if(_transaction != null)
+            {
+                _transaction.Commit();
+                _transaction.Dispose();
+                _transaction = null;
+            }
+        }
+
+        public void Rollback()
+        {
+            if(_transaction != null)
+            {
+                _transaction.Rollback();
+                _transaction.Dispose();
+                _transaction = null;
+            }
         }
 
         /// <summary>

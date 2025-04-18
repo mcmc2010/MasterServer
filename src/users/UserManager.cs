@@ -22,6 +22,9 @@ namespace Server
 
     public partial class UserManager : SingletonT<UserManager>, ISingleton
     {
+        [AutoInitInstance]
+        protected static UserManager? _instance;
+
         private string[]? _arguments = null;
         private ServerConfig? _config = null;
         private Logger.LoggerEntry? _logger = null;
@@ -36,7 +39,7 @@ namespace Server
 
         protected override void OnInitialize(object[] paramters) 
         { 
-            _arguments = paramters[0] as string[];
+            _arguments = CommandLineArgs.FirstParser(paramters);
 
             var config = paramters[1] as ServerConfig;
             if(config == null)

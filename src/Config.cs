@@ -83,6 +83,18 @@ namespace Server {
         public string SSLKey { get; set; } = "";
     }
 
+    public class ConfigItem_RoomManager
+    {
+        [YamlMember(Alias = "enabled")]
+        public bool Enabled { get; set; } = true; 
+        [YamlMember(Alias = "room_max")]
+        public int RoomMaxNum { get; set; } = 100; 
+        [YamlMember(Alias = "players_max")]
+        public int PlayersMaxNum { get; set; } = 2;
+        [YamlMember(Alias = "lookon_max")]
+        public int LookOnMaxNum { get; set; } = 0;
+    }
+
     public class ConfigItem_MatchServer
     {
         [YamlMember(Alias = "enabled")]
@@ -131,6 +143,11 @@ namespace Server {
         /// </summary>
         [YamlMember(Alias = "jwt_expired", ApplyNamingConventions = false)]
         public int JWTExpired { get; set; } = 1 * 24 * 60 * 60;
+        /// <summary>
+        /// 
+        /// </summary>
+        [YamlMember(Alias = "room", ApplyNamingConventions = false)]
+        public ConfigItem_RoomManager Room = new ConfigItem_RoomManager();
         /// <summary>
         /// 
         /// </summary>

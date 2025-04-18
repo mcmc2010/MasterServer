@@ -14,6 +14,12 @@ jwt_auth_enabled: true
 jwt_secret_key: ”kmd77171cbkqSu1c“
 # 这个是有效期，默认为24小时，这里是秒为单位
 jwt_expired: 86400
+room:
+  room_max: 1000
+  # 一个房间最大的玩家数，包括AI及其它
+  players_max: 2
+  # 目前没有参观游戏的玩家
+  lookon_max: 0
 match_server: 
   # AI玩家,开启该项，仅仅匹配AI，不匹配玩家
   ai_player_enabled: true
@@ -66,5 +72,11 @@ logging:
   - name: game_match
     level: Error
     file: "logs/game_match.log"
+    is_file: true
+    is_console: true
+  # 房间使用日志
+  - name: room
+    level: Information
+    file: "logs/room.log"
     is_file: true
     is_console: true

@@ -9,6 +9,8 @@ namespace Server
         public string server_id = "";
         public string name = "";
         public int hol_value = 0;
+        public GameMatchType type = GameMatchType.Normal;
+        public int level = 0;
         public DateTime? create_time = null;
         public DateTime? last_time = null;
         public int wait_time = -1;
@@ -133,7 +135,7 @@ namespace Server
             var db = DatabaseManager.Instance.New();
             try
             {
-
+                int level = 0;
                 string type_name = type == GameMatchType.Normal ? "normal" : "ranking";
                 
 
@@ -151,13 +153,14 @@ namespace Server
                     $"FROM `t_matches` AS m " +
                     $"RIGHT JOIN `t_user` AS u ON u.id = m.id " +
                     $"WHERE " + 
-	                $"  m.type = 'normal' AND m.level = 0 " +
+	                $"  m.type = ? AND m.level = ? " +
                     $"  -- AND m.create_time > (NOW() - INTERVAL 30 MINUTE) " +
                     $"  -- AND m.last_time > (NOW() - INTERVAL 5 SECOND)  -- 仅保留最近5秒内有更新的记录 " +
 	                $"  AND m.flag = 'waiting' AND m.status > 0" +
                     $"ORDER BY m.create_time ASC  -- 按等待时间倒序排列 " +
                     $"LIMIT 100; ";
-                var result_code = db?.QueryWithList(sql, out result_list);
+                var result_code = db?.QueryWithList(sql, out result_list, 
+                        type_name, level);
                 if(result_code < 0 || result_list == null) {
                     return -1;
                 }
@@ -170,6 +173,8 @@ namespace Server
                     //  取等待中的玩家
                     if(item.status != 1 || item.create_time == null) { continue; }
 
+                    item.type = type;
+                    item.level= level;
                     //
                     list.Add(item);
                 }
@@ -282,5 +287,213 @@ namespace Server
             return -1;
         }
 
+        /// <summary>
+        /// 内部调用，不能直接使用
+        /// </summary>
+        /// <param name="data"></param>
+        /// <param name="id">流水单ID</param>
+        /// <param name="type"></param>
+        /// <param name="level"></param>
+        /// <returns></returns>
+        protected int DBMatchStartWithAI(DatabaseQuery query, IDictionary<string, DatabaseResultItem> data, string id, GameMatchType type = GameMatchType.Normal, int level = 0)
+        {
+
+            string type_name = type == GameMatchType.Normal ? "normal" : "ranking";
+
+            //
+            string server_id = data["server_id"]?.String ?? "";
+            string name = data["name"]?.String ?? "";
+            int tid = (int)(data["tid"]?.Number ?? 100);
+            int hol_value = (int)(data["hol_value"]?.Number ?? 100);
+            int total_matched = (int)(data["total_matched"]?.Number ?? 0);
+            if(string.IsNullOrEmpty(server_id))
+            {
+                return -1;
+            }
+
+            // 
+            string sql =
+                $"INSERT INTO `t_matches` " +
+                $"(`sn`, `id`, `tid`, `name`, `hol`, `type`, `level`, `flag`) " +
+                $"VALUES " +
+                $"(?, ?,?,?,?, ?,?,'waiting'); ";
+            int result_code = query.Query(sql, id,
+                    server_id, tid, name, hol_value, type_name, level);
+            if(result_code < 0) {
+                return -1;
+            }
+
+            sql = 
+                $"UPDATE `t_aiplayers` " +
+                $"SET " +
+                $"  `last_time` = NOW(), `match_status` = 1, `total_matched` = ? " +
+                $"WHERE `id` = ?; ";
+            result_code = query.Query(sql,
+                    total_matched ++, server_id);
+            if(result_code < 0) {
+                return -1;
+            }
+            return 1;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="query"></param>
+        /// <param name="item"></param>
+        /// <returns></returns>
+        protected int DBMatchPairsWithAI(DatabaseQuery? query, 
+                GameMatchQueueItem item, out GameMatchQueueItem? ai_item)
+        {
+            ai_item = null;
+            if(query == null) {
+                return -1;
+            }
+
+            // 0: 随机获取一个AI玩家
+            string sql = 
+                $"SELECT " + 
+                $"  id AS server_id, tid, name, level, hol AS hol_value, match_status, " +
+                $"  total_matched, total_played, last_time " + 
+                $"FROM `t_aiplayers` " +
+                $"WHERE " + 
+	            $"  match_status = 0 AND status > 0 " +
+                $"ORDER BY RAND() LIMIT 1;";
+            var result_code = query.Query(sql);
+            if(result_code < 0) {
+                return -1;
+            }
+
+            var result = new Dictionary<string, DatabaseResultItem>(query.ResultItems);
+            if(result.Count == 0) {
+                return 0;
+            }
+            string server_id = result["server_id"]?.String ?? "";
+
+            // 1: 直接插入等待队列
+            string id = AMToolkits.Utility.Guid.GeneratorID18N();
+            result_code = DBMatchStartWithAI(query, result, id, item.type, item.level);
+            if(result_code < 0) {
+                return -1;
+            }
+
+            // 2: 将一个小时内所有关联的纪录更新为超时
+            sql = 
+                $"UPDATE `t_matches` " +
+                $"SET " +
+                $"  `flag` = 'timeout', `status` = 0 " +
+                $"WHERE " +
+	            $"   id = ? AND flag = 'waiting' AND sn <> ? " +
+	            $"   AND create_time > (NOW() - INTERVAL 60 MINUTE); ";
+            result_code = query.Query(sql, server_id, id);
+            if(result_code < 0) {
+                return -1;
+            }
+
+            ai_item = new GameMatchQueueItem() {
+                sn = id,
+                server_id = server_id,
+                //tid =  (int)(result["tid"]?.Number ?? 100),
+                name = result["name"]?.String ?? "",
+                hol_value = (int)(result["hol_value"]?.Number ?? 100),
+                type = item.type,
+                level= (int)(result["level"]?.Number ?? 0),
+                //create_time = DateTime.Now,
+                //last_time = DateTime.Now
+            };
+            return 1;
+        }
+
+        protected int DBMatchPairsJoinRoom(DatabaseQuery? query, RoomData room,
+                GameMatchQueueItem item_0, GameMatchQueueItem item_1)
+        {
+            if(query == null) {
+                return -1;
+            }
+
+            // 0: 
+            string sql = 
+                $"UPDATE `t_matches` " +
+                $"SET " +
+                $"  `flag` = 'matched', `room_id` = ?  " +
+                $"WHERE " +
+	            $"   sn = ? AND flag = 'waiting' AND status > 0;";
+            int result_code = query.Query(sql, room.RID, item_0.sn);
+            if(result_code < 0) {
+                return -1;
+            }
+
+            // 1: 
+            sql = 
+                $"UPDATE `t_matches` " +
+                $"SET " +
+                $"  `flag` = 'matched', `room_id` = ? " +
+                $"WHERE " +
+	            $"   sn = ? AND flag = 'waiting' AND status > 0;";
+            result_code = query.Query(sql, room.RID, item_1.sn);
+            if(result_code < 0) {
+                return -1;
+            }
+            return 1;
+        }
+
+        protected async Task<int> DBMatchWithAIProcess(List<GameMatchQueueItem> items)
+        {
+            var db = DatabaseManager.Instance.New();
+            try
+            {   
+                int count = 0;
+                foreach(var item in items)
+                {
+                    db?.Transaction();
+
+                    GameMatchQueueItem? ai_item;
+                    // 对应纪录匹配一条AI纪录
+                    int result = this.DBMatchPairsWithAI(db, item, out ai_item);
+                    if(result < 0 || ai_item == null) {
+                        db?.Rollback();
+                        continue;
+                    }
+
+                    // 获取一个空置中的房间
+                    var room = RoomManager.Instance.GetIdleRoom();
+                    if(room == null)
+                    {
+                        db?.Commit();
+                        break;
+                    }
+
+                    // 设置房间
+                    result = this.DBMatchPairsJoinRoom(db, room, item, ai_item);
+                    if(result < 0 || ai_item == null) {
+                        db?.Rollback();
+                        continue;
+                    }
+
+                    // 关联房间
+                    if(RoomManager.Instance.SetRoomWithMatch(room, item, ai_item) <= 0)
+                    {
+                        db?.Rollback();
+                        continue;
+                    }
+
+                    db?.Commit();
+
+                    // 没有可匹配的玩家
+                    if(result == 0) {
+                        break;
+                    }
+
+                    count ++;
+                }          
+
+                return count;
+            } catch (Exception e) {
+                _logger?.LogError("(Match) Error :" + e.Message);
+            } finally {
+                DatabaseManager.Instance.Free(db);
+            }
+            return -1;
+        }
     }
 }

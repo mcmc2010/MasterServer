@@ -62,6 +62,10 @@ try
     // 2 - 1:
     var ai_manager = Server.AIPlayerManager.NewInstance(args, config);
     logger.Log("Init AIPlayerManager Completed");
+    
+    // 2 - 2:
+    var room_manager = Server.RoomManager.NewInstance(args, config);
+    logger.Log("Init RoomManager Completed");
 
     // 3:
     var match_manager = Server.GameMatchManager.NewInstance(args, config);
@@ -78,6 +82,8 @@ try
     logger.Finish();
 
     //
+    room_manager.StartWorking();
+    Thread.Sleep(100);
     match_manager.StartWorking();
     
     //

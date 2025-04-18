@@ -18,10 +18,11 @@ namespace Server {
         private ServerConfig? _config = null;
         private Logger.LoggerEntry? _logger = null;
 
+        protected int _aiplayer_count = 0;
 
         protected override void OnInitialize(object[] paramters) 
         { 
-            _arguments = paramters[0] as string[];
+            _arguments = CommandLineArgs.FirstParser(paramters);
 
             var config = paramters[1] as ServerConfig;
             if(config == null)
@@ -60,9 +61,10 @@ namespace Server {
             args.app?.MapPost("api/game/match_completed", HandleMatchCompleted);
         }
 
-        public Task<int> StartWorking()
+        public int StartWorking()
         {
-            return this.ProcessWorking();
+            this.ProcessWorking();
+            return 0;
         }
 
         /// <summary>
@@ -78,11 +80,12 @@ namespace Server {
             }
             
             _logger?.Log("[MatchServer] Start Working");
+            
+            // 获取当前AI数量
+            _aiplayer_count = this.DBAIPlayerCount();
 
             //
             this.QueuesWorking();
-
-            this.AddAIPlayer(0);
             return 0;
         }
 
@@ -100,6 +103,12 @@ namespace Server {
             }
 
             _logger?.Log($"{TAGName} (Queue) Count:{queue_players.Count}");
+
+            // 匹配AI
+            if(_config?.MatchServer.IsAIPlayerEnabled == true)
+            {
+                await this.DBMatchWithAIProcess(queue_players);
+            }
         }
 
         public int AddAIPlayer(int level = 0)
@@ -111,9 +120,9 @@ namespace Server {
             }
 
             // 获取当前AI数量
-            int count = this.DBAIPlayerCount();
+            _aiplayer_count = this.DBAIPlayerCount();
             // 如果当前AI数量已经达到设置，就不可以再创建
-            if(count >= _config?.MatchServer.AIPlayerMaxNum)
+            if(_aiplayer_count >= _config?.MatchServer.AIPlayerMaxNum)
             {
                 return 0;
             }
