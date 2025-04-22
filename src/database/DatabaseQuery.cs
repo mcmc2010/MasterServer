@@ -1,3 +1,4 @@
+using System.Data.SqlTypes;
 using System.Text.RegularExpressions;
 using AMToolkits.Utility;
 using Logger;
@@ -95,6 +96,10 @@ namespace Server
 
             _affected = -1;
             _result.Clear();
+
+            // 移除SQL语句中的注释
+            var regex = new System.Text.RegularExpressions.Regex(@"\s*(--|#).*?$", RegexOptions.Compiled);
+            sql = regex.Replace(sql, "");
             PrintSQL(sql);
 
             MySqlCommand command = new MySqlCommand(sql, db);
@@ -143,6 +148,10 @@ namespace Server
 
             _affected = -1;
             _result.Clear();
+
+            // 移除SQL语句中的注释
+            var regex = new System.Text.RegularExpressions.Regex(@"\s*(--|#).*?$", RegexOptions.Compiled);
+            sql = regex.Replace(sql, "");
             PrintSQL(sql);
 
             MySqlCommand command = new MySqlCommand(sql, db);

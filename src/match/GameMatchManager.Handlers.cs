@@ -103,6 +103,8 @@ namespace Server
         // 玩家模版ID
         [JsonPropertyName("player_tid")]
         public int PlayerTID = 0;
+        [JsonPropertyName("player_name")]
+        public string PlayerName = "";
     }
 
     public partial class GameMatchManager 
@@ -223,16 +225,38 @@ namespace Server
                 return;
             }
 
+            int tid = 0;
+            string name = "";
+            string id = "";
+
+            GameMatchQueueItem? item;
             // 100 是等待，默认返回100
-            int result_code = 1;
+            int result_code = 100;
+            //
+            result_code = this.DBMatchCompleted(auth_data, match.ID, out item);
+            if(result_code == 0)
+            {
+                result_code = 100;
+            }
+            else if(result_code < 0)
+            {
+
+            }
+            else if(item != null)
+            {
+                id = item.server_id;
+                tid = item.tid;
+                name = item.name;
+            }
                         
             //
             var result = new NGameMatchCompletedResponse {
                 Code = result_code,
                 Index = match.Index,
                 ID = match.ID,
-                PlayerID = "",
-                PlayerTID = 1010,
+                PlayerID = id,
+                PlayerName = name,
+                PlayerTID = tid,
                 PlayerType = GameMatchPlayerType.AI
             };
 

@@ -9,6 +9,25 @@ namespace Server
     {
         [JsonPropertyName("rid")]
         public int RID = 0;
+        [JsonPropertyName("cur_num")]
+        public int CurNum = 0;
+        [JsonPropertyName("max_num")]
+        public int MaxNum = 0;
+        [JsonPropertyName("service_id")]
+        public int ServiceID = 0;
+        [JsonPropertyName("secret_key")]
+        public string SecretKey = "";
+    }
+
+    [System.Serializable]
+    public class RoomPlayerData
+    {
+        [JsonPropertyName("id")]
+        public string ID = "";
+        [JsonPropertyName("rid")]
+        public int RID = 0;
+        [JsonPropertyName("service_id")]
+        public int ServiceID = 0;
     }
 
     /// <summary>
@@ -107,11 +126,13 @@ namespace Server
 
         private bool CreateRooms(int count = 0)
         {
+            int service_id = 0;
+
             int num = _config?.Room.PlayersMaxNum ?? 2;
             for(int i = 0; i < count; i ++)
             {
                 int rid = GeneratorID6XN();
-                if(this.DBRoomCreateOne(rid, num) <= 0)
+                if(this.DBRoomCreate(rid, num, service_id) <= 0)
                 {
                     return false;
                 }
@@ -119,9 +140,16 @@ namespace Server
             return true;
         }
 
+        /// <summary>
+        /// 初始化关联服务的房间数据
+        /// </summary>
+        /// <returns></returns>
         public bool InitRooms()
         {
-            if(this.DBRoomsInit() <= 0)
+            int service_id = 0;
+            int num = _config?.Room.PlayersMaxNum ?? 2;
+
+            if(this.DBRoomsInit(num, service_id) <= 0)
             {
                 return false;
             }
@@ -132,8 +160,22 @@ namespace Server
         {
             RoomData room = new RoomData() {
                 RID = -1,
+                ServiceID = 0
             };
-            if(this.DBRoomIdle(room) <= 0 || room.RID <= 0)
+            if(this.DBGetIdleRoom(room) <= 0 || room.RID <= 0)
+            {
+                return null;
+            }
+            return room;
+        }
+
+        public RoomData? SetIdleRoom(int rid)
+        {
+            RoomData room = new RoomData() {
+                RID = rid,
+                ServiceID = 0
+            };
+            if(this.DBSetIdleRoom(room) <= 0)
             {
                 return null;
             }
@@ -147,9 +189,26 @@ namespace Server
         /// <param name="player_0"></param>
         /// <param name="player_1"></param>
         /// <returns></returns>
-        public int SetRoomWithMatch(RoomData room, GameMatchQueueItem player_0, GameMatchQueueItem player_1)
+        public int SetPlayersInRoomWithMatch(RoomData room, GameMatchQueueItem player_0, GameMatchQueueItem player_1)
         {
-            if(this.DBRoomSet(room, player_0.server_id, player_1.server_id) <= 0)
+            var player_data_0 = new RoomPlayerData() {
+                RID = room.RID,
+                ID = player_0.server_id,
+                ServiceID = room.ServiceID
+            };
+            var player_data_1 = new RoomPlayerData() {
+                RID = room.RID,
+                ID = player_1.server_id,
+                ServiceID = room.ServiceID
+            };
+
+            // 设置房主
+            if(this.DBSetMasterPlayerInRoom(room, player_data_0) <= 0)
+            {
+                return -1;
+            }
+            // 设置玩家
+            if(this.DBSetPlayerInRoom(room, player_data_1) <= 0)
             {
                 return -1;
             }
@@ -169,7 +228,9 @@ namespace Server
             }
             
             _logger?.Log("[RoomManager] Start Working");
-            
+
+            this.GetIdleRoom();
+
             //
             return 0;
         }

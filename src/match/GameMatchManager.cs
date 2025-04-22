@@ -83,32 +83,49 @@ namespace Server {
             
             // 获取当前AI数量
             _aiplayer_count = this.DBAIPlayerCount();
+            this.DBAIPlayerInit();
+
+            // 做一次队列超时工作
+            DBQueuesTimeout();
 
             //
-            this.QueuesWorking();
+            while(!ServerApplication.Instance.HasQuiting)
+            {
+                int code = await this.QueuesWorking();
+                if(code == 0)
+                {
+                    await Task.Delay(30 * 1000);
+                    DBQueuesTimeout();
+                }
+                await Task.Delay(5*1000);
+            }
             return 0;
         }
 
         /// <summary>
         /// 
         /// </summary>
-        private async void QueuesWorking()
+        private async Task<int> QueuesWorking()
         {
             List<GameMatchQueueItem> queue_players = new List<GameMatchQueueItem>();
             // 从数据库中获取可以匹配的玩家
             int result = DBQueues(queue_players);
             if(result <= 0 || queue_players.Count == 0) 
             {
-                return;
+                return 0;
             }
 
-            _logger?.Log($"{TAGName} (Queue) Count:{queue_players.Count}");
+            System.Console.WriteLine($"{TAGName} (Queue) Count:{queue_players.Count}");
 
             // 匹配AI
             if(_config?.MatchServer.IsAIPlayerEnabled == true)
             {
-                await this.DBMatchWithAIProcess(queue_players);
+                if(await this.DBMatchWithAIProcess(queue_players) <= 0)
+                {
+                    return 0;
+                }
             }
+            return result;
         }
 
         public int AddAIPlayer(int level = 0)

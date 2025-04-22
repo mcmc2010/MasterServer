@@ -15,5 +15,15 @@ ADD COLUMN `ids_1` VARCHAR(64) NULL DEFAULT NULL COMMENT '关联玩家ID列表�
 CHANGE COLUMN `ids` `ids_0` VARCHAR(64) NULL DEFAULT NULL COMMENT '关联玩家ID列表使用分号隔开' ;
 
 ALTER TABLE `t_rooms` 
-ADD COLUMN `service_uid` INT NOT NULL DEFAULT 0 COMMENT '服务编号，关联服务端' AFTER `last_time`;
+ADD COLUMN `service_id` INT NOT NULL DEFAULT 0 COMMENT '服务编号，关联服务端' AFTER `last_time`;
 
+ALTER TABLE `t_rooms` 
+ADD COLUMN `secret_key` VARCHAR(64) NULL AFTER `service_id`;
+
+ALTER TABLE `t_rooms` 
+DROP COLUMN `ids_1`,
+DROP COLUMN `ids_0`,
+ADD COLUMN `name` VARCHAR(32) NULL DEFAULT NULL COMMENT '房间名称：未使用' AFTER `id`,
+ADD COLUMN `creator_id` VARCHAR(16) NULL DEFAULT NULL COMMENT '房主玩家ID' AFTER `name`,
+ADD COLUMN `cur_num` INT NOT NULL DEFAULT 0 AFTER `creator_id`,
+ADD COLUMN `max_num` INT NOT NULL DEFAULT 0 AFTER `cur_num`;

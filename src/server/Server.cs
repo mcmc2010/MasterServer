@@ -102,7 +102,8 @@ namespace Server
         private WebApplication? _webserver = null;
 
         private CancellationTokenSource? _cts = null;
-
+        public bool HasQuiting{ get { return _cts?.IsCancellationRequested == true; } }
+        
         /// <summary>
         /// 
         /// </summary>
