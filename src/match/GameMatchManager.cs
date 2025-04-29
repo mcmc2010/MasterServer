@@ -8,6 +8,26 @@ namespace Server {
     /// <summary>
     /// 
     /// </summary>
+    public enum GameMatchTeam
+    {
+        None = 0,
+        Blue = 1,
+        Red = 2,
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public enum GameMatchRoomRole
+    {
+        None = 0,
+        Member = 1,
+        Master = 7,
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
     public partial class GameMatchManager : SingletonT<GameMatchManager>, ISingleton
     {
         [AutoInitInstance]
@@ -18,7 +38,10 @@ namespace Server {
         private ServerConfig? _config = null;
         private Logger.LoggerEntry? _logger = null;
 
+        private readonly System.Random _rand = new System.Random();
         protected int _aiplayer_count = 0;
+
+        private TaskCompletionSource? _cts_queues = null;
 
         protected override void OnInitialize(object[] paramters) 
         { 
@@ -94,12 +117,47 @@ namespace Server {
                 int code = await this.QueuesWorking();
                 if(code == 0)
                 {
-                    await Task.Delay(30 * 1000);
-                    DBQueuesTimeout();
+                    await ProcessWaitWorking();
                 }
-                await Task.Delay(5*1000);
+                else
+                {
+                    await Task.Delay(1*1000);
+                }
             }
             return 0;
+        }
+
+        private async Task<int> TryQueuesWorking()
+        {
+            if(_cts_queues == null) {
+                return 0;
+            }
+            _cts_queues.TrySetResult();
+            return 1;
+        }
+
+        private async Task<int> ProcessWaitWorking()
+        {
+            try
+            {
+                _cts_queues = new TaskCompletionSource();
+                var timeout_task = Task.Delay(30 * 1000);
+                var completed_task = await Task.WhenAny(_cts_queues.Task, timeout_task);
+                if(completed_task == timeout_task) {
+                    _cts_queues.TrySetCanceled();
+
+                    DBQueuesTimeout();
+                }
+
+                System.Console.WriteLine($"(Queues) Working (Completed:{_cts_queues.Task.IsCompletedSuccessfully})");
+                return 0;
+            } catch (Exception e) {
+                _logger?.LogException("Error:", e);
+                return -1;
+            } finally {
+                _cts_queues?.Task.Dispose();
+                _cts_queues = null;
+            }
         }
 
         /// <summary>
@@ -126,6 +184,25 @@ namespace Server {
                 }
             }
             return result;
+        }
+
+        protected GameMatchQueueItem NewQueueItem(string id, Dictionary<string, DatabaseResultItem> data, 
+                        GameMatchType type = GameMatchType.Normal, GameMatchTeam team = GameMatchTeam.Blue)
+        {
+            var item = new GameMatchQueueItem() {
+                sn = id,
+                server_id = data["server_id"]?.String ?? "",
+                tid =  (int)(data["tid"]?.Number ?? 100),
+                name = data["name"]?.String ?? "",
+                hol_value = (int)(data["hol_value"]?.Number ?? 100),
+                type = type,
+                team = team,
+                role = GameMatchRoomRole.None,
+                level= (int)(data["level"]?.Number ?? 0),
+                //create_time = DateTime.Now,
+                //last_time = DateTime.Now
+            };
+            return item;
         }
 
         public int AddAIPlayer(int level = 0)

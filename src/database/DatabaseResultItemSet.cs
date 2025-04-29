@@ -190,7 +190,7 @@ namespace Server
             //         throw new KeyNotFoundException($"The key is null.");
             //     }
 
-            //     var item = _result.FirstOrDefault(i => i.name.Contains(key, StringComparison.CurrentCultureIgnoreCase));
+            //     var item = _result.FirstOrDefault(i => i.name.Equals(key, StringComparison.OrdinalIgnoreCase));
             //     if (item == null)
             //         throw new KeyNotFoundException($"The key '{key}' was not found.");
             //     return item;
@@ -203,7 +203,7 @@ namespace Server
             //     if (key != value.name) {
             //         throw new ArgumentException("Key and value's key must be the same.");
             //     }
-            //     var index = _result.FindIndex(i => i.name.Contains(key, StringComparison.CurrentCultureIgnoreCase));
+            //     var index = _result.FindIndex(i => i.name.Equals(key, StringComparison.OrdinalIgnoreCase));
             //     if (index >= 0) {
             //         _result[index] = value;
             //     } else {
@@ -216,7 +216,7 @@ namespace Server
                     return null;
                 }
 
-                var item = _result.FirstOrDefault(i => i.name.Contains(key, StringComparison.CurrentCultureIgnoreCase));
+                var item = _result.FirstOrDefault(i => i.name.Equals(key, StringComparison.OrdinalIgnoreCase));
                 if (item == null) {
                     return null;
                 }
@@ -238,10 +238,10 @@ namespace Server
         public void Add(string key, DatabaseResultItem value)
         {
             if (key != value.name) {
-                throw new ArgumentException("Key and value's key must be the same.");
+                throw new ArgumentException($"Key({key}) and value's key must be the same.");
             }
             if (ContainsKey(key)) {
-                throw new ArgumentException("An item with the same key already exists.");
+                throw new ArgumentException($"An item with the same key({key}) already exists.");
             }
             _result.Add(value);
         }
@@ -263,7 +263,7 @@ namespace Server
 
         public bool ContainsKey(string key)
         {
-            return _result.Any(item => item.name.Contains(key, StringComparison.CurrentCultureIgnoreCase));
+            return _result.Any(item => item.name.Equals(key, StringComparison.OrdinalIgnoreCase));
         }
 
 
@@ -292,7 +292,7 @@ namespace Server
 
         public bool Remove(string key)
         {
-            var item = _result.FirstOrDefault(i => i.name.Contains(key, StringComparison.CurrentCultureIgnoreCase));
+            var item = _result.FirstOrDefault(i => i.name.Equals(key, StringComparison.OrdinalIgnoreCase));
             if (item != null) {
                 return _result.Remove(item);
             }
@@ -301,7 +301,7 @@ namespace Server
 
         public bool Remove(KeyValuePair<string, DatabaseResultItem> item)
         {
-            var existing = _result.FirstOrDefault(i => i.name.Contains(item.Key, StringComparison.CurrentCultureIgnoreCase));
+            var existing = _result.FirstOrDefault(i => i.name.Equals(item.Key, StringComparison.OrdinalIgnoreCase));
             if (existing != null && EqualityComparer<DatabaseResultItem>.Default.Equals(existing, item.Value)) {
                 return _result.Remove(existing);
             }
@@ -310,7 +310,7 @@ namespace Server
 
         public bool TryGetValue(string key, out DatabaseResultItem value)
         {
-            var item = _result.FirstOrDefault(i => i.name.Contains(key, StringComparison.CurrentCultureIgnoreCase));
+            var item = _result.FirstOrDefault(i => i.name.Equals(key, StringComparison.OrdinalIgnoreCase));
             if(item == null) {
                 throw new ArgumentNullException(key);
                 //return false;

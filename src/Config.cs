@@ -60,6 +60,19 @@ namespace Server {
         public string Certificates { get; set; } = "";
     }
 
+    public class ConfigItem_WSServer
+    {
+        [YamlMember(Alias = "address")]
+        public string Address { get; set; } = "0.0.0.0"; 
+        [YamlMember(Alias = "port")]
+        public int Port { get; set; } = 5900; 
+        [YamlMember(Alias = "ssl")]
+        public bool HasSSL { get; set; } = false;
+        [YamlMember(Alias = "ssl_certs", ApplyNamingConventions = false)]
+        public string SSLCertificates { get; set; } = "";
+        [YamlMember(Alias = "ssl_key", ApplyNamingConventions = false)]
+        public string SSLKey { get; set; } = "";
+    }
     
     public class ConfigItem_Database
     {
@@ -153,6 +166,11 @@ namespace Server {
         /// </summary>
         [YamlMember(Alias = "match_server", ApplyNamingConventions = false)]
         public ConfigItem_MatchServer MatchServer = new ConfigItem_MatchServer();
+        /// <summary>
+        /// 
+        /// </summary>
+        [YamlMember(Alias = "server", ApplyNamingConventions = false)]
+        public ConfigItem_WSServer WSServer { get; set; } = new ConfigItem_WSServer(); // 初始化默认配置
         /// <summary>
         /// 
         /// </summary>

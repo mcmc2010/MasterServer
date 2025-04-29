@@ -15,6 +15,14 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="9.0.3" />
     <PackageReference Include="YamlDotNet" Version="16.3.0" />
   </ItemGroup>
+  <!-- Websocket -->
+  <ItemGroup>
+    <Reference Include="WebSocketSharp">
+      <HintPath>$(ProjectDir)libs\WebSocket.dll</HintPath>
+      <!-- 必须添加 -->
+      <Private>true</Private> 
+    </Reference>
+  </ItemGroup>
   <!-- MYSQL SDK -->
   <ItemGroup>
     <Reference Include="MySql.Data">

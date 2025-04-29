@@ -78,6 +78,7 @@ try
     app.RegisterHandlersListner += match_manager.OnRegisterHandlers;
 
     app.CreateHTTPServer();
+    app.CreateWSServer();
 
     logger.Finish();
 

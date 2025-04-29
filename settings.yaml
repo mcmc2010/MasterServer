@@ -30,6 +30,12 @@ match_server:
   ai_player_derived: true
   # 最大处理数量
   poll_max: 100
+server:
+  address: "0.0.0.0"
+  port: 5900
+  ssl: true
+  ssl_certs: "certs/wss.crt"
+  ssl_key: "certs/wss.pem"
 http_server:
  - address: "0.0.0.0"
    port: 5000

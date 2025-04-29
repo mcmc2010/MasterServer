@@ -16,3 +16,12 @@ ADD COLUMN `room_id` INT NOT NULL DEFAULT 0 AFTER `level`,
 CHANGE COLUMN `last_time` `last_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '上次更新时间，通常是3秒内' AFTER `create_time`,
 DROP PRIMARY KEY,
 ADD PRIMARY KEY (`uid`, `sn`, `id`, `room_id`);
+
+ALTER TABLE `t_matches` 
+ADD COLUMN `match_code` INT NOT NULL DEFAULT 0 COMMENT '随机6位数字，作为批号' AFTER `room_id`,
+CHANGE COLUMN `flag` `match_status` ENUM('none', 'waiting', 'matched', 'timeout', 'cancelled', 'completed', 'error') NOT NULL DEFAULT 'waiting' ;
+
+ALTER TABLE `t_matches` 
+DROP PRIMARY KEY,
+ADD PRIMARY KEY (`uid`, `sn`),
+ADD INDEX `INDEXES` (`id` ASC, `room_id` ASC) VISIBLE;

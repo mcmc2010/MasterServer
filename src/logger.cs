@@ -123,6 +123,11 @@ namespace Logger {
         private bool _is_busy = false;
         private Queue<string> _queue = new Queue<string>();
 
+        public string GetPathName() 
+        {
+            return _path_name;
+        }
+
         public FileLogger(string name, LogLevel level)
         {
             _name = name;

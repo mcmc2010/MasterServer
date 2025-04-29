@@ -100,6 +100,7 @@ namespace Server
         private LoggerEntry? _logger = null;
 
         private WebApplication? _webserver = null;
+        private WSSServer? _wsserver = null;
 
         private CancellationTokenSource? _cts = null;
         public bool HasQuiting{ get { return _cts?.IsCancellationRequested == true; } }
@@ -198,6 +199,27 @@ namespace Server
             //
             RegisterHandlers();
      
+            // 限制权限访问
+            _webserver.UseWhen(context => {
+                string[] paths = new string[] {
+                    "/local",
+                    "/internal",
+                    "/api/internal",
+                    "/api/local"
+                };
+                return paths.Any(v => context.Request.Path.StartsWithSegments(v));
+            },
+            (s) => s.Use(async (context, next) => {
+                    var ip = context.Connection.RemoteIpAddress;
+                    if(ip == null || !IPAddress.IsLoopback(ip))
+                    {
+                        await context.ResponseStatusAsync("error", "Not Allow Access", HttpStatusCode.Forbidden);
+                        return;
+                    }
+                    await next();
+                })
+            );
+
             // 捕获所有未匹配的路由，返回默认 JSON
             _webserver.MapFallback(async context =>
             {
@@ -216,6 +238,22 @@ namespace Server
             return true;
         }
 
+        public bool CreateWSServer()
+        {
+            if(_config == null)
+            {
+                System.Console.WriteLine("[Server] Config is NULL.");
+                return false;
+            }
+
+            _wsserver = new WSSServer();
+            _wsserver.Create(_arguments, _config);
+
+            //
+            _logger?.Log("[Server] Starting WSServer");
+            return true;
+        }
+
         protected virtual void RegisterHandlers()
         {
             if(_webserver == null) {
@@ -225,6 +263,7 @@ namespace Server
 
             _webserver.Map("/", HandleHello);
             _webserver.Map("/api/ping", HandlePing);
+            _webserver.Map("/local/status", HandleServiceStatus);
         }
 
         public Task<int> StartWorking()
@@ -232,6 +271,11 @@ namespace Server
             if(_webserver != null)
             {
                 _webserver.RunAsync();
+            }
+
+            if(_wsserver != null)
+            {
+                _wsserver.StartWorking();
             }
 
             //
@@ -266,6 +310,8 @@ namespace Server
 
                 }
             }
+
+            _wsserver?.Destory();
 
             _logger?.Log("[Server] End Working");
             Console.CancelKeyPress -= OnCancelExit;

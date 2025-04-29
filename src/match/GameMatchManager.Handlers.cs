@@ -236,6 +236,7 @@ namespace Server
             result_code = this.DBMatchCompleted(auth_data, match.ID, out item);
             if(result_code == 0)
             {
+                this.TryQueuesWorking();
                 result_code = 100;
             }
             else if(result_code < 0)
@@ -247,6 +248,8 @@ namespace Server
                 id = item.server_id;
                 tid = item.tid;
                 name = item.name;
+
+                _logger?.Log($"{TAGName} Match Completed : {item.tid} {item.name}");
             }
                         
             //

@@ -9,6 +9,8 @@ namespace Server
     {
         [JsonPropertyName("rid")]
         public int RID = 0;
+        [JsonPropertyName("rcode")]
+        public int RCODE = 0;
         [JsonPropertyName("cur_num")]
         public int CurNum = 0;
         [JsonPropertyName("max_num")]
@@ -189,30 +191,37 @@ namespace Server
         /// <param name="player_0"></param>
         /// <param name="player_1"></param>
         /// <returns></returns>
-        public int SetPlayersInRoomWithMatch(RoomData room, GameMatchQueueItem player_0, GameMatchQueueItem player_1)
+        public int SetPlayersInRoomWithMatch(RoomData room, params GameMatchQueueItem[] player_list)
         {
-            var player_data_0 = new RoomPlayerData() {
-                RID = room.RID,
-                ID = player_0.server_id,
-                ServiceID = room.ServiceID
-            };
-            var player_data_1 = new RoomPlayerData() {
-                RID = room.RID,
-                ID = player_1.server_id,
-                ServiceID = room.ServiceID
-            };
+            int count = 0;
+            //
+            foreach(var player in player_list)
+            {
+                var player_data = new RoomPlayerData() {
+                    RID = room.RID,
+                    ID = player.server_id,
+                    ServiceID = room.ServiceID
+                };
+                if(player.role == GameMatchRoomRole.Master)
+                {
+                    // 设置房主
+                    if(this.DBSetMasterPlayerInRoom(room, player_data) <= 0)
+                    {
+                        count = -1; break;
+                    }
+                }
+                else
+                {
+                    // 设置玩家
+                    if(this.DBSetPlayerInRoom(room, player_data) <= 0)
+                    {
+                        count = -1; break;
+                    }
+                }
 
-            // 设置房主
-            if(this.DBSetMasterPlayerInRoom(room, player_data_0) <= 0)
-            {
-                return -1;
+                count ++;
             }
-            // 设置玩家
-            if(this.DBSetPlayerInRoom(room, player_data_1) <= 0)
-            {
-                return -1;
-            }
-            return 1;
+            return count;
         }
 
         /// <summary>
