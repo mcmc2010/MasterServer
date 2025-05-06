@@ -88,5 +88,24 @@ namespace Server
             return user;
         }
 
+        public UserBase? GetAuthUser(string id, string token)
+        {
+            if(id.Length == 0 || token.Length == 0)
+            {
+                return null;
+            }
+            
+            var user = this.GetUser(id);
+            if(user == null) { 
+                return null;
+            }
+
+            if(user.AccessToken != token.ToUpper())
+            {
+                return null;
+            }
+            return user;
+        }
+
     }
 }
