@@ -23,6 +23,14 @@
       <Private>true</Private> 
     </Reference>
   </ItemGroup>
+  <!-- Websocket -->
+  <ItemGroup>
+    <Reference Include="Google.Protobuf">
+      <HintPath>$(ProjectDir)libs\Google.Protobuf.dll</HintPath>
+      <!-- 必须添加 -->
+      <Private>true</Private> 
+    </Reference>
+  </ItemGroup>
   <!-- MYSQL SDK -->
   <ItemGroup>
     <Reference Include="MySql.Data">

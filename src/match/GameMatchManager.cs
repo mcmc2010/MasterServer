@@ -189,19 +189,29 @@ namespace Server {
         protected GameMatchQueueItem NewQueueItem(string id, Dictionary<string, DatabaseResultItem> data, 
                         GameMatchType type = GameMatchType.Normal, GameMatchTeam team = GameMatchTeam.Blue)
         {
-            var item = new GameMatchQueueItem() {
+            var item = new GameMatchQueueItem()
+            {
                 sn = id,
                 server_id = data["server_id"]?.String ?? "",
-                tid =  (int)(data["tid"]?.Number ?? 100),
+                tid = (int)(data["tid"]?.Number ?? 100),
                 name = data["name"]?.String ?? "",
                 hol_value = (int)(data["hol_value"]?.Number ?? 100),
                 type = type,
                 team = team,
                 role = GameMatchRoomRole.None,
-                level= (int)(data["level"]?.Number ?? 0),
+                level = (int)(data["level"]?.Number ?? 0),
+                room_id = 0,
                 //create_time = DateTime.Now,
                 //last_time = DateTime.Now
             };
+
+            // 可选项
+            DatabaseResultItem? value;
+            if (data.TryGetValue("room_id", out value))
+            {
+                item.room_id = (int)value.Number;
+            }
+
             return item;
         }
 

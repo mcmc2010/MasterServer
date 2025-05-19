@@ -19,6 +19,7 @@ namespace Server
         public GameMatchRoomRole role = GameMatchRoomRole.None;
         public GameMatchTeam team = GameMatchTeam.Blue;
         public int level = 0;
+        public int room_id = 0;
         public DateTime? create_time = null;
         public DateTime? last_time = null;
         public int wait_time = -1;
@@ -564,7 +565,7 @@ namespace Server
                 return -1;
             }
 
-            opponent = NewQueueItem(sn, result, player.type, 
+            opponent = this.NewQueueItem(sn, result, player.type, 
                     player.team == GameMatchTeam.Blue ? GameMatchTeam.Red : GameMatchTeam.Blue);
             return 1;
         }

@@ -40,3 +40,9 @@ dotnet publish MasterServer.csproj -c Release --output ./publish --self-containe
 dotnet publish MasterServer.csproj -c Release --output ./publish-linux --self-contained true -r linux-x64 /p:DefineConstants="LINUX"
 dotnet publish MasterServer.csproj -c Release --output ./publish-linux --self-contained true -r linux-x64 /p:DefineConstants="LINUX;LINUX_SERVICE"
 ```
+
+
+### Protobufs generated
+```shell
+./tools/google/bin/protoc --proto_path="./data/protocols" --csharp_out="./src/protocals/generated" "./data/protocols/chat.proto"
+```

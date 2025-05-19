@@ -10,14 +10,73 @@ namespace Server
         Male = 1
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    public interface IUser
+    {
+
+    }
+
+    public interface IUserSession
+    {
+        public void BindService(Server.Services.IService service);
+        public void FreeService();
+
+        public Task BroadcastAsync(byte[] data, int index, int level);
+    }
+
     [System.Serializable]
-    public class UserBase
+    public class UserBase : IUser
     {
         public string ID = "";
         public string ClientID = "";
         public string AccessToken = "";
         public string Passphrase = "";
         public DateTime Time = DateTime.Now;
+    }
+
+    [System.Serializable]
+    public class UserSession : UserBase, IUserSession
+    {
+        private string _network_id = "";
+        
+        private Server.Services.IService? _service = null;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="user"></param>
+        public UserSession(UserBase user)
+        {
+            //
+            this.ID = user.ID;
+            this.ClientID = user.ClientID;
+            this.AccessToken = user.AccessToken;
+            this.Passphrase = user.Passphrase;
+            this.Time = user.Time;
+        }
+
+        public void BindService(Server.Services.IService service)
+        {
+            _network_id = service.NetworkID;
+            _service = service;
+        }
+
+        public void FreeService()
+        {
+            _network_id = "";
+            _service = null;
+        }
+
+        public async Task BroadcastAsync(byte[] data, int index, int level = 0)
+        {
+            if(_service == null) {
+                return;
+            }
+
+            int result = await _service.BroadcastAsync(data, index, level);
+        }
     }
 
     public partial class UserManager : SingletonT<UserManager>, ISingleton
@@ -30,7 +89,7 @@ namespace Server
         private Logger.LoggerEntry? _logger = null;
 
         private object _users_lock = new object();
-        private Dictionary<string, UserBase> _users = new Dictionary<string, UserBase>();
+        private Dictionary<string, IUser> _users = new Dictionary<string, IUser>();
 
         public UserManager()
         {
@@ -71,8 +130,10 @@ namespace Server
             }
 
             user.Time = DateTime.Now;
+
+            UserSession session = new UserSession(user);
             lock(_users_lock) {
-                _users[user.ID] = user;
+                _users[user.ID] = session;
             }
             return true;
         }
@@ -81,14 +142,20 @@ namespace Server
         {
             id = id.Trim();
 
-            UserBase? user;
+            IUser? user;
             lock(_users_lock) {
                 _users.TryGetValue(id, out user);
             }
-            return user;
+            return (UserBase?)user;
         }
 
-        public UserBase? GetAuthUser(string id, string token)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public UserSession? GetAuthenticationSession(string id, string token)
         {
             if(id.Length == 0 || token.Length == 0)
             {
@@ -104,8 +171,33 @@ namespace Server
             {
                 return null;
             }
-            return user;
+            return (UserSession?)user;
         }
 
+        /// <summary>
+        /// 广播给所有用户
+        /// </summary>
+        /// <param name="packet"></param>
+        /// <returns></returns>
+        public async Task<int> BroadcastAsync(byte[] data, int index, int level = 0)
+        {
+            if(data.Length == 0)
+            {
+                return 0;
+            }
+
+            int count = 0;
+            //
+            foreach (var user in _users)
+            {
+                var session = user.Value as UserSession;
+                if(session == null) { continue; }
+
+                session.BroadcastAsync(data, index, level);
+                count ++;
+            }
+
+            return count;
+        }
     }
 }

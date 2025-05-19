@@ -1,7 +1,14 @@
 syntax = "proto3";
-package world.chat.v1;
+package protocols.world.chat;
+
+// ========== 类型定义 ==========
+enum MessageType {
+    NORMAL = 0;
+    SYSTEM = 9;
+}
 
 // 定义聊天消息格式
+// 客户端发送
 message ChatMessage 
 {
     // ========== 基础字段 ==========
@@ -12,10 +19,18 @@ message ChatMessage
 
     MessageType message_type = 5;            // 消息类型枚举
     int64 timestamp = 6;
+}
 
-    // ========== 嵌套类型定义 ==========
-    enum MessageType {
-        NORMAL = 0;
-        SYSTEM = 9;
-    }
+// 服务端发送
+message ChatMessageResponse
+{
+    // ========== 基础字段 ==========
+    string message_id = 1;       // 消息唯一ID (UUID格式)
+    string user_id = 2;          // 用户唯一标识符
+    string user_name = 3;        // 显示用用户名
+    string content = 4;          // 消息内容 (支持Markdown)
+
+    MessageType message_type = 5;            // 消息类型枚举
+    int64 timestamp = 6;
+    
 }

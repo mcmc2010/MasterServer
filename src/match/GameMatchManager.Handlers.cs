@@ -89,13 +89,15 @@ namespace Server
     [System.Serializable]
     public class NGameMatchCompletedResponse
     {
+        // 
         [JsonPropertyName("code")]
         public int Code;
         [JsonPropertyName("id")]
         public string ID = ""; //流程编号
         [JsonPropertyName("index")]
-        public int Index = 0; 
-        // 匹配到玩家的类型，目前只有AI
+        public int Index = 0;
+
+        /// 匹配到玩家的类型，目前只有AI
         [JsonPropertyName("player_type")]
         public GameMatchPlayerType PlayerType = GameMatchPlayerType.AI;
         [JsonPropertyName("player_id")]
@@ -105,6 +107,12 @@ namespace Server
         public int PlayerTID = 0;
         [JsonPropertyName("player_name")]
         public string PlayerName = "";
+        
+        /// 匹配到房间
+        [JsonPropertyName("room_id")]
+        public int RoomID = 0;      //所在房间ID
+        [JsonPropertyName("room_secret_key")]
+        public string RoomSecretKey = "";   //所在房间密钥
     }
 
     public partial class GameMatchManager 
@@ -229,6 +237,9 @@ namespace Server
             string name = "";
             string id = "";
 
+            int rid = 0;
+            string rid_secret_key = "";
+
             GameMatchQueueItem? item;
             // 100 是等待，默认返回100
             int result_code = 100;
@@ -249,18 +260,32 @@ namespace Server
                 tid = item.tid;
                 name = item.name;
 
-                _logger?.Log($"{TAGName} Match Completed : {item.tid} {item.name}");
+                if (item.room_id > 0)
+                {
+                    var room = RoomManager.Instance.GetRoomData(item.room_id);
+                    if (room != null)
+                    {
+                        rid = room.RID;
+                        rid_secret_key = room.SecretKey;
+                    }
+                }
+
+                _logger?.Log($"{TAGName} Match Completed : (RoomID:{item.room_id}) ({item.server_id}) {item.tid} {item.name}");
             }
                         
             //
-            var result = new NGameMatchCompletedResponse {
+            var result = new NGameMatchCompletedResponse
+            {
                 Code = result_code,
                 Index = match.Index,
                 ID = match.ID,
                 PlayerID = id,
                 PlayerName = name,
                 PlayerTID = tid,
-                PlayerType = GameMatchPlayerType.AI
+                PlayerType = GameMatchPlayerType.AI,
+                //
+                RoomID = rid,
+                RoomSecretKey = rid_secret_key
             };
 
             //

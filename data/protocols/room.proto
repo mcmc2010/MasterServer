@@ -1,0 +1,39 @@
+syntax = "proto3";
+package protocols.world.room;
+
+// 定义聊天消息格式
+// 客户端发送
+message RoomEnter
+{
+    // ========== 基础字段 ==========
+    int32 room_id = 1;           // 房间唯一ID (数字)
+    string user_id = 2;          // 用户唯一标识符
+    string access_token = 3;     // 密钥HASH
+    string attached_id = 4;      // 该ID是用户的附带，比如AI是在同一客户端
+}
+
+message RoomEnterResponse
+{
+    // ========== 基础字段 ==========
+    int32 room_id = 1;           // 房间唯一ID (数字)
+    string user_id = 2;          // 用户唯一标识符
+    int64 timestamp = 3;
+    int32 result_code = 4;
+    
+}
+
+message RoomLeave
+{
+    // ========== 基础字段 ==========
+    int32 room_id = 1;           // 房间唯一ID (数字)
+    string user_id = 2;          // 用户唯一标识符
+}
+
+message RoomLeaveResponse
+{
+    // ========== 基础字段 ==========
+    int32 room_id = 1;           // 房间唯一ID (数字)
+    string user_id = 2;          // 用户唯一标识符
+    int64 timestamp = 3;
+    int32 result_code = 4;
+}

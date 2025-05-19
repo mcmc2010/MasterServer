@@ -158,13 +158,31 @@ namespace Server
             return true;
         }
 
+        public RoomData? GetRoomData(int rid = -1)
+        {
+            //
+            RoomData room = new RoomData()
+            {
+                RID = rid,
+                ServiceID = 0
+            };
+
+            //
+            if (this.DBGetRoomData(room) <= 0 || room.RID <= 0)
+            {
+                return null;
+            }
+            return room;
+        }
+
         public RoomData? GetIdleRoom()
         {
-            RoomData room = new RoomData() {
+            RoomData room = new RoomData()
+            {
                 RID = -1,
                 ServiceID = 0
             };
-            if(this.DBGetIdleRoom(room) <= 0 || room.RID <= 0)
+            if (this.DBGetIdleRoom(room) <= 0 || room.RID <= 0)
             {
                 return null;
             }
@@ -184,6 +202,23 @@ namespace Server
             return room;
         }
 
+        public int SetPlayerEnterRoom(int rid, string secret_key, string user_id)
+        {
+            RoomData room = new RoomData()
+            {
+                RID = rid,
+                SecretKey = secret_key.Trim(),
+                ServiceID = 0
+            };
+
+            int result_code = this.DBSetPlayerEnterRoom(room, user_id);
+            if(result_code < 0)
+            {
+                return -1;
+            }
+            return result_code;
+        }
+
         /// <summary>
         /// 内部设置
         /// </summary>
@@ -195,17 +230,18 @@ namespace Server
         {
             int count = 0;
             //
-            foreach(var player in player_list)
+            foreach (var player in player_list)
             {
-                var player_data = new RoomPlayerData() {
+                var player_data = new RoomPlayerData()
+                {
                     RID = room.RID,
                     ID = player.server_id,
                     ServiceID = room.ServiceID
                 };
-                if(player.role == GameMatchRoomRole.Master)
+                if (player.role == GameMatchRoomRole.Master)
                 {
                     // 设置房主
-                    if(this.DBSetMasterPlayerInRoom(room, player_data) <= 0)
+                    if (this.DBSetMasterPlayerInRoom(room, player_data) <= 0)
                     {
                         count = -1; break;
                     }
@@ -213,13 +249,13 @@ namespace Server
                 else
                 {
                     // 设置玩家
-                    if(this.DBSetPlayerInRoom(room, player_data) <= 0)
+                    if (this.DBSetPlayerInRoom(room, player_data) <= 0)
                     {
                         count = -1; break;
                     }
                 }
 
-                count ++;
+                count++;
             }
             return count;
         }

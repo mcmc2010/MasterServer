@@ -92,9 +92,9 @@ namespace Server
             //_server.AuthenticationSchemes = WebSocketSharp.Net.AuthenticationSchemes.None;
 
             //
-            _server.AddWebSocketService<Server.Packets.Echo>("/");
-            _server.AddWebSocketService<Server.Packets.Echo>("/echo");
-            _server.AddWebSocketService<Server.Packets.Chat>("/chat");
+            _server.AddWebSocketService<Server.Services.Echo>("/");
+            _server.AddWebSocketService<Server.Services.Echo>("/echo");
+            _server.AddWebSocketService<Server.Services.WorldService>("/world");
 
             //
             return 0;

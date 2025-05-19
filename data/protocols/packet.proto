@@ -1,0 +1,12 @@
+syntax = "proto3";
+package protocols;
+
+message PacketHeader {
+  int32 index = 1;
+  int32 level = 2;
+}
+
+message PacketData {
+  PacketHeader header = 1;
+  bytes data = 2;  // 加密后的 EncryptedData 序列化数据
+}
