@@ -28,17 +28,17 @@ namespace Protocols.World.Room {
             "ZXISDwoHcm9vbV9pZBgBIAEoBRIPCgd1c2VyX2lkGAIgASgJEhQKDGFjY2Vz",
             "c190b2tlbhgDIAEoCRITCgthdHRhY2hlZF9pZBgEIAEoCSJdChFSb29tRW50",
             "ZXJSZXNwb25zZRIPCgdyb29tX2lkGAEgASgFEg8KB3VzZXJfaWQYAiABKAkS",
-            "EQoJdGltZXN0YW1wGAMgASgDEhMKC3Jlc3VsdF9jb2RlGAQgASgFIi0KCVJv",
-            "b21MZWF2ZRIPCgdyb29tX2lkGAEgASgFEg8KB3VzZXJfaWQYAiABKAkiXQoR",
-            "Um9vbUxlYXZlUmVzcG9uc2USDwoHcm9vbV9pZBgBIAEoBRIPCgd1c2VyX2lk",
-            "GAIgASgJEhEKCXRpbWVzdGFtcBgDIAEoAxITCgtyZXN1bHRfY29kZRgEIAEo",
-            "BWIGcHJvdG8z"));
+            "EQoJdGltZXN0YW1wGAMgASgDEhMKC3Jlc3VsdF9jb2RlGAQgASgFIkIKCVJv",
+            "b21MZWF2ZRIPCgdyb29tX2lkGAEgASgFEg8KB3VzZXJfaWQYAiABKAkSEwoL",
+            "YXR0YWNoZWRfaWQYAyABKAkiXQoRUm9vbUxlYXZlUmVzcG9uc2USDwoHcm9v",
+            "bV9pZBgBIAEoBRIPCgd1c2VyX2lkGAIgASgJEhEKCXRpbWVzdGFtcBgDIAEo",
+            "AxITCgtyZXN1bHRfY29kZRgEIAEoBWIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::Protocols.World.Room.RoomEnter), global::Protocols.World.Room.RoomEnter.Parser, new[]{ "RoomId", "UserId", "AccessToken", "AttachedId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Protocols.World.Room.RoomEnterResponse), global::Protocols.World.Room.RoomEnterResponse.Parser, new[]{ "RoomId", "UserId", "Timestamp", "ResultCode" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Protocols.World.Room.RoomLeave), global::Protocols.World.Room.RoomLeave.Parser, new[]{ "RoomId", "UserId" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Protocols.World.Room.RoomLeave), global::Protocols.World.Room.RoomLeave.Parser, new[]{ "RoomId", "UserId", "AttachedId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Protocols.World.Room.RoomLeaveResponse), global::Protocols.World.Room.RoomLeaveResponse.Parser, new[]{ "RoomId", "UserId", "Timestamp", "ResultCode" }, null, null, null, null)
           }));
     }
@@ -723,6 +723,7 @@ namespace Protocols.World.Room {
     public RoomLeave(RoomLeave other) : this() {
       roomId_ = other.roomId_;
       userId_ = other.userId_;
+      attachedId_ = other.attachedId_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -762,6 +763,21 @@ namespace Protocols.World.Room {
       }
     }
 
+    /// <summary>Field number for the "attached_id" field.</summary>
+    public const int AttachedIdFieldNumber = 3;
+    private string attachedId_ = "";
+    /// <summary>
+    /// 该ID是用户的附带，比如AI是在同一客户端
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string AttachedId {
+      get { return attachedId_; }
+      set {
+        attachedId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -779,6 +795,7 @@ namespace Protocols.World.Room {
       }
       if (RoomId != other.RoomId) return false;
       if (UserId != other.UserId) return false;
+      if (AttachedId != other.AttachedId) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -788,6 +805,7 @@ namespace Protocols.World.Room {
       int hash = 1;
       if (RoomId != 0) hash ^= RoomId.GetHashCode();
       if (UserId.Length != 0) hash ^= UserId.GetHashCode();
+      if (AttachedId.Length != 0) hash ^= AttachedId.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -814,6 +832,10 @@ namespace Protocols.World.Room {
         output.WriteRawTag(18);
         output.WriteString(UserId);
       }
+      if (AttachedId.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(AttachedId);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -832,6 +854,10 @@ namespace Protocols.World.Room {
         output.WriteRawTag(18);
         output.WriteString(UserId);
       }
+      if (AttachedId.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(AttachedId);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -847,6 +873,9 @@ namespace Protocols.World.Room {
       }
       if (UserId.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(UserId);
+      }
+      if (AttachedId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(AttachedId);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -865,6 +894,9 @@ namespace Protocols.World.Room {
       }
       if (other.UserId.Length != 0) {
         UserId = other.UserId;
+      }
+      if (other.AttachedId.Length != 0) {
+        AttachedId = other.AttachedId;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -893,6 +925,10 @@ namespace Protocols.World.Room {
             UserId = input.ReadString();
             break;
           }
+          case 26: {
+            AttachedId = input.ReadString();
+            break;
+          }
         }
       }
     #endif
@@ -918,6 +954,10 @@ namespace Protocols.World.Room {
           }
           case 18: {
             UserId = input.ReadString();
+            break;
+          }
+          case 26: {
+            AttachedId = input.ReadString();
             break;
           }
         }

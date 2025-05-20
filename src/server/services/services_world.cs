@@ -14,6 +14,9 @@ namespace Server.Services
     {
         protected UserSession? _session = null;
 
+        protected int _room_id = 0;
+        protected List<string> _room_player_ids = new List<string>();
+
         /// <summary>
         /// 
         /// </summary>
@@ -73,12 +76,28 @@ namespace Server.Services
             session.BindService(this);
             _session = session;
 
+            //
             base.OnOpen();
+
+            //
+            _room_id = 0;
+            _room_player_ids.Clear();
         }
 
         protected override void OnClose(CloseEventArgs e)
         {
             base.OnClose(e);
+
+            // 回收房间用户
+            if (_room_id > 0)
+            {
+                foreach (var id in _room_player_ids)
+                {
+                    this.PlayerLeaveRoom(_room_id, id, true);
+                }
+                _room_player_ids.Clear();
+                _room_id = 0;
+            }
 
             //
             if (_session != null)
@@ -106,6 +125,9 @@ namespace Server.Services
                     break;
                 case PacketHandleIndex.RoomEnter:
                     this.OnRoomEnterResponse(this.GetPacketT<Protocols.World.Room.RoomEnter>());
+                    break;
+                case PacketHandleIndex.RoomLeave:
+                    this.OnRoomLeaveResponse(this.GetPacketT<Protocols.World.Room.RoomLeave>());
                     break;
                 default:
                     Logger.LoggerFactory.Instance?.LogError($"[Service] (WorldService) Packet : Unknow Header ({index})");
@@ -152,7 +174,7 @@ namespace Server.Services
             // 广播给所有用户
             UserManager.Instance.BroadcastAsync(response.ToByteArray(), (int)PacketHandleIndex.ChatMessageResponse);
         }
-        
+
         /// <summary>
         /// 进入房间
         /// </summary>
@@ -184,7 +206,7 @@ namespace Server.Services
                 is_attached_id = true;
                 user_id = packet.AttachedId.Trim();
             }
-            
+
             // 构建消息
             var response = new Protocols.World.Room.RoomEnterResponse();
             response.ResultCode = 0;
@@ -225,6 +247,9 @@ namespace Server.Services
                 {
                     Logger.LoggerFactory.Instance?.LogWarning($"[Service] (WorldService) Room : ({packet.RoomId}) (ID:{user_id}) Enter Not Allow");
                 }
+
+                _room_id = packet.RoomId;
+                _room_player_ids.Add(user_id);
             }
 
             //
@@ -237,6 +262,79 @@ namespace Server.Services
             response.UserId = user_id;
             //response.ResultCode = 1;
             this.SendData(response.ToByteArray(), (int)PacketHandleIndex.RoomEnterResponse);
+        }
+
+        /// <summary>
+        /// 离开房间
+        /// </summary>
+        /// <param name="packet"></param>
+        protected void OnRoomLeaveResponse(Protocols.World.Room.RoomLeave? packet)
+        {
+            if (packet == null)
+            {
+                // 来自用户的聊天不能包含系统，通知等
+                return;
+            }
+
+            // 校验用户ID
+            if (packet.UserId != _session?.ID)
+            {
+                return;
+            }
+
+            bool is_attached_id = false;
+            // 漏洞，有可能会有封包欺骗
+            string user_id = packet.UserId.Trim();
+            if (packet.AttachedId.Length > 0)
+            {
+                if (!CheckUserIDN(packet.AttachedId))
+                {
+                    return;
+                }
+
+                is_attached_id = true;
+                user_id = packet.AttachedId.Trim();
+            }
+
+            // 构建消息
+            var response = new Protocols.World.Room.RoomLeaveResponse();
+            response.ResultCode = 0;
+
+            response.ResultCode = this.PlayerLeaveRoom(packet.RoomId, user_id);
+
+            _room_player_ids.Remove(user_id);
+
+            //
+            response.RoomId = packet.RoomId;
+
+            //
+            response.Timestamp = AMToolkits.Utility.Utils.GetLongTimestamp();
+
+            // 
+            response.UserId = user_id;
+            //response.ResultCode = 1;
+            this.SendData(response.ToByteArray(), (int)PacketHandleIndex.RoomLeaveResponse);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="rid"></param>
+        /// <param name="user_id"></param>
+        /// <param name="force">强制离开房间</param>
+        /// <returns></returns>
+        private int PlayerLeaveRoom(int rid, string user_id, bool force = false)
+        {
+            int result_code = RoomManager.Instance.SetPlayerLeaveRoom(rid, user_id);
+            if (result_code == 0)
+            {
+                Logger.LoggerFactory.Instance?.LogWarning($"[Service] (WorldService) Room : ({rid}) (ID:{user_id}) Leave is NULL");
+            }
+            if (force)
+            {
+                Logger.LoggerFactory.Instance?.LogWarning($"[Service] (WorldService) Room : ({rid}) (ID:{user_id}) Leave (Force)");
+            }
+            return result_code;
         }
     }
 }

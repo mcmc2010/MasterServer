@@ -27,6 +27,7 @@ message RoomLeave
     // ========== 基础字段 ==========
     int32 room_id = 1;           // 房间唯一ID (数字)
     string user_id = 2;          // 用户唯一标识符
+    string attached_id = 3;      // 该ID是用户的附带，比如AI是在同一客户端
 }
 
 message RoomLeaveResponse

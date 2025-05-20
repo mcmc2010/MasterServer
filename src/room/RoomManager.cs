@@ -219,6 +219,23 @@ namespace Server
             return result_code;
         }
 
+
+        public int SetPlayerLeaveRoom(int rid, string user_id)
+        {
+            RoomData room = new RoomData()
+            {
+                RID = rid,
+                ServiceID = 0
+            };
+
+            int result_code = this.DBSetPlayerLeaveRoom(room, user_id);
+            if(result_code < 0)
+            {
+                return -1;
+            }
+            return result_code;
+        }
+
         /// <summary>
         /// 内部设置
         /// </summary>

@@ -355,10 +355,10 @@ namespace Server
             }
             return -1;
         }
-        
+
         protected int DBSetPlayerEnterRoom(RoomData room, string user_id)
         {
-            if(room.RID <= 0)
+            if (room.RID <= 0)
             {
                 return -1;
             }
@@ -394,13 +394,14 @@ namespace Server
                 int max_num = (int)(db?.ResultItems["max_num"]?.Number ?? 0);
 
                 // 1: 房间玩家表
-                sql = 
+                sql =
                     $"UPDATE `t_rooms_players` " +
                     $"SET " +
                     $"  `joined_time` = NOW()" +
                     $"WHERE rid = ? AND id = ? AND status > 0;";
                 result_code = db?.Query(sql, room.RID, user_id);
-                if(result_code < 0) {
+                if (result_code < 0)
+                {
                     db?.Rollback();
                     return -1;
                 }
@@ -412,6 +413,99 @@ namespace Server
                     $"  cur_num = ? " +
                     $"WHERE id = ? AND service_id = ? AND status > 0;";
                 result_code = db?.Query(sql, cur_num + 1,
+                    room.RID, room.ServiceID);
+                if (result_code < 0)
+                {
+                    db?.Rollback();
+                    return -1;
+                }
+
+                db?.Commit();
+                return 1;
+            }
+            catch (Exception e)
+            {
+                _logger?.LogError("(Room) Error :" + e.Message);
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return -1;
+        }
+        
+        protected int DBSetPlayerLeaveRoom(RoomData room, string user_id)
+        {
+            if(room.RID <= 0)
+            {
+                return -1;
+            }
+
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                db?.Transaction();
+
+                // 0:
+                string sql =
+                    $"SELECT " +
+                    $"  id as rid, name, creator_id, cur_num, max_num, secret_key, create_time, last_time " +
+                    $"  " +
+                    $"FROM `t_rooms` " +
+                    $"WHERE " +
+                    $"  id = ? AND service_id = ? AND status > 0 " +
+                    $"";
+                var result_code = db?.Query(sql, room.RID, room.ServiceID);
+                if (result_code < 0)
+                {
+                    return -1;
+                }
+                // 房间密钥错误或不存在
+                if (result_code == 0)
+                {
+                    return 0;
+                }
+
+                int rid = (int)(db?.ResultItems["rid"]?.Number ?? -1);
+                string secret_key = db?.ResultItems["secret_key"]?.String ?? "";
+                int cur_num = (int)(db?.ResultItems["cur_num"]?.Number ?? 0);
+                int max_num = (int)(db?.ResultItems["max_num"]?.Number ?? 0);
+                string creator_id = db?.ResultItems["creator_id"]?.String ?? "";
+
+                // 1: 房间玩家表
+                sql = 
+                    $"UPDATE `t_rooms_players` " +
+                    $"SET " +
+                    $"  `leave_time` = NOW()" +
+                    $"WHERE rid = ? AND id = ? AND status > 0;";
+                result_code = db?.Query(sql, room.RID, user_id);
+                if(result_code < 0) {
+                    db?.Rollback();
+                    return -1;
+                }
+
+                //
+                if (cur_num - 1 >= 0)
+                {
+                    cur_num = cur_num - 1;
+                }
+
+                // 1: 房间表
+                sql =
+                    $"UPDATE `t_rooms` " +
+                    $"SET " +
+                    $"  cur_num = ? " +
+                    $"WHERE id = ? AND service_id = ? AND status > 0;";
+                // 如果是房管，需要清除
+                if (creator_id == user_id)
+                {
+                    sql =
+                    $"UPDATE `t_rooms` " +
+                    $"SET " +
+                    $"  creator_id = NULL, cur_num = ? " +
+                    $"WHERE id = ? AND service_id = ? AND status > 0;";
+                }
+                result_code = db?.Query(sql, cur_num,
                     room.RID, room.ServiceID);
                 if (result_code < 0)
                 {
