@@ -93,6 +93,39 @@ namespace Server
     /// <summary>
     /// 
     /// </summary>
+    public class HTTPLoggingMiddleware
+    {
+        private readonly RequestDelegate _next;
+        private readonly Microsoft.Extensions.Logging.ILogger _logger;
+
+        public HTTPLoggingMiddleware(RequestDelegate next, ILogger<HTTPLoggingMiddleware> logger)
+        {
+            _next = next;
+            _logger = logger;
+        }
+
+        public async Task Invoke(HttpContext context)
+        {
+            var ip = context.GetClientAddress();
+            using (var scope = _logger.BeginScope(new Dictionary<string, object>
+            {
+                ["Scheme"] = context.Request.Scheme.ToUpper(),
+                ["Methed"] = context.Request.Method.ToUpper(),
+                ["Path"] = context.Request.Path.ToString(),
+                ["StatusCode"] = context.Response.StatusCode,
+                ["RemoteIP"] = ip,
+                ["UserAgent"] = context.Request.Headers.UserAgent
+            }))
+            {
+                await _next(context);
+                _logger.LogInformation("[{Scheme}] ({Methed})  Remote Client : {Path} - {StatusCode} [{RemoteIP}]");
+            }            
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
     public partial class ServerApplication : SingletonT<ServerApplication>, ISingleton
     {
         private string[]? _arguments = null;
@@ -103,8 +136,8 @@ namespace Server
         private WSSServer? _wsserver = null;
 
         private CancellationTokenSource? _cts = null;
-        public bool HasQuiting{ get { return _cts?.IsCancellationRequested == true; } }
-        
+        public bool HasQuiting { get { return _cts?.IsCancellationRequested == true; } }
+
         /// <summary>
         /// 
         /// </summary>
@@ -114,15 +147,15 @@ namespace Server
         {
         }
 
-        protected override void OnInitialize(object[] paramters) 
-        { 
+        protected override void OnInitialize(object[] paramters)
+        {
             _arguments = paramters[0] as string[];
 
             var config = paramters[1] as ServerConfig;
-            if(config == null)
+            if (config == null)
             {
                 System.Console.WriteLine("[Server] Config is NULL.");
-                return ;
+                return;
             }
             _config = config;
             _logger = Logger.LoggerFactory.Instance;
@@ -150,7 +183,7 @@ namespace Server
 
         public bool CreateHTTPServer()
         {
-            if(_config == null)
+            if (_config == null)
             {
                 System.Console.WriteLine("[Server] Config is NULL.");
                 return false;
@@ -161,16 +194,18 @@ namespace Server
 
             // 添加服务配置
             // 配置 Kestrel HTTPS
-            builder.WebHost.ConfigureKestrel(options => {
+            builder.WebHost.ConfigureKestrel(options =>
+            {
 
-                foreach(var v in _config.HTTPServer)
+                foreach (var v in _config.HTTPServer)
                 {
                     IPAddress address = IPAddress.Any;
-                    if(v.Address.Trim() != "0.0.0.0")
+                    if (v.Address.Trim() != "0.0.0.0")
                     {
                         address = IPAddress.Parse(v.Address);
                     }
-                    if(v.HasSSL && v.Certificates.Trim().Length > 0) {
+                    if (v.HasSSL && v.Certificates.Trim().Length > 0)
+                    {
                         options.Listen(IPAddress.Any, 5443, listen =>
                         {
                             listen.UseHttps(v.Certificates.Trim(), null); // 配置 HTTPS
@@ -185,22 +220,28 @@ namespace Server
 
             //
             var cfg = _config.Logging.FirstOrDefault(v => v.Name.Trim().ToLower() == "http");
-            if(cfg != null && cfg.File.Length > 0) {
+            if (cfg != null && cfg.File.Length > 0)
+            {
+                builder.Logging.ClearProviders();
                 // 添加文件日志提供程序，并设置日志路径和级别
                 //builder.Logging.AddFile("logs/main.log", minimumLevel: LogLevel.Information);
                 builder.Logging.SetMinimumLevel((Microsoft.Extensions.Logging.LogLevel)cfg.Getlevel());
                 // 注册自定义文件日志提供程序
-                builder.Logging.AddProvider(new Logger.Extensions.FileLoggerProvider(cfg.File));
+                builder.Logging.AddProvider(new Logger.Extensions.LoggerProvider(cfg.File));
             }
 
             // 
             _webserver = builder.Build();
 
+            // 添加请求端IP地址
+            _webserver.UseMiddleware<HTTPLoggingMiddleware>();
+
             //
             RegisterHandlers();
-     
+
             // 限制权限访问
-            _webserver.UseWhen(context => {
+            _webserver.UseWhen(context =>
+            {
                 string[] paths = new string[] {
                     "/local",
                     "/internal",
@@ -209,15 +250,16 @@ namespace Server
                 };
                 return paths.Any(v => context.Request.Path.StartsWithSegments(v));
             },
-            (s) => s.Use(async (context, next) => {
-                    var ip = context.Connection.RemoteIpAddress;
-                    if(ip == null || !IPAddress.IsLoopback(ip))
-                    {
-                        await context.ResponseStatusAsync("error", "Not Allow Access", HttpStatusCode.Forbidden);
-                        return;
-                    }
-                    await next();
-                })
+            (s) => s.Use(async (context, next) =>
+            {
+                var ip = context.Connection.RemoteIpAddress;
+                if (ip == null || !IPAddress.IsLoopback(ip))
+                {
+                    await context.ResponseStatusAsync("error", "Not Allow Access", HttpStatusCode.Forbidden);
+                    return;
+                }
+                await next();
+            })
             );
 
             // 捕获所有未匹配的路由，返回默认 JSON
@@ -228,7 +270,7 @@ namespace Server
 
 
             //
-            if(RegisterHandlersListner != null)
+            if (RegisterHandlersListner != null)
             {
                 RegisterHandlersListner(this, new HandlerEventArgs() { app = _webserver });
             }
@@ -240,7 +282,7 @@ namespace Server
 
         public bool CreateWSServer()
         {
-            if(_config == null)
+            if (_config == null)
             {
                 System.Console.WriteLine("[Server] Config is NULL.");
                 return false;
@@ -256,7 +298,8 @@ namespace Server
 
         protected virtual void RegisterHandlers()
         {
-            if(_webserver == null) {
+            if (_webserver == null)
+            {
                 System.Console.WriteLine("[Server] WebServer not initialize.");
                 return;
             }
@@ -268,12 +311,12 @@ namespace Server
 
         public Task<int> StartWorking()
         {
-            if(_webserver != null)
+            if (_webserver != null)
             {
                 _webserver.RunAsync();
             }
 
-            if(_wsserver != null)
+            if (_wsserver != null)
             {
                 _wsserver.StartWorking();
             }
@@ -301,7 +344,7 @@ namespace Server
                 {
                     await Task.Delay(1000, this._cts.Token);
                 }
-                catch(TaskCanceledException)
+                catch (TaskCanceledException)
                 {
                     break;
                 }
@@ -322,7 +365,7 @@ namespace Server
 
         public void EndWorking()
         {
-            if(_webserver != null)
+            if (_webserver != null)
             {
                 _webserver.StopAsync();
             }
