@@ -20,7 +20,7 @@ namespace Server
             long remote_timestamp = long.Parse(value);
             long server_timestamp = Utils.GetLongTimestamp();
             
-            float delay = Utils.DiffTimestamp(remote_timestamp, server_timestamp);
+            float delay = remote_timestamp == 0 ? Utils.NETWORK_DELAY_MIN : Utils.DiffTimestamp(remote_timestamp, server_timestamp);
 
 
             await context.ResponseStatusAsync("success", "", server_timestamp, delay);

@@ -56,7 +56,8 @@ namespace Server
             }
 
             //
-            var platform = context.GetOSPlatform();
+            var platform = "";
+            context.GetOSPlatform(out platform);
 
             // 解析 JSON
             var user = await context.Request.JsonBodyAsync<NAuthUserRequest>();

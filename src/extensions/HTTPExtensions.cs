@@ -157,35 +157,56 @@ namespace AMToolkits.Extensions
             return address;
         }
 
-        public static string GetOSPlatform(this HttpContext context) 
+        public static string GetOSPlatform(this HttpContext context)
         {
+            string desc = "";
+            return GetOSPlatform(context, out desc);
+        }
+
+        public static string GetOSPlatform(this HttpContext context, out string os_desc)
+        {
+            os_desc = "";
+
             string value = "";
             context.QueryString("platform", out value);
-            if(string.Compare(value, AMToolkits.Utility.OSPlatform.Window, true) == 0)
+            var vs = value.Split("_");
+            if (vs.Length > 0)
             {
-                return AMToolkits.Utility.OSPlatform.Window;
+                value = vs[0];
             }
-            else if(string.Compare(value, AMToolkits.Utility.OSPlatform.Linux, true) == 0)
+            if (vs.Length > 1 && System.Text.RegularExpressions.Regex.IsMatch(vs[1], @"^\d[\d.]*$"))
             {
-                return AMToolkits.Utility.OSPlatform.Linux;
+                os_desc = vs[1];
             }
-            else if(string.Compare(value, AMToolkits.Utility.OSPlatform.MacOS, true) == 0)
+
+            var platform = "Unknow";
+            if (string.Compare(value, AMToolkits.Utility.OSPlatform.Window, true) == 0)
             {
-                return AMToolkits.Utility.OSPlatform.MacOS;
+                platform = AMToolkits.Utility.OSPlatform.Window;
             }
-            else if(string.Compare(value, AMToolkits.Utility.OSPlatform.iOS, true) == 0)
+            else if (string.Compare(value, AMToolkits.Utility.OSPlatform.Linux, true) == 0)
             {
-                return AMToolkits.Utility.OSPlatform.iOS;
+                platform = AMToolkits.Utility.OSPlatform.Linux;
             }
-            else if(string.Compare(value, AMToolkits.Utility.OSPlatform.Android, true) == 0)
+            else if (string.Compare(value, AMToolkits.Utility.OSPlatform.MacOS, true) == 0)
             {
-                return AMToolkits.Utility.OSPlatform.Android;
+                platform = AMToolkits.Utility.OSPlatform.MacOS;
             }
-            else if(string.Compare(value, AMToolkits.Utility.OSPlatform.Web, true) == 0)
+            else if (string.Compare(value, AMToolkits.Utility.OSPlatform.iOS, true) == 0)
             {
-                return AMToolkits.Utility.OSPlatform.Web;
+                platform = AMToolkits.Utility.OSPlatform.iOS;
             }
-            return "Unknow";
+            else if (string.Compare(value, AMToolkits.Utility.OSPlatform.Android, true) == 0)
+            {
+                platform = AMToolkits.Utility.OSPlatform.Android;
+            }
+            else if (string.Compare(value, AMToolkits.Utility.OSPlatform.Web, true) == 0)
+            {
+                platform = AMToolkits.Utility.OSPlatform.Web;
+            }
+
+            os_desc = platform + "-" + os_desc;
+            return platform;
         }
 
 
