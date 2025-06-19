@@ -123,14 +123,21 @@ namespace Server.Services
                 case PacketHandleIndex.ChatMessage:
                     this.OnChatMessageResponse(this.GetPacketT<Protocols.World.Chat.ChatMessage>());
                     break;
+
+                ////
                 case PacketHandleIndex.RoomEnter:
                     this.OnRoomEnterResponse(this.GetPacketT<Protocols.World.Room.RoomEnter>());
                     break;
                 case PacketHandleIndex.RoomLeave:
                     this.OnRoomLeaveResponse(this.GetPacketT<Protocols.World.Room.RoomLeave>());
                     break;
+
+                ////
+                case PacketHandleIndex.GMNotice:
+                    this.GMNoticeResponse(this.GetPacketT<Protocols.World.Admin.GMNoticeRequest>());
+                    break;
                 default:
-                    Logger.LoggerFactory.Instance?.LogError($"[Service] (WorldService) Packet : Unknow Header ({index})");
+                    Logger.LoggerFactory.Instance?.LogError($"[Service] (WorldService) Packet : Unknow Header (0x{index:X})");
                     break;
             }
 
@@ -314,6 +321,46 @@ namespace Server.Services
             response.UserId = user_id;
             //response.ResultCode = 1;
             this.SendData(response.ToByteArray(), (int)PacketHandleIndex.RoomLeaveResponse);
+        }
+
+        private void GMNoticeResponse(Protocols.World.Admin.GMNoticeRequest? packet)
+        {
+            if (packet == null)
+            {
+                // 来自用户的聊天不能包含系统，通知等
+                return;
+            }
+
+            // 校验用户ID
+            if (packet.UserId != _session?.ID)
+            {
+                return;
+            }
+
+            if (_session.PrivilegeLevel < (int)PrivilegeLevel.Master)
+            {
+                Logger.LoggerFactory.Instance?.LogWarning($"[Service] (WorldService) Admin : (ID:{_session.ID}) Not Allow, No Permission");
+                return;
+            }
+
+            // 构建消息
+            var response = new Protocols.World.Admin.GMNoticeResponse();
+
+            //
+            response.NoticeId = AMToolkits.Utility.Guid.GeneratorID12();
+            response.Level = packet.Level;
+
+            //
+            response.Content = packet.Content;
+            response.Timestamp = AMToolkits.Utility.Utils.GetLongTimestamp();
+
+            // 
+            response.UserId = _session?.ID;
+            //response.Name = packet.Name;
+
+            //this.Send(response.ToByteArray());
+            // 广播给所有用户
+            UserManager.Instance.BroadcastAsync(response.ToByteArray(), (int)PacketHandleIndex.GMNoticeResponse);
         }
 
         /// <summary>

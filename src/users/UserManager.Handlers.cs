@@ -37,6 +37,8 @@ namespace Server
         public string DateTime = "";
         [JsonPropertyName("hash")]
         public string Hash = "";
+        [JsonPropertyName("privilege_level")]
+        public int PrivilegeLevel = 0;
     }
 
     public partial class UserManager
@@ -115,19 +117,27 @@ namespace Server
                 }
 
                 // Add User To Manager
-                this.AddUser(new UserBase() {
+                this.AddUser(new UserBase()
+                {
                     ID = user_data.server_uid,
                     ClientID = user_data.client_uid,
                     AccessToken = user_data.token,
-                    Passphrase = user_data.passphrase
+                    Passphrase = user_data.passphrase,
+                    
+                    PrivilegeLevel = user_data.privilege_level,
                 });
             }
 
             //
             _logger?.Log($"(User) Auth User:{user_data.client_uid} - {user_data.server_uid}, Token:{user_data.token} Result: {result_code}");
+            if (user_data.privilege_level >= 7)
+            {
+                _logger?.LogWarning($"(User) Admin:{user_data.server_uid}, Level:{user_data.privilege_level}");
+            }
 
             //
-            var result = new NAuthUserResponse {
+            var result = new NAuthUserResponse
+            {
                 Code = result_code,
                 UID = user_data.client_uid,
                 ServerUID = user_data.server_uid,
@@ -135,6 +145,7 @@ namespace Server
                 Token = user_data.token,
                 DateTime = date_time,
                 Hash = hash,
+                PrivilegeLevel = user_data.privilege_level,
             };
 
             //

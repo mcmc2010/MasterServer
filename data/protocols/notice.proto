@@ -1,0 +1,22 @@
+﻿syntax = "proto3";
+package protocols.world.notice;
+
+// 公告等级（紧急公告不允许GM直接发送）
+enum NoticeLevel {
+    NORMAL = 0;    // 普通
+    IMPORTANT = 1; // 重要
+    URGENT = 2;    // 紧急（仅系统可发，GM不可发）
+}
+
+// 公告下发给客户端（支持多种来源）
+//message   {
+//    string notice_id = 1;                // 公告唯一ID
+//    string sender_id = 2;                // 发送者ID（GM或系统）
+//    string title = 3;                    // 公告标题
+//    string recipients = 4;               // 收件人称呼
+//    string content = 5;                  // 内容主体
+//    string addresser = 6;                // 发件人
+//    NoticeLevel level = 7;               // 公告等级
+//    int32 duration = 8;                  // 持续时间（秒）
+//    int64 timestamp = 9;                 // 发送时间
+//}

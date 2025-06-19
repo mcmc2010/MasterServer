@@ -16,6 +16,8 @@ namespace Server
         public string token = "";
         public DateTime datetime = DateTime.Now;
         public string device = "";
+
+        public int privilege_level = 0;
     }
 
     /// <summary>
@@ -39,9 +41,11 @@ namespace Server
             var db = DatabaseManager.Instance.New();
             try
             {
+                int privilege_level = 0;
+
                 // PlayFab 
                 string sql = 
-                    $"SELECT uid, id AS server_id, client_id, token, passphrase, last_time, status " +
+                    $"SELECT uid, id AS server_id, client_id, token, passphrase, last_time, privilege_level, status " +
                     $"FROM t_user WHERE client_id = ? AND playfab_id = ? AND status >= 0;";
                 var result_code = db?.Query(sql, user_data.client_uid, user_data.custom_id);
                 if(result_code < 0) {
@@ -81,6 +85,10 @@ namespace Server
                         return -7;
                     }
 
+                    //
+                    privilege_level = (int)(db?.ResultItems["privilege_level"]?.Number ?? 0);
+
+                    //
                     sql = 
                         $"UPDATE `t_user` " +
                         $"SET " + 
@@ -93,6 +101,23 @@ namespace Server
 
                 }
 
+                //
+                if (privilege_level >= 7)
+                {
+                    sql =
+                        $"SELECT uid, id AS server_id, name, last_time, privilege_level, status " +
+                        $"FROM t_admin WHERE id = ? AND status > 0;";
+                    result_code = db?.Query(sql, user_data.server_uid);
+                    if (result_code <= 0)
+                    {
+                        return -1;
+                    }
+                    
+                    privilege_level = (int)(db?.ResultItems["privilege_level"]?.Number ?? 0);
+                    user_data.privilege_level = privilege_level;
+                }
+
+                //
                 return 1;
             } catch (Exception e) {
                 _logger?.LogError("(User) Error :" + e.Message);

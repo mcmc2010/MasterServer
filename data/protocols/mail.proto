@@ -1,0 +1,77 @@
+﻿syntax = "proto3";
+package protocols.world.mail;
+
+// 邮件附件（奖励物品）
+message MailAttachment {
+    int32 item_id = 1;      // 物品ID
+    int32 item_count = 2;   // 物品数量
+}
+
+// 邮件结构
+message Mail {
+    string mail_id = 1;                 // 邮件唯一ID
+    string sender_id = 2;               // 发送者ID
+    string sender_name = 3;             // 发送者名称
+    string receiver_id = 4;             // 接收者ID
+    string title = 5;                   // 邮件标题
+    string content = 6;                 // 邮件内容
+    int64 timestamp = 7;                // 发送时间
+    repeated MailAttachment attachments = 8; // 附件列表
+    bool is_read = 9;                   // 是否已读
+    bool is_claimed = 10;               // 附件是否已领取
+}
+
+// 单封邮件领取附件请求
+message MailClaimAttachmentRequest {
+    string mail_id = 1;     // 邮件唯一ID
+    string user_id = 2;     // 领取玩家ID
+}
+
+// 单封邮件领取附件响应
+message MailClaimAttachmentResponse {
+    string mail_id = 1;                     // 邮件唯一ID
+    string user_id = 2;                     // 领取玩家ID
+    repeated MailAttachment attachments = 3; // 实际发放的附件奖励
+    bool success = 4;                       // 是否领取成功
+    string message = 5;                     // 失败原因或提示
+}
+
+// 批量删除邮件请求
+message MailBatchDeleteRequest {
+    repeated string mail_ids = 1;   // 要删除的邮件ID列表
+    string user_id = 2;             // 操作玩家ID
+}
+
+// 批量删除邮件响应
+message MailBatchDeleteResponse {
+    repeated string deleted_mail_ids = 1; // 实际删除成功的邮件ID
+    repeated string failed_mail_ids = 2;  // 删除失败的邮件ID
+    string message = 3;                   // 结果描述
+}
+
+// 批量已读请求
+message MailBatchReadRequest {
+    repeated string mail_ids = 1;   // 要标记为已读的邮件ID列表
+    string user_id = 2;             // 操作玩家ID
+}
+
+// 批量已读响应
+message MailBatchReadResponse {
+    repeated string read_mail_ids = 1;    // 实际标记为已读的邮件ID
+    repeated string failed_mail_ids = 2;  // 标记失败的邮件ID
+    string message = 3;                   // 结果描述
+}
+
+// 批量领取附件请求
+message MailBatchClaimAttachmentRequest {
+    repeated string mail_ids = 1;   // 要领取附件的邮件ID列表
+    string user_id = 2;             // 领取玩家ID
+}
+
+// 批量领取附件响应
+message MailBatchClaimAttachmentResponse {
+    repeated string claimed_mail_ids = 1;     // 实际领取成功的邮件ID
+    repeated string failed_mail_ids = 2;      // 领取失败的邮件ID
+    repeated MailAttachment attachments = 3;  // 所有领取到的附件奖励
+    string message = 4;                       // 结果描述
+}

@@ -13,6 +13,16 @@ namespace Server
     /// <summary>
     /// 
     /// </summary>
+    public enum PrivilegeLevel
+    {
+        None = 0,   //Guest
+        Normal = 1, //认证或绑定后的用户
+        Master = 7,
+    }
+    
+    /// <summary>
+    /// 
+    /// </summary>
     public interface IUser
     {
 
@@ -34,6 +44,7 @@ namespace Server
         public string AccessToken = "";
         public string Passphrase = "";
         public DateTime Time = DateTime.Now;
+        public int PrivilegeLevel = 0;
     }
 
     [System.Serializable]
@@ -55,6 +66,9 @@ namespace Server
             this.AccessToken = user.AccessToken;
             this.Passphrase = user.Passphrase;
             this.Time = user.Time;
+
+            //
+            this.PrivilegeLevel = user.PrivilegeLevel;
         }
 
         public void BindService(Server.Services.IService service)
@@ -132,7 +146,8 @@ namespace Server
             user.Time = DateTime.Now;
 
             UserSession session = new UserSession(user);
-            lock(_users_lock) {
+            lock (_users_lock)
+            {
                 _users[user.ID] = session;
             }
             return true;

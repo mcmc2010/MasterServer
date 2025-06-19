@@ -15,5 +15,9 @@ namespace Server.Services
         RoomEnterResponse = 0x2021,
         RoomLeave = 0x2030,
         RoomLeaveResponse = 0x2031,
+
+        // Admin
+        GMNotice = 0x7000,
+        GMNoticeResponse = 0x7001
     }
 }

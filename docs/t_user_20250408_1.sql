@@ -24,3 +24,8 @@ ALTER TABLE `t_user`
 DROP PRIMARY KEY,
 ADD PRIMARY KEY (`uid`, `id`);
 
+--
+ALTER TABLE `t_user` 
+ADD COLUMN `privilege_level` int DEFAULT '0' COMMENT '7是gm' AFTER `last_time`;
+ALTER TABLE `game`.`t_user` 
+CHANGE COLUMN `name` `name` VARCHAR(32) NULL DEFAULT NULL ;

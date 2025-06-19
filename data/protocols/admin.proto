@@ -1,0 +1,37 @@
+﻿syntax = "proto3";
+package protocols.world.admin;
+
+import "notice.proto";
+
+// GM发送公告（仅允许NORMAL和IMPORTANT）
+message GMNoticeRequest {
+    string user_id = 1;           // GM账号ID
+    string notice_id = 2;       // 公告唯一ID (UUID格式)
+    string content = 3;         // 公告内容 (支持Markdown)
+    protocols.world.notice.NoticeLevel level = 4; // 公告等级（仅NORMAL和IMPORTANT有效）
+    int64 timestamp = 5;        // 发送时间
+}
+
+message GMNoticeResponse {
+    string user_id = 1;           // GM账号ID
+    string notice_id = 2;       // 公告唯一ID (UUID格式)
+    string content = 3;         // 公告内容 (支持Markdown)
+    protocols.world.notice.NoticeLevel level = 4; // 公告等级（仅NORMAL和IMPORTANT有效）
+    int64 timestamp = 5;        // 发送时间
+}
+
+// // GM私聊请求
+// message GMPrivateChatRequest {
+//     string gm_id = 1;           // GM账号ID
+//     string target_user_id = 2;  // 目标玩家ID
+//     string content = 3;         // 私聊内容 (支持Markdown)
+//     int64 timestamp = 4;        // 发送时间
+// }
+
+// // GM私聊下发给目标玩家
+// message GMPrivateChatResponse {
+//     string gm_id = 1;           // GM账号ID
+//     string gm_name = 2;         // GM显示名
+//     string content = 3;         // 私聊内容
+//     int64 timestamp = 4;        // 发送时间
+// }
