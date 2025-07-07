@@ -37,12 +37,13 @@ namespace AMToolkits.Utility
     /// <summary>
     /// 
     /// </summary>
-    public class ResourcesManager : AMToolkits.Utility.SingletonT<ResourcesManager>, AMToolkits.Utility.ISingleton
+    public class ResourcesManager : AMToolkits.SingletonT<ResourcesManager>, AMToolkits.ISingleton
     {
         public static string ROOT_PATH = "./data";
-
+#pragma warning disable CS0649
         [AutoInitInstance]
         private static ResourcesManager? _instance;
+#pragma warning restore CS0649
 
         private string[]? _arguments = null;
         private Logger.LoggerEntry? _logger = null;

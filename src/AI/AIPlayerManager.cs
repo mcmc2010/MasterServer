@@ -63,9 +63,9 @@ namespace Server
         }
     }
 
-    public class AIPlayerManager : SingletonT<AIPlayerManager>, ISingleton
+    public class AIPlayerManager : AMToolkits.SingletonT<AIPlayerManager>, AMToolkits.ISingleton
     {
-        [AutoInitInstance]
+        [AMToolkits.AutoInitInstance]
         protected static AIPlayerManager? _instance;
 
         private string[]? _arguments = null;
@@ -78,7 +78,7 @@ namespace Server
 
         protected override void OnInitialize(object[] paramters) 
         { 
-            _arguments = CommandLineArgs.FirstParser(paramters[0]);
+            _arguments = AMToolkits.CommandLineArgs.FirstParser(paramters[0]);
 
             var config = paramters[1] as ServerConfig;
             if(config == null)

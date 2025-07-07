@@ -6,6 +6,21 @@ namespace AMToolkits.Extensions
     /// </summary>
     public static class StringExtensions
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="str"></param>
+        /// <returns></returns>
+        public static bool IsNullOrWhiteSpace(this string? str)
+        {
+            return str == null || str.Trim().Length == 0;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="bytes"></param>
+        /// <returns></returns>
         public static string Base64UrlEncode(this byte[] bytes)
         {
             string b64 = System.Convert.ToBase64String(bytes);

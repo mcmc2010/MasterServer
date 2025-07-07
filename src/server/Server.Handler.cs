@@ -2,7 +2,6 @@ using System.Net;
 using Microsoft.AspNetCore.Http;
 
 using AMToolkits.Extensions;
-using AMToolkits.Utility;
 
 namespace Server
 {
@@ -18,9 +17,9 @@ namespace Server
             string value ;
             context.QueryString("timestamp", out value, "0");
             long remote_timestamp = long.Parse(value);
-            long server_timestamp = Utils.GetLongTimestamp();
+            long server_timestamp = AMToolkits.Utils.GetLongTimestamp();
             
-            float delay = remote_timestamp == 0 ? Utils.NETWORK_DELAY_MIN : Utils.DiffTimestamp(remote_timestamp, server_timestamp);
+            float delay = remote_timestamp == 0 ? AMToolkits.NetworkStatus.NETWORK_DELAY_MIN : AMToolkits.Utils.DiffTimestamp(remote_timestamp, server_timestamp);
 
 
             await context.ResponseStatusAsync("success", "", server_timestamp, delay);

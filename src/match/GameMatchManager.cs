@@ -28,9 +28,9 @@ namespace Server {
     /// <summary>
     /// 
     /// </summary>
-    public partial class GameMatchManager : SingletonT<GameMatchManager>, ISingleton
+    public partial class GameMatchManager : AMToolkits.SingletonT<GameMatchManager>, AMToolkits.ISingleton
     {
-        [AutoInitInstance]
+        [AMToolkits.AutoInitInstance]
         protected static GameMatchManager? _instance;
 
 
@@ -45,7 +45,7 @@ namespace Server {
 
         protected override void OnInitialize(object[] paramters) 
         { 
-            _arguments = CommandLineArgs.FirstParser(paramters);
+            _arguments = AMToolkits.CommandLineArgs.FirstParser(paramters);
 
             var config = paramters[1] as ServerConfig;
             if(config == null)

@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace AMToolkits.Utility
+namespace AMToolkits
 {
 
     public interface ISingleton
@@ -26,9 +26,11 @@ namespace AMToolkits.Utility
         private static T? _instance = null;
 
         // 公开的静态属性用于访问单例实例
-        public static T Instance {
-            get {
-                if(_instance == null)
+        public static T Instance
+        {
+            get
+            {
+                if (_instance == null)
                 {
                     _instance = NewInstance();
                 }
@@ -41,7 +43,7 @@ namespace AMToolkits.Utility
             try
             {
                 _instance = InitInstance();
-                if(_instance == null)
+                if (_instance == null)
                 {
                     throw new InvalidOperationException($"Singleton (Type: {typeof(T).FullName}) must have a private parameterless constructor.");
                 }
@@ -96,7 +98,7 @@ namespace AMToolkits.Utility
             return instance as T;
         }
 
-        public string TAGName { get { return $"[{this.GetType().Name}]"; }}
+        public string TAGName { get { return $"[{this.GetType().Name}]"; } }
         //
         protected virtual void OnInitialize(object[] paramters) { }
 

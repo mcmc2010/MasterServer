@@ -126,7 +126,7 @@ namespace Server
     /// <summary>
     /// 
     /// </summary>
-    public partial class ServerApplication : SingletonT<ServerApplication>, ISingleton
+    public partial class ServerApplication : AMToolkits.SingletonT<ServerApplication>, AMToolkits.ISingleton
     {
         private string[]? _arguments = null;
         private ServerConfig? _config = null;

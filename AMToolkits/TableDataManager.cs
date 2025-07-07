@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using Logger;
 
 namespace AMToolkits.Utility
@@ -168,10 +167,12 @@ namespace AMToolkits.Utility
     /// <summary>
     /// 
     /// </summary>
-    public class TableDataManager : AMToolkits.Utility.SingletonT<TableDataManager>, AMToolkits.Utility.ISingleton
+    public class TableDataManager : AMToolkits.SingletonT<TableDataManager>, AMToolkits.ISingleton
     {
+#pragma warning disable CS0649
         [AutoInitInstance]
         protected static TableDataManager? _instance;
+#pragma warning restore CS0649
 
         private string[]? _arguments = null;
         private Logger.LoggerEntry? _logger = null;
@@ -366,9 +367,18 @@ namespace AMToolkits.Utility
             string line = "";
             try
             {
+                string input = text;
+                // 解析之前，尝试去除""之间的换行符
+                // 正则表达式匹配双引号之间的内容（包括转义引号）
+                string pattern = @"""((?:\\""|[^""])*)""";
+                text = System.Text.RegularExpressions.Regex.Replace(input, pattern, m => {
+                    // 获取双引号之间的内容（不包括外层的双引号）
+                    string content = m.Groups[1].Value;
+                    return "\"" + content.Replace("\n", " ").Replace("\r", "") + "\"";
+                });
                 // 定义了一个字符串 text 包含了多行文本，其中包括不同操作系统所使用的换行符 (包括 \r\n 和 \n)
-                string pattern = @".+?(?:\r\n?|\n|$)"; //@"\r\n|\n|\r";
-                                                       // 使用正则表达式分割字符串
+                pattern = @".+?(?:\r\n?|\n|$)"; //@"\r\n|\n|\r";
+                                                // 使用正则表达式分割字符串
                 int previous = 0;
                 System.Text.RegularExpressions.MatchCollection matches = System.Text.RegularExpressions.Regex.Matches(text, pattern);
                 foreach (System.Text.RegularExpressions.Match v in matches)

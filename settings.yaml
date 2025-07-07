@@ -43,6 +43,9 @@ http_server:
    port: 5443
    ssl: true
    certs: "certs/https.pfx"
+playfab:
+  openapi_url: "https://127.0.0.1:15443"
+  openapi_key: "C465B2315CF4A31ECA4F912D2723E08E0C8A84941DCCF4846B9E642366ADF1F03A2F650305324645F5060630A8FDB454"
 database:
    # 主数据库
    - type: main
@@ -86,3 +89,10 @@ logging:
     file: "logs/room.log"
     is_file: true
     is_console: true
+  # PlayFab 第三方代理服务
+  - name: playfab
+    level: Information
+    file: "logs/playfab.log"
+    is_file: true
+    is_console: true
+    

@@ -71,6 +71,8 @@ try
     var match_manager = Server.GameMatchManager.NewInstance(args, config);
     logger.Log("Init GameMatchManager Completed");
 
+    var proxy_service = Server.PlayFabService.NewInstance(args, config);
+
     // 
     var app = Server.ServerApplication.NewInstance(args, config);
     
@@ -86,6 +88,9 @@ try
     room_manager.StartWorking();
     Thread.Sleep(100);
     match_manager.StartWorking();
+
+    //
+    proxy_service.StartWorking();
     
     //
     int result = await app.StartWorking();

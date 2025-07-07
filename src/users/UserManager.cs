@@ -1,4 +1,4 @@
-using AMToolkits.Utility;
+
 using Logger;
 using Microsoft.AspNetCore.Builder;
 
@@ -93,9 +93,9 @@ namespace Server
         }
     }
 
-    public partial class UserManager : SingletonT<UserManager>, ISingleton
+    public partial class UserManager : AMToolkits.SingletonT<UserManager>, AMToolkits.ISingleton
     {
-        [AutoInitInstance]
+        [AMToolkits.AutoInitInstance]
         protected static UserManager? _instance;
 
         private string[]? _arguments = null;
@@ -112,7 +112,7 @@ namespace Server
 
         protected override void OnInitialize(object[] paramters) 
         { 
-            _arguments = CommandLineArgs.FirstParser(paramters);
+            _arguments = AMToolkits.CommandLineArgs.FirstParser(paramters);
 
             var config = paramters[1] as ServerConfig;
             if(config == null)

@@ -33,7 +33,7 @@ namespace Server
         /// <param name="paramters"></param>
         public int Create(params object?[] paramters) 
         { 
-            _arguments = CommandLineArgs.FirstParser(paramters);
+            _arguments = AMToolkits.CommandLineArgs.FirstParser(paramters);
 
             var config = paramters[1] as ServerConfig;
             if(config == null)

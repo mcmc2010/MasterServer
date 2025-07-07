@@ -176,6 +176,14 @@ namespace Server {
         /// </summary>
         [YamlMember(Alias = "http_server", ApplyNamingConventions = false)]
         public ConfigItem_HTTPServer[] HTTPServer { get; set; } = new ConfigItem_HTTPServer[] { }; // 初始化默认配置
+
+        /// <summary>
+        /// PlayFab 第三方配置，不在此处定义
+        /// </summary>
+        [YamlMember(Alias = "playfab", ApplyNamingConventions = false)]
+        public ConfigItem_PlayFab PlayFab { get; set; } = new ConfigItem_PlayFab (); // 初始化默认配置
+
+
         /// <summary>
         /// 
         /// </summary>

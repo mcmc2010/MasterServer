@@ -179,8 +179,8 @@ namespace Server
                 int cur_num = 0; //(int)(db?.ResultItems["cur_num"]?.Number ?? 0);
                 int max_num = (int)(db?.ResultItems["max_num"]?.Number ?? 0);
 
-                string secret_key = AMToolkits.Utility.Hash.MD5String(
-                    $"{AMToolkits.Utility.Utils.GetTimestamp()}_{AMToolkits.Utility.Guid.GeneratorID8()}");
+                string secret_key = AMToolkits.Hash.MD5String(
+                    $"{AMToolkits.Utils.GetTimestamp()}_{AMToolkits.Utility.Guid.GeneratorID8()}");
 
                 //每次使用房间密钥都不一样
                 sql =

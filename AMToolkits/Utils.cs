@@ -2,71 +2,24 @@
 #define USE_UNITY_BUILD
 #endif
 
+#pragma warning disable CS0168
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
 
 #if USE_UNITY_BUILD
 using UnityEngine;
 #endif
 
-namespace AMToolkits.Utility
+namespace AMToolkits
 {
-    #region OSPlatform
-    public static class OSPlatform
-    {
-        public const string MacOS = "MacOS";
-        public const string Window = "Window";
-        public const string Linux = "Linux";
-        public const string iOS = "iOS";
-        public const string Android = "Android";
-        public const string Web = "Web";
-    }
-    #endregion
-
-
-    #region Hash
-    public static class Hash
-    {
-        public static string MD5String(string text)
-        {
-            MD5 md5 = MD5.Create();
-            byte[] buffer = System.Text.Encoding.UTF8.GetBytes(text);
-            byte[] digest = md5.ComputeHash(buffer);
-            System.Text.StringBuilder sb = new System.Text.StringBuilder();
-            for (int i = 0; i < digest.Length; i++)
-            {
-                sb.Append(digest[i].ToString("x2"));
-            }
-            return sb.ToString().ToUpper();
-        }
-
-
-        public static string SHA256String(string text)
-        {
-            SHA256 sha = SHA256.Create();
-            byte[] buffer = System.Text.Encoding.UTF8.GetBytes(text);
-            byte[] digest = sha.ComputeHash(buffer);
-            System.Text.StringBuilder sb = new System.Text.StringBuilder();
-            for (int i = 0; i < digest.Length; i++)
-            {
-                sb.Append(digest[i].ToString("x2"));
-            }
-            return sb.ToString().ToUpper();
-        }
-    }
-    #endregion
-
     /// <summary>
     /// 
     /// </summary>
     public static class Utils
     {
-        public const float NETWORK_DELAY_MAX = 460 * 0.001f;
-        public const float NETWORK_DELAY_MIN = 10 * 0.001f;
-
         #region  DateTime
         /// <summary>
         /// 不包含时区
@@ -185,7 +138,7 @@ namespace AMToolkits.Utility
         /// </summary>
         /// <param name="bytes"></param>
         /// <returns></returns>
-        public static string ToHexString(this byte[] bytes)
+        public static string ToHexString(this byte[]? bytes)
         {
             string text = "";
             if (bytes != null)
@@ -198,8 +151,63 @@ namespace AMToolkits.Utility
             return text;
         }
 
+        public static byte[]? ToHexBinary(this string text)
+        {
+            byte[]? bytes = null;
+
+            text = text.Trim().Replace(":", "").Replace(",", "").Replace(" ", "");
+            // Validate even length after cleaning
+            if (text.Length % 2 != 0)
+            {
+                return null;
+            }
+
+            // Handle empty string after processing
+            if (text.Length == 0)
+            {
+                return null;
+            }
+            
+            int bytes_length = text.Length / 2;
+            if (bytes_length > 0)
+            {
+                bytes = new byte[bytes_length];
+                for (int i = 0; i < bytes_length; i++)
+                {
+                    string hex = text.Substring(i * 2, 2);
+                    bytes[i] = Convert.ToByte(hex, 16);  // Correct hex parsing
+                }
+            }
+            return bytes;
+        }
+
         #endregion
 
+#if !USE_UNITY_BUILD
+        /// <summary>
+        /// SHA256
+        /// </summary>
+        /// <returns></returns>
+        public static string GetDeviceUniqueIdentifier()
+        {
+            string uid = $"{System.Environment.MachineName}_" +
+                         $"{System.Environment.UserName}_" +
+                         $"{System.Environment.OSVersion.VersionString}";
+            uid = uid + "_" + System.Environment.GetFolderPath(Environment.SpecialFolder.Personal) + "_";
+            // 增加网卡唯一识别
+            string mac = NetworkStatus.GetMacAddress();
+            if (mac.Length > 0)
+            {
+                uid = uid + "_" + mac;
+            }
+            var sha = System.Security.Cryptography.SHA256.Create();
+            // 字符串转 byte 数组
+            byte[] hash = System.Text.Encoding.UTF8.GetBytes(uid);
+            hash = sha.ComputeHash(hash);
+            uid = hash.ToHexString();
+            return uid;
+        }
+#endif
         /// <summary>
         /// 
         /// </summary>
@@ -210,16 +218,8 @@ namespace AMToolkits.Utility
 #if USE_UNITY_BUILD
             string uid = UnityEngine.SystemInfo.deviceUniqueIdentifier;
 #else
-            string uid = $"{System.Environment.MachineName}_{System.Environment.UserName}_{System.Environment.OSVersion.VersionString}";
-            uid = uid + "_" + System.Environment.GetFolderPath(Environment.SpecialFolder.Personal);
-
-            var sha = System.Security.Cryptography.SHA256.Create();
-            // 字符串转 byte 数组
-            byte[] hash = System.Text.Encoding.UTF8.GetBytes(uid);
-            hash = sha.ComputeHash(hash);
-            uid = hash.ToHexString();
+            string uid = GetDeviceUniqueIdentifier();
 #endif
-
             if (key.Trim().Length > 0)
             {
                 uid = key.Trim();

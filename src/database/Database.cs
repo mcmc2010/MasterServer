@@ -8,7 +8,7 @@ namespace Server {
     /// <summary>
     /// 
     /// </summary>
-    public class DatabaseManager : SingletonT<DatabaseManager>, ISingleton
+    public class DatabaseManager : AMToolkits.SingletonT<DatabaseManager>, AMToolkits.ISingleton
     {
 
         private string[]? _arguments = null;

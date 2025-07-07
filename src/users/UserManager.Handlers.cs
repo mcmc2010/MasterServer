@@ -66,15 +66,25 @@ namespace Server
 
             string uid = AMToolkits.Utility.Guid.GeneratorID12N();
 
-            long time = AMToolkits.Utility.Utils.GetLongTimestamp();
+            long time = AMToolkits.Utils.GetLongTimestamp();
             int rand = AMToolkits.Utility.Guid.GeneratorID6();
             string passphrase = AMToolkits.Utility.Guid.GeneratorID8();
             string token = $"{uid}_{time}_{passphrase}_{rand}";
-            token = AMToolkits.Utility.Hash.SHA256String(token);
-            string date_time = AMToolkits.Utility.Utils.DateTimeToString(DateTime.UtcNow, 
-                    AMToolkits.Utility.Utils.DATETIME_FORMAT_LONG_STRING);
+            token = AMToolkits.Hash.SHA256String(token);
+            string date_time = AMToolkits.Utils.DateTimeToString(DateTime.UtcNow, 
+                    AMToolkits.Utils.DATETIME_FORMAT_LONG_STRING);
 
             // 0: 第三方验证平台
+            // PlayFab验证
+            int result_code = await PlayFabService.Instance.PFUserAuthentication(user?.UID ?? "",
+                    user?.SessionUID ?? "",
+                    user?.SessionToken ?? "");
+            if (result_code < 0)
+            {
+                await context.ResponseError(HttpStatusCode.Unauthorized, ErrorMessage.NotAllowAccess_Unauthorized_NotLogin);
+                return;
+            }
+
             // 1: DB验证用户
             var user_data = new DBAuthUserData()
             {
@@ -87,7 +97,7 @@ namespace Server
                 device = $"{platform}"
             };
 
-            int result_code = this.DBAuthUser(user_data);
+            result_code = this.DBAuthUser(user_data);
             if(result_code < 0) {
                 user_data.passphrase = "";
                 user_data.token = "";

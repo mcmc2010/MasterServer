@@ -171,7 +171,7 @@ namespace Server.Services
 
             //
             response.Content = packet.Content;
-            response.Timestamp = AMToolkits.Utility.Utils.GetLongTimestamp();
+            response.Timestamp = AMToolkits.Utils.GetLongTimestamp();
 
             // 
             response.UserId = _session?.ID;
@@ -263,7 +263,7 @@ namespace Server.Services
             response.RoomId = packet.RoomId;
 
             //
-            response.Timestamp = AMToolkits.Utility.Utils.GetLongTimestamp();
+            response.Timestamp = AMToolkits.Utils.GetLongTimestamp();
 
             // 
             response.UserId = user_id;
@@ -315,7 +315,7 @@ namespace Server.Services
             response.RoomId = packet.RoomId;
 
             //
-            response.Timestamp = AMToolkits.Utility.Utils.GetLongTimestamp();
+            response.Timestamp = AMToolkits.Utils.GetLongTimestamp();
 
             // 
             response.UserId = user_id;
@@ -352,7 +352,7 @@ namespace Server.Services
 
             //
             response.Content = packet.Content;
-            response.Timestamp = AMToolkits.Utility.Utils.GetLongTimestamp();
+            response.Timestamp = AMToolkits.Utils.GetLongTimestamp();
 
             // 
             response.UserId = _session?.ID;

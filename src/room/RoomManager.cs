@@ -1,5 +1,4 @@
 using System.Text.Json.Serialization;
-using AMToolkits.Utility;
 using Logger;
 
 namespace Server
@@ -35,9 +34,9 @@ namespace Server
     /// <summary>
     /// 
     /// </summary>
-    public partial class RoomManager : SingletonT<RoomManager>, ISingleton
+    public partial class RoomManager : AMToolkits.SingletonT<RoomManager>, AMToolkits.ISingleton
     {
-        [AutoInitInstance]
+        [AMToolkits.AutoInitInstance]
         protected static RoomManager? _instance;
         private string[]? _arguments = null;
         private ServerConfig? _config = null;
@@ -55,7 +54,7 @@ namespace Server
 
         protected override void OnInitialize(object[] paramters) 
         { 
-            _arguments = CommandLineArgs.FirstParser(paramters);
+            _arguments = AMToolkits.CommandLineArgs.FirstParser(paramters);
 
             var config = paramters[1] as ServerConfig;
             if(config == null)
