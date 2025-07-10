@@ -1,5 +1,6 @@
 
 using System.Text.Json.Serialization;
+using AMToolkits;
 using AMToolkits.Extensions;
 using AMToolkits.Net;
 using Logger;
@@ -30,7 +31,7 @@ namespace Server
     [System.Serializable]
     public class PFAuthUserResponse : AMToolkits.Net.HTTPResponseResult
     {
-        public object? Data = null;
+        public Dictionary<string, object>? Data = null;
     }
 
     /// <summary>
@@ -169,6 +170,11 @@ namespace Server
 
         public async Task<int> PFUserAuthentication(string client_uid, string playfab_uid, string playfab_token)
         {
+            if (_status != AMToolkits.ServiceStatus.Ready)
+            {
+                return -1;
+            }
+
             if (client_uid.IsNullOrWhiteSpace() || playfab_uid.IsNullOrWhiteSpace() || playfab_token.IsNullOrWhiteSpace())
             {
                 return -1;
@@ -186,6 +192,15 @@ namespace Server
                 _logger?.LogError($"{TAGName} (User:{client_uid}) Authentication Failed: ({playfab_uid}) {_client_factory?.LastError?.Message}");
                 return -1;
             }
+
+            Dictionary<string, object?> data;
+            if (!this.APIResponseData<PFAuthUserResponse>(response, out data))
+            {
+                _logger?.LogError($"{TAGName} (User:{client_uid}) Authentication Failed: ({playfab_uid}) [{data.Get(ServiceData.KEY_RESULT)}:{data.Get(ServiceData.KEY_ERROR)}]");
+                return -1;
+            }
+
+            _logger?.Log($"{TAGName} (User:{client_uid}) Authentication : ({playfab_uid}) [{data.Get(ServiceData.KEY_RESULT)}]");
             return 0;
         }
     }

@@ -131,6 +131,7 @@ namespace Server
         {
             _logger?.Log("[UserManager] Register Handlers");
 
+            //
             args.app?.Map("api/user/auth", HandleUserAuth);
 
         }

@@ -1,4 +1,8 @@
 
+### 说明
+- 缺少一些数据文件和类，这些根据自己项目生成或编辑，此处不再公开。
+
+### Build
 ```shell
 openssl req -x509 -newkey rsa:2048 -keyout private.key -out https.crt -days 365 -nodes -subj "/CN=localhost"
 openssl pkcs12 -export -out https.pfx -inkey private.key -in https.crt

@@ -40,6 +40,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
+#pragma warning disable CS8618
+
 namespace Game
 {
 
@@ -194,7 +196,7 @@ namespace Game
             if (index < columns.Length)
             {
                 string text = columns[index++];
-                if(string.IsNullOrEmpty(text))
+                if (string.IsNullOrEmpty(text))
                 {
                     text = "0";
                 }
@@ -211,7 +213,7 @@ namespace Game
             }
 
             //male,female
-            if(Gender == "")
+            if (Gender == "")
             {
                 Gender = "male";
             }
@@ -223,3 +225,4 @@ namespace Game
 
 }
 
+#pragma warning restore CS8618

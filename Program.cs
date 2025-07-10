@@ -49,25 +49,28 @@ try
     // 0 - 2:
     AMToolkits.Utility.TableDataManager.NewInstance(args);
     AMToolkits.Utility.TableDataManager.GetTableData<Game.TAIPlayers>();
-
+    AMToolkits.Utility.TableDataManager.GetTableData<Game.TShop>();
 
     // 1:
     var db_manager = Server.DatabaseManager.NewInstance(args, config);
     logger.Log("Init DatabaseManager Completed");
 
-    // 2:
+    // 2 - 0:
     var user_manager = Server.UserManager.NewInstance(args, config);
     logger.Log("Init UserManager Completed");
 
     // 2 - 1:
+    var market_manager = Server.MarketManager.NewInstance(args, config);
+
+    // 3 - 0:
     var ai_manager = Server.AIPlayerManager.NewInstance(args, config);
     logger.Log("Init AIPlayerManager Completed");
-    
-    // 2 - 2:
+
+    // 4:
     var room_manager = Server.RoomManager.NewInstance(args, config);
     logger.Log("Init RoomManager Completed");
 
-    // 3:
+    // 5:
     var match_manager = Server.GameMatchManager.NewInstance(args, config);
     logger.Log("Init GameMatchManager Completed");
 
@@ -77,6 +80,7 @@ try
     var app = Server.ServerApplication.NewInstance(args, config);
     
     app.RegisterHandlersListner += user_manager.OnRegisterHandlers;
+    app.RegisterHandlersListner += market_manager.OnRegisterHandlers;
     app.RegisterHandlersListner += match_manager.OnRegisterHandlers;
 
     app.CreateHTTPServer();

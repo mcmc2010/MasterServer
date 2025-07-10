@@ -1,7 +1,5 @@
 
 
-using Microsoft.AspNetCore.SignalR;
-
 namespace Logger {
     public enum LogLevel
     {

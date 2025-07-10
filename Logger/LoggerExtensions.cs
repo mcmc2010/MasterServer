@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Runtime.Serialization;
-using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.Extensions.Logging;
 
 namespace Logger.Extensions {
@@ -37,8 +36,11 @@ namespace Logger.Extensions {
 
             public void Dispose()
             {
-                // 作用域结束时，移除状态
-                _logger._scope.Pop();
+                if (_logger._scope.Count > 0)
+                {
+                    // 作用域结束时，移除状态
+                    _logger._scope.Pop();
+                }
             }
         }
 
@@ -95,13 +97,13 @@ namespace Logger.Extensions {
             if (text.Contains("{RemoteIP}"))
             {
                 var ip = GetValueFromState("RemoteIP", "");
-                if (ip is IPAddress)
+                if (ip is IPAddress ipa)
                 {
-                    text = text.Replace("{RemoteIP}", (string)((IPAddress)ip).ToString());
+                    text = text.Replace("{RemoteIP}", ipa.ToString());
                 }
                 else
                 {
-                    text = text.Replace("{RemoteIP}", (string)ip);
+                    text = text.Replace("{RemoteIP}", (string)(ip ?? ""));
                 }
             }
 
