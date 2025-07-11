@@ -12,7 +12,7 @@ namespace AMToolkits
         Refuse = -10
     }
 
-    public class ServiceData
+    public class ServiceConstants
     {
         /// <summary>
         /// 
@@ -20,6 +20,7 @@ namespace AMToolkits
         public const string KEY_ERROR = "error";
         public const string KEY_RESULT = "result";
         public const string KEY_DATA = "data";
+        public const string KEY_DESC = "description";
         /// <summary>
         /// 
         /// </summary>
@@ -27,6 +28,11 @@ namespace AMToolkits
         public const string VALUE_ERROR = "error";
         public const string VALUE_NULL = "null";
         public const string VALUE_EXPIRED = "expired";
+        public const string VALUE_LIMIT = "limit";
         public const string VALUE_NOTFOUND = "not_found";
+        // 余额不足，或数量不够
+        public const string VALUE_INSUFFICIENT = "insufficient";
+        //
+        public const string VALUE_PARAMETER_ERROR = "parameter_error";
     }
 }

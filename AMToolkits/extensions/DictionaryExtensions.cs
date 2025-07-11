@@ -19,7 +19,7 @@ namespace AMToolkits.Extensions
 #pragma warning disable CS8602
         public static void Set<TKey, TVal>(this IDictionary<TKey, TVal>? dict, TKey key, TVal val)
         {
-            if (!dict.IsNullOrEmpty())
+            if (dict != null)
             {
                 if (dict.ContainsKey(key))
                 {
@@ -54,7 +54,7 @@ namespace AMToolkits.Extensions
         /// <param name="pairs"></param>
         public static void AddRange<TKey, TVal>(this IDictionary<TKey, TVal>? dict, IEnumerable<KeyValuePair<TKey, TVal>>? pairs)
         {
-            if (!dict.IsNullOrEmpty() && pairs != null)
+            if (dict != null && pairs != null)
             {
                 foreach (var v in pairs)
                 {
@@ -66,7 +66,7 @@ namespace AMToolkits.Extensions
 
         public static void AddRange<TKey, TVal>(this IDictionary<TKey, TVal>? dict, IDictionary<TKey, TVal>? pairs)
         {
-            if (!dict.IsNullOrEmpty() && pairs != null)
+            if (dict != null && pairs != null)
             {
                 foreach (var v in pairs)
                 {
@@ -78,5 +78,68 @@ namespace AMToolkits.Extensions
 
 
 #pragma warning restore CS8602
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="TKey"></typeparam>
+        /// <typeparam name=""></typeparam>
+        /// <param name=""></param>
+        /// <param name=""></param>
+        /// <returns></returns>
+        public static Dictionary<TKey, object?>? ToDictionaryObject<TKey>(this IDictionary<TKey, object?>? dict)
+                            where TKey : notnull
+        {
+            if(dict == null) { return null; }
+
+            var list = new Dictionary<TKey, object?>();
+            foreach (var v in dict)
+            {
+                if(v.Value is System.Text.Json.JsonElement elem)
+                list[v.Key] = elem.ValueKind switch
+                {
+                    System.Text.Json.JsonValueKind.String => elem.GetString(),
+                    System.Text.Json.JsonValueKind.Number => elem.GetDouble(),
+                    System.Text.Json.JsonValueKind.True => true,
+                    System.Text.Json.JsonValueKind.False => false,
+                    System.Text.Json.JsonValueKind.Null => null,
+                    System.Text.Json.JsonValueKind.Undefined => null,
+                    System.Text.Json.JsonValueKind.Object => elem,
+                    System.Text.Json.JsonValueKind.Array => elem,
+                    _ => elem
+                };
+            }
+            return list;
+        }
+
+        public static Dictionary<TKey, TVal>? ToDictionaryFromJson<TKey, TVal>(this string? json)
+                            where TKey : notnull
+        {
+            if (json == null || json.Trim().Length == 0)
+            {
+                return null;
+            }
+
+            try
+            {
+                var o = System.Text.Json.JsonSerializer.Deserialize<Dictionary<TKey, TVal>>(json,
+                            new System.Text.Json.JsonSerializerOptions
+                            {
+                                IgnoreReadOnlyFields = true,
+                                IncludeFields = true,
+                                // PropertyNameCaseInsensitive = true,    // 启用不区分大小写的属性匹配
+                                ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip,  // 自动跳过注释
+                                // PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase, // 不使用驼峰命名
+                                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower
+                            });
+                return o;
+            }
+            catch (Exception e)
+            {
+                System.Console.WriteLine($"{e.Message}");
+                return null;
+            }
+        }
+
     }
 }

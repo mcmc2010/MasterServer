@@ -62,7 +62,7 @@ namespace Server
             context.GetOSPlatform(out platform);
 
             // 解析 JSON
-            var user = await context.Request.JsonBodyAsync<NAuthUserRequest>();
+            var request = await context.Request.JsonBodyAsync<NAuthUserRequest>();
 
             string uid = AMToolkits.Utility.Guid.GeneratorID12N();
 
@@ -76,9 +76,9 @@ namespace Server
 
             // 0: 第三方验证平台
             // PlayFab验证
-            int result_code = await PlayFabService.Instance.PFUserAuthentication(user?.UID ?? "",
-                    user?.SessionUID ?? "",
-                    user?.SessionToken ?? "");
+            int result_code = await PlayFabService.Instance.PFUserAuthentication(request?.UID ?? "",
+                    request?.SessionUID ?? "",
+                    request?.SessionToken ?? "");
             if (result_code < 0)
             {
                 await context.ResponseError(HttpStatusCode.Unauthorized, ErrorMessage.NotAllowAccess_Unauthorized_NotLogin);
@@ -89,8 +89,8 @@ namespace Server
             var user_data = new DBAuthUserData()
             {
                 server_uid = uid,
-                client_uid = user?.UID ?? "",
-                custom_id = user?.SessionUID ?? "",
+                client_uid = request?.UID ?? "",
+                custom_id = request?.SessionUID ?? "",
                 passphrase = passphrase,
                 token = token,
                 datetime = DateTime.Now,
@@ -127,15 +127,18 @@ namespace Server
                 }
 
                 // Add User To Manager
-                this.AddUser(new UserBase()
-                {
-                    ID = user_data.server_uid,
-                    ClientID = user_data.client_uid,
-                    AccessToken = user_data.token,
-                    Passphrase = user_data.passphrase,
-                    
-                    PrivilegeLevel = user_data.privilege_level,
-                });
+                var user = this.AllocT<UserBase>();
+                user.ID = user_data.server_uid;
+                user.ClientID = user_data.client_uid;
+                user.AccessToken = user_data.token;
+                user.Passphrase = user_data.passphrase;
+
+                user.PrivilegeLevel = user_data.privilege_level;
+
+                // 自定义ID，这里目前是PlayFabId
+                user.CustomID = user_data.custom_id;
+
+                this.AddUser(user);
             }
 
             //

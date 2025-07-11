@@ -1,4 +1,5 @@
 
+using AMToolkits.Extensions;
 using Logger;
 using Microsoft.AspNetCore.Builder;
 
@@ -36,6 +37,9 @@ namespace Server
         public Task BroadcastAsync(byte[] data, int index, int level);
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
     [System.Serializable]
     public class UserBase : IUser
     {
@@ -43,7 +47,17 @@ namespace Server
         public string ClientID = "";
         public string AccessToken = "";
         public string Passphrase = "";
+        /// <summary>
+        /// 认证的自定义ID
+        /// </summary>
+        public string CustomID = "";
+        /// <summary>
+        /// 
+        /// </summary>
         public DateTime Time = DateTime.Now;
+        /// <summary>
+        /// 
+        /// </summary>
         public int PrivilegeLevel = 0;
     }
 
@@ -69,6 +83,9 @@ namespace Server
 
             //
             this.PrivilegeLevel = user.PrivilegeLevel;
+
+            //
+            this.CustomID = user.CustomID;
         }
 
         public void BindService(Server.Services.IService service)
@@ -136,10 +153,21 @@ namespace Server
 
         }
 
+        public TU AllocT<TU>() where TU : UserBase, new()
+        {
+            var user = new TU();
+            return user;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="user"></param>
+        /// <returns></returns>
         public bool AddUser(UserBase user)
         {
             user.ID = user.ID.Trim();
-            if(string.IsNullOrEmpty(user.ID))
+            if (string.IsNullOrEmpty(user.ID))
             {
                 return false;
             }
@@ -153,16 +181,42 @@ namespace Server
             }
             return true;
         }
-
+        
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        [System.Obsolete("")]
         public UserBase? GetUser(string id)
         {
             id = id.Trim();
 
             IUser? user;
-            lock(_users_lock) {
+            lock (_users_lock)
+            {
                 _users.TryGetValue(id, out user);
             }
             return (UserBase?)user;
+        }
+
+        /// <summary>
+        /// 获取用户基础类
+        /// </summary>
+        /// <typeparam name="TU"></typeparam>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public TU? GetUserT<TU>(string id) where TU : UserBase
+        {
+            id = id.Trim();
+            if (id.IsNullOrWhiteSpace()) { return default(TU); }
+
+            IUser? user;
+            lock (_users_lock)
+            {
+                _users.TryGetValue(id, out user);
+            }
+            return (TU?)user;
         }
 
         /// <summary>

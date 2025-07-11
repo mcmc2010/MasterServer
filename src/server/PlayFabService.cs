@@ -6,8 +6,18 @@ using AMToolkits.Net;
 using Logger;
 
 
+
 namespace Server
 {
+    [System.Serializable]
+    public class PFResultData
+    {
+        public string Result = "";
+        public string? Error = null;
+        public string? Description = null;
+        public Dictionary<string, object?>? Data = null;
+    }
+
     /// <summary>
     /// 
     /// </summary>
@@ -31,7 +41,13 @@ namespace Server
     [System.Serializable]
     public class PFAuthUserResponse : AMToolkits.Net.HTTPResponseResult
     {
-        public Dictionary<string, object>? Data = null;
+        public PFResultData? Data = null;
+    }
+
+    [System.Serializable]
+    public class PFUpdateVirtualCurrencyResponse : AMToolkits.Net.HTTPResponseResult
+    {
+        public PFResultData? Data = null;
     }
 
     /// <summary>
@@ -167,7 +183,13 @@ namespace Server
             return true;
         }
 
-
+        /// <summary>
+        /// 用户验证
+        /// </summary>
+        /// <param name="client_uid"></param>
+        /// <param name="playfab_uid"></param>
+        /// <param name="playfab_token"></param>
+        /// <returns></returns>
         public async Task<int> PFUserAuthentication(string client_uid, string playfab_uid, string playfab_token)
         {
             if (_status != AMToolkits.ServiceStatus.Ready)
@@ -193,15 +215,115 @@ namespace Server
                 return -1;
             }
 
-            Dictionary<string, object?> data;
-            if (!this.APIResponseData<PFAuthUserResponse>(response, out data))
+            if (response.Data?.Result != AMToolkits.ServiceConstants.VALUE_SUCCESS)
             {
-                _logger?.LogError($"{TAGName} (User:{client_uid}) Authentication Failed: ({playfab_uid}) [{data.Get(ServiceData.KEY_RESULT)}:{data.Get(ServiceData.KEY_ERROR)}]");
+                _logger?.LogError($"{TAGName} (User:{client_uid}) Authentication Failed: ({playfab_uid}) [{response.Data?.Result}:{response.Data?.Error}]");
                 return -1;
             }
 
-            _logger?.Log($"{TAGName} (User:{client_uid}) Authentication : ({playfab_uid}) [{data.Get(ServiceData.KEY_RESULT)}]");
+            _logger?.Log($"{TAGName} (User:{client_uid}) Authentication : ({playfab_uid}) [{response.Data?.Result}]");
             return 0;
+        }
+
+        /// <summary>
+        /// 更新玩家钱币
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="amount"></param>
+        /// <param name="currency"></param>
+        /// <returns></returns>
+        public async Task<Dictionary<string, object?>?> PFUpdateVirtualCurrency(string user_uid, float amount = 0.0f, AMToolkits.Game.VirtualCurrency currency = AMToolkits.Game.VirtualCurrency.GD)
+        {
+            if (_status != AMToolkits.ServiceStatus.Ready)
+            {
+                return null;
+            }
+
+            if (amount == 0.0f)
+            {
+                return null;
+            }
+
+            // 获取用户
+            var user = UserManager.Instance.GetUserT<UserBase>(user_uid);
+            if (user == null)
+            {
+                return null;
+            }
+
+            var response = await this.APICall<PFUpdateVirtualCurrencyResponse>("/internal/services/user/wallet/update",
+                    new Dictionary<string, object>()
+                    {
+                        { "user_uid", user_uid },
+                        { "playfab_uid", user.CustomID },
+                        { "currency", currency == AMToolkits.Game.VirtualCurrency.GD ?
+                                    AMToolkits.Game.CurrencyUtils.CURRENCY_GOLD_SHORT:
+                                    AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS_SHORT},
+                        { "amount", amount }
+                    });
+            if (response == null)
+            {
+                _logger?.LogError($"{TAGName} (User:{user_uid}) UpdateVirtualCurrency Failed: ({user.CustomID}) Amount : {amount:F2}({currency}) {_client_factory?.LastError?.Message}");
+                return null;
+            }
+
+
+            if (response.Data?.Result != AMToolkits.ServiceConstants.VALUE_SUCCESS)
+            {
+                _logger?.LogError($"{TAGName} (User:{user_uid}) UpdateVirtualCurrency Failed: ({user.CustomID}) Amount : {amount:F2}({currency})" +
+                                  $" [{response.Data?.Result}:{response.Data?.Error} {response.Data?.Description ?? ""}]");
+                return null;
+            }
+
+            Dictionary<string, object?>? data = response.Data?.Data.ToDictionaryObject();
+            return data;
+        }
+
+        /// <summary>
+        /// 增加物品
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <returns></returns>
+        public async Task<Dictionary<string, object?>?> PFAddInventoryItems(string user_uid, AMToolkits.Game.GeneralItemData[] list)
+        {
+            if (_status != AMToolkits.ServiceStatus.Ready)
+            {
+                return null;
+            }
+
+            if (list.Length == 0)
+            {
+                return null;
+            }
+
+            // 获取用户
+            var user = UserManager.Instance.GetUserT<UserBase>(user_uid);
+            if (user == null)
+            {
+                return null;
+            }
+
+            var response = await this.APICall<PFUpdateVirtualCurrencyResponse>("/internal/services/user/inventory/add",
+                    new Dictionary<string, object>()
+                    {
+                        { "user_uid", user_uid },
+                        { "playfab_uid", user.CustomID },
+                        { "items", new List<AMToolkits.Game.GeneralItemData>(list) },
+                    });
+            if (response == null)
+            {
+                _logger?.LogError($"{TAGName} (User:{user_uid}) AddInventoryItems Failed: ({user.CustomID}) {_client_factory?.LastError?.Message}");
+                return null;
+            }
+
+            if (response.Data?.Result != AMToolkits.ServiceConstants.VALUE_SUCCESS)
+            {
+                _logger?.LogError($"{TAGName} (User:{user_uid}) AddInventoryItems Failed: ({user.CustomID}) [{response.Data?.Result}:{response.Data?.Error}]");
+                return null;
+            }
+
+            Dictionary<string, object?>? data = response.Data?.Data.ToDictionaryObject();
+            return data;
         }
     }
 }

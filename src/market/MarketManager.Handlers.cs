@@ -57,7 +57,7 @@ namespace Server
             };
 
             // 流水单
-            int result_code = this.BuyProduct(auth_data.id, uid, request.Index);
+            int result_code = await this.BuyProduct(auth_data.id, uid, request.Index);
             if (result_code > 0)
             {
 
