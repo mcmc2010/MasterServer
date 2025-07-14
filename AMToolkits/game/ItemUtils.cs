@@ -6,11 +6,14 @@ namespace AMToolkits.Game
     [System.Serializable]
     public class GeneralItemData
     {
+        public bool Enabled = true;
         public string IID = "";  // 物品实例ID
         public int ID = Game.ItemConstants.ID_NONE;      // 物品ID
         public int Count = 0;   // 物品数量
         public int Type  = (int)Game.ItemType.Default;    // 物品类型
         public List<string> Attributes = new List<string>();
+
+        public string ItemID { get { return $"id_{this.ID:D5}"; } }
         public GeneralItemData()
         {
 
@@ -121,11 +124,10 @@ namespace AMToolkits.Game
         public static GeneralItemData[]? GetGeneralItems(GeneralItemData[]? items)
         {
             if (items == null) { return null; }
+
             return items.Where(v =>
-                v.ID != ItemConstants.ID_GD &&
-                v.ID != ItemConstants.ID_GM &&
-                v.ID > ItemConstants.ID_NN &&
-                v.ID < ItemConstants.ID_N0)
+                (v.ID != ItemConstants.ID_GD && v.ID != ItemConstants.ID_GM) &&
+                (v.ID > ItemConstants.ID_NN || v.ID < ItemConstants.ID_N0))
             .ToArray();
         }
 

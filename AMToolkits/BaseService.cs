@@ -27,6 +27,7 @@ namespace AMToolkits
         public const string VALUE_SUCCESS = "success";
         public const string VALUE_ERROR = "error";
         public const string VALUE_NULL = "null";
+        public const string VALUE_FAILED = "failed";
         public const string VALUE_EXPIRED = "expired";
         public const string VALUE_LIMIT = "limit";
         public const string VALUE_NOTFOUND = "not_found";

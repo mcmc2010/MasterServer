@@ -48,8 +48,10 @@ try
     AMToolkits.Utility.ResourcesManager.NewInstance(args);
     // 0 - 2:
     AMToolkits.Utility.TableDataManager.NewInstance(args);
+    AMToolkits.Utility.TableDataManager.GetTableData<Game.TItems>();
     AMToolkits.Utility.TableDataManager.GetTableData<Game.TAIPlayers>();
     AMToolkits.Utility.TableDataManager.GetTableData<Game.TShop>();
+    logger.Log("Init TableData Completed");
 
     // 1:
     var db_manager = Server.DatabaseManager.NewInstance(args, config);

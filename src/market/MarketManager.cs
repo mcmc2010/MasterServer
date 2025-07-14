@@ -117,6 +117,7 @@ namespace Server
                 return -1;
             }
 
+            // 默认为int32，此处用浮点表示
             float balance = System.Convert.ToSingle(result.Get("balance") ?? 0.0f);
             string currency = System.Convert.ToString(result.Get("currency")) ?? AMToolkits.Game.CurrencyUtils.CURRENCY_GOLD_SHORT;
 
