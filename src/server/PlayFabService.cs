@@ -1,6 +1,6 @@
 
 using System.Text.Json.Serialization;
-using AMToolkits;
+
 using AMToolkits.Extensions;
 using AMToolkits.Net;
 using Logger;
@@ -9,14 +9,23 @@ using Logger;
 
 namespace Server
 {
+    /// <summary>
+    /// 
+    /// </summary>
     [System.Serializable]
-    public class PFResultData
+    public class PFResultBaseData
     {
         public string Result = "";
         public string? Error = null;
         public string? Description = null;
+    }
+
+    [System.Serializable]
+    public class PFResultData : PFResultBaseData
+    {
         public Dictionary<string, object?>? Data = null;
     }
+
 
     /// <summary>
     /// 
@@ -49,6 +58,9 @@ namespace Server
     {
         public PFResultData? Data = null;
     }
+
+
+
 
     /// <summary>
     /// 
@@ -121,7 +133,7 @@ namespace Server
             {
                 System.Console.WriteLine("[Server] PlayFab not initialize.");
                 return -1;
-            }
+            }       
 
             this.ProcessWorking();
             return 0;
@@ -177,10 +189,24 @@ namespace Server
             }
             else
             {
+                if (_status == AMToolkits.ServiceStatus.Initialized)
+                {
+                    _status = AMToolkits.ServiceStatus.Ready;
+
+                    await this.InitCompletad();
+                }
+
                 _status = AMToolkits.ServiceStatus.Ready;
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        protected async Task InitCompletad()
+        {
         }
 
         /// <summary>
@@ -279,51 +305,6 @@ namespace Server
             return data;
         }
 
-        /// <summary>
-        /// 增加物品
-        /// </summary>
-        /// <param name="user_uid"></param>
-        /// <returns></returns>
-        public async Task<Dictionary<string, object?>?> PFAddInventoryItems(string user_uid, AMToolkits.Game.GeneralItemData[] list)
-        {
-            if (_status != AMToolkits.ServiceStatus.Ready)
-            {
-                return null;
-            }
-
-            if (list.Length == 0)
-            {
-                return null;
-            }
-
-            // 获取用户
-            var user = UserManager.Instance.GetUserT<UserBase>(user_uid);
-            if (user == null)
-            {
-                return null;
-            }
-
-            var response = await this.APICall<PFUpdateVirtualCurrencyResponse>("/internal/services/user/inventory/add",
-                    new Dictionary<string, object>()
-                    {
-                        { "user_uid", user_uid },
-                        { "playfab_uid", user.CustomID },
-                        { "items", new List<AMToolkits.Game.GeneralItemData>(list) },
-                    });
-            if (response == null)
-            {
-                _logger?.LogError($"{TAGName} (User:{user_uid}) AddInventoryItems Failed: ({user.CustomID}) {_client_factory?.LastError?.Message}");
-                return null;
-            }
-
-            if (response.Data?.Result != AMToolkits.ServiceConstants.VALUE_SUCCESS)
-            {
-                _logger?.LogError($"{TAGName} (User:{user_uid}) AddInventoryItems Failed: ({user.CustomID}) [{response.Data?.Result}:{response.Data?.Error}]");
-                return null;
-            }
-
-            Dictionary<string, object?>? data = response.Data?.Data.ToDictionaryObject();
-            return data;
-        }
+        
     }
 }

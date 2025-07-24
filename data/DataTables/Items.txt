@@ -1,20 +1,29 @@
 #	物品配置主表																		
 #	Id		Name	Value	describe	quality	usetype	Level	Icon	Image	Model	Price	SellingPrice	Currency	Stackable	Deletable	Type	SubType	Status
 #	int		string	string	string	int	int	int	string	string		int	int	int	boolean	boolean	int	int	int
-#	编号	策划备注	组	(可选)	物品描述	品质(确认底板）	使用类型	等级	图标256x256	图片512x256	模型	售价	出售价格,0是不允许出售	货币:0金币,1钻石	是否可堆叠物品	是否可删除			
+#	编号	策划备注	组	(可选)	物品描述	品质(确认底板）	使用类型	等级	图标256x256	图片512x256	模型	售价	"出售价格,0是不允许出售"	"货币:0金币,1钻石"	是否可堆叠物品	是否可删除			
 	1001	不得按道具处理	金币		游戏中的通用货币	2	-1		Textures/Items/Icons/id_1001								1		
 	1002	不得按道具处理	钻石		可以用来在商城、活动中获取稀有物品	2	-1		Textures/Items/Icons/id_1002								1		
 	1003	不得按道具处理	活跃度		每日任务获得，达到对应活跃度可以领取宝箱奖励	2	-1		Textures/Items/Icons/id_1003								1		
-	100	测试球杆	Test		测试球杆	2	-1	0	Textures/Items/Icons/id_101	100	100	0	0	0	False	False	10	0	
-	101	默认球杆	Default		默认球杆	2	-1	0	Textures/Items/Icons/id_101	101	101	0	0	0	False	False	10	0	
-	102	枫木球杆	Wood		枫木球杆	2	-1	0	Textures/Items/Icons/id_102	102	102	0	0	0	False	False	10	0	
-	201	竹节球杆	Maple		竹节球杆	2	-1	0	Textures/Items/Icons/id_201	201	201	750	0	0	False	False	10	1	
-	202	新球杆1	新球杆1		新球杆1	3	-1	0	Textures/Items/Icons/id_202	202	202								
-	203	新球杆2	新球杆2		新球杆2	3	-1	0	Textures/Items/Icons/id_203	203	203								
-	204	新球杆3	新球杆3		新球杆3	4	-1	0	Textures/Items/Icons/id_204	204	204								
-	205	新球杆4	新球杆4		新球杆4	4	-1	0	Textures/Items/Icons/id_206	205	205								
-	206	新球杆5	新球杆5		新球杆5	5	-1	0	Textures/Items/Icons/id_206	206	206								
-	3001		默认球桌		默认球桌	2	1								False	False	100	0	
-	4001		球杆1碎片		获得10个碎片可合成对应球杆，同时也是球杆升级的必备物品	2	2								True	False	1000	0	
-	5001		金币翻倍卡		使用后，下一次对局获胜获得的金币翻倍	2	1								False	False	1000	0	
-	5002		魔法道具-扔鸡蛋		在对局中对对手使用的魔法道具	2	3								True	False	1000	0	
+	100	测试球杆	Test		测试球杆	2	-1	0	Textures/Items/Icons/id_101	100	100	0	0	0	FALSE	FALSE	10	0	
+	101	默认球杆	Default		默认球杆	2	-1	0	Textures/Items/Icons/id_101	101	101	0	0	0	FALSE	FALSE	10	0	
+	102	枫木球杆	Wood		枫木球杆	2	-1	0	Textures/Items/Icons/id_102	102	102	0	0	0	FALSE	FALSE	10	0	
+	201	竹节球杆	Maple		竹节球杆	2	-1	0	Textures/Items/Icons/id_201	201	201	750	0	0	FALSE	FALSE	10	1	
+	202	新球杆1	新球杆1		新球杆1	3	-1	0	Textures/Items/Icons/id_202	202	202						10		
+	203	新球杆2	新球杆2		新球杆2	3	-1	0	Textures/Items/Icons/id_203	203	203						10		
+	204	新球杆3	新球杆3		新球杆3	4	-1	0	Textures/Items/Icons/id_204	204	204						10		
+	205	新球杆4	新球杆4		新球杆4	4	-1	0	Textures/Items/Icons/id_206	205	205						10		
+	206	新球杆5	新球杆5		新球杆5	5	-1	0	Textures/Items/Icons/id_206	206	206						10		
+	3001	默认球桌	默认球桌		默认球桌	2	1	0	Textures/Items/Icons/id_101	100					FALSE	FALSE	100	0	
+	4001	默认球杆碎片	默认球杆碎片		获得10个碎片可合成对应球杆，同时也是球杆升级的必备物品	2	2	0	Textures/Items/Icons/id_101	101					TRUE	FALSE	1000		
+	4002	枫木球杆碎片	枫木球杆碎片		获得10个碎片可合成对应球杆，同时也是球杆升级的必备物品	2	2	0	Textures/Items/Icons/id_102	102							1000		
+	4003	竹节球杆碎片	竹节球杆碎片		获得10个碎片可合成对应球杆，同时也是球杆升级的必备物品	2	2	0	Textures/Items/Icons/id_201	201							1000		
+	4004	新球杆1碎片	新球杆1碎片		获得10个碎片可合成对应球杆，同时也是球杆升级的必备物品	3	2	0	Textures/Items/Icons/id_202	202							1000		
+	4005	新球杆2碎片	新球杆2碎片		获得10个碎片可合成对应球杆，同时也是球杆升级的必备物品	3	2	0	Textures/Items/Icons/id_203	203							1000		
+	4006	新球杆3碎片	新球杆3碎片		获得10个碎片可合成对应球杆，同时也是球杆升级的必备物品	3	2	0	Textures/Items/Icons/id_204	204							1000		
+	4007	新球杆4碎片	新球杆4碎片		获得10个碎片可合成对应球杆，同时也是球杆升级的必备物品	4	2	0	Textures/Items/Icons/id_206	205							1000		
+	4008	新球杆5碎片	新球杆5碎片		获得10个碎片可合成对应球杆，同时也是球杆升级的必备物品	5	2	0	Textures/Items/Icons/id_206	206							1000		
+	5001	金币翻倍卡	金币翻倍卡		使用后，下一次对局获胜获得的金币翻倍	4	1	0							FALSE	FALSE	1000	0	
+	5002	金币保护卡	金币保护卡		使用后，下一次对局如果失败，将不扣除金币	4	1	0							FALSE	FALSE	1000	0	
+	5003	经验翻倍卡	经验翻倍卡		使用后，下一次对局获得得经验+100%	4	1	0							FALSE	FALSE	1000	0	
+	5004	魔法道具-扔鸡蛋	扔鸡蛋		在对局中对对手使用的魔法道具	4	3	0							TRUE	FALSE	1000		

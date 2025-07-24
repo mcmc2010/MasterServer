@@ -13,7 +13,48 @@ namespace AMToolkits.Game
         public int Type  = (int)Game.ItemType.Default;    // 物品类型
         public List<string> Attributes = new List<string>();
 
-        public string ItemID { get { return $"id_{this.ID:D5}"; } }
+        /// <summary>
+        /// 模版数据是临时数据，不需要序列化
+        /// </summary>
+        private AMToolkits.Utility.ITableData? _template_data = null;
+        public string ItemID { get { return $"id_{this.ID:D}"; } }
+
+        public bool SetItemID(string id)
+        {
+            try
+            {
+                var values = id.Split("_");
+                if (values.Length > 1)
+                {
+                    ID = System.Convert.ToInt32(values[1]);
+                }
+                return true;
+            }
+            catch (Exception e)
+            {
+                System.Console.WriteLine($"Exception : SetItemID ({id}) {e.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 模版数据关联
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="template_data"></param>
+        public void InitTemplateData<T>(T? template_data) where T : AMToolkits.Utility.ITableData
+        {
+            if (template_data?.Id != this.ID)
+            {
+                return;
+            }
+            this._template_data = template_data;
+        }
+        public T? GetTemplateData<T>() where T : AMToolkits.Utility.ITableData
+        {
+            return (T?)this._template_data;
+        }
+
         public GeneralItemData()
         {
 
@@ -129,6 +170,41 @@ namespace AMToolkits.Game
                 (v.ID != ItemConstants.ID_GD && v.ID != ItemConstants.ID_GM) &&
                 (v.ID > ItemConstants.ID_NN || v.ID < ItemConstants.ID_N0))
             .ToArray();
+        }
+
+
+        /// <summary>
+        /// 获取折扣价
+        /// </summary>
+        /// <param name="price"></param>
+        /// <param name="discount"></param>
+        /// <returns></returns>
+        public static float GetDiscountPrice(float price, float discount)
+        {
+            // 计算折扣 
+            if (discount > 1.0f)
+            {
+                discount = discount * 0.01f;
+            }
+            if (discount >= 1.0f)
+            {
+                discount = 1.0f;
+            }
+
+            // 小于10.0f，不计算折扣
+            // 折扣为0，或者-1不参与折扣，保持原价
+            // 1.0折扣代表原价出售
+            if (price <= 10.0f || discount <= 0.0f || discount >= 1.0f)
+            {
+                return price;
+            }
+
+            decimal discount_price = System.Math.Round((decimal)price * (decimal)discount, 2);
+            if (discount_price < 1.00m)
+            {
+                discount_price = System.Math.Round((decimal)price, 2);
+            }
+            return (float)discount_price;
         }
 
     }

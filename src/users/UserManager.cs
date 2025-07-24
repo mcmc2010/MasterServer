@@ -31,6 +31,8 @@ namespace Server
 
     public interface IUserSession
     {
+        void InitUser(IUser user);
+
         public void BindService(Server.Services.IService service);
         public void FreeService();
 
@@ -62,8 +64,11 @@ namespace Server
     }
 
     [System.Serializable]
-    public class UserSession : UserBase, IUserSession
+    public class UserSession : IUserSession
     {
+        private IUser? _user = null;
+        public UserBase? User { get { return (UserBase?)_user; } }
+        
         private string _network_id = "";
         
         private Server.Services.IService? _service = null;
@@ -72,20 +77,13 @@ namespace Server
         /// 
         /// </summary>
         /// <param name="user"></param>
-        public UserSession(UserBase user)
+        public UserSession()
         {
-            //
-            this.ID = user.ID;
-            this.ClientID = user.ClientID;
-            this.AccessToken = user.AccessToken;
-            this.Passphrase = user.Passphrase;
-            this.Time = user.Time;
+        }
 
-            //
-            this.PrivilegeLevel = user.PrivilegeLevel;
-
-            //
-            this.CustomID = user.CustomID;
+        public void InitUser(IUser user)
+        {
+            this._user = user;
         }
 
         public void BindService(Server.Services.IService service)
@@ -119,29 +117,31 @@ namespace Server
         private ServerConfig? _config = null;
         private Logger.LoggerEntry? _logger = null;
 
-        private object _users_lock = new object();
-        private Dictionary<string, IUser> _users = new Dictionary<string, IUser>();
+        private object _async_lock = new object();
+        private Dictionary<string, IUser> _user_list = new Dictionary<string, IUser>();
+        private Dictionary<string, IUserSession> _session_list = new Dictionary<string, IUserSession>();
 
         public UserManager()
         {
 
         }
 
-        protected override void OnInitialize(object[] paramters) 
-        { 
+        protected override void OnInitialize(object[] paramters)
+        {
             _arguments = AMToolkits.CommandLineArgs.FirstParser(paramters);
 
             var config = paramters[1] as ServerConfig;
-            if(config == null)
+            if (config == null)
             {
                 System.Console.WriteLine("[UserManager] Config is NULL.");
-                return ;
+                return;
             }
             _config = config;
             _logger = Logger.LoggerFactory.Instance;
 
             //
-            _users.Clear();
+            _user_list.Clear();
+            _session_list.Clear();
         }
 
         public void OnRegisterHandlers(object? sender, HandlerEventArgs args)
@@ -174,30 +174,12 @@ namespace Server
 
             user.Time = DateTime.Now;
 
-            UserSession session = new UserSession(user);
-            lock (_users_lock)
+            //
+            lock (_async_lock)
             {
-                _users[user.ID] = session;
+                _user_list[user.ID] = user;
             }
             return true;
-        }
-        
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        [System.Obsolete("")]
-        public UserBase? GetUser(string id)
-        {
-            id = id.Trim();
-
-            IUser? user;
-            lock (_users_lock)
-            {
-                _users.TryGetValue(id, out user);
-            }
-            return (UserBase?)user;
         }
 
         /// <summary>
@@ -212,9 +194,9 @@ namespace Server
             if (id.IsNullOrWhiteSpace()) { return default(TU); }
 
             IUser? user;
-            lock (_users_lock)
+            lock (_async_lock)
             {
-                _users.TryGetValue(id, out user);
+                _user_list.TryGetValue(id, out user);
             }
             return (TU?)user;
         }
@@ -225,14 +207,14 @@ namespace Server
         /// <param name="id"></param>
         /// <param name="token"></param>
         /// <returns></returns>
-        public UserSession? GetAuthenticationSession(string id, string token)
+        public UserSession? RequireAuthenticationSession(string id, string token)
         {
             if(id.Length == 0 || token.Length == 0)
             {
                 return null;
             }
             
-            var user = this.GetUser(id);
+            var user = this.GetUserT<UserBase>(id);
             if(user == null) { 
                 return null;
             }
@@ -241,7 +223,19 @@ namespace Server
             {
                 return null;
             }
-            return (UserSession?)user;
+
+            IUserSession? session;
+            lock (_async_lock)
+            {
+                _session_list.TryGetValue(id, out session);
+                if (session == null)
+                {
+                    session = new UserSession();
+                    session.InitUser(user);
+                    _session_list.Add(user.ID, session);
+                }
+            }
+            return (UserSession?)session;
         }
 
         /// <summary>
@@ -258,12 +252,12 @@ namespace Server
 
             int count = 0;
             //
-            foreach (var user in _users)
+            foreach (var v in _session_list)
             {
-                var session = user.Value as UserSession;
-                if(session == null) { continue; }
+                var session = v.Value;
+                if (session == null) { continue; }
 
-                session.BroadcastAsync(data, index, level);
+                session?.BroadcastAsync(data, index, level);
                 count ++;
             }
 

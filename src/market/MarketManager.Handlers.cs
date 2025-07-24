@@ -22,6 +22,8 @@ namespace Server
         public string ID = ""; //流程编号
         [JsonPropertyName("index")]
         public int Index;
+        [JsonPropertyName("items")]
+        public List<string?>? Items = null;
     }
     
 
@@ -57,14 +59,16 @@ namespace Server
             };
 
             // 流水单
-            int result_code = await this.BuyProduct(auth_data.id, uid, request.Index);
-            if (result_code > 0)
+            var b_result = await this.BuyProduct(auth_data.id, uid, request.Index);
+            if (b_result.Code > 0)
             {
-
+                if (b_result.Items != null) {
+                    //result.Items = b_result.Items.Select(v => AMToolkits.Game.ItemUtils.GeneralItemToValue(v)).ToList();
+                }
             }
 
             //
-            result.Code = result_code;
+            result.Code = b_result.Code;
             
             //
             await context.ResponseResult(result);

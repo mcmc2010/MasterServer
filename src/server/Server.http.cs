@@ -124,7 +124,7 @@ namespace Server
 
             auth_data.id = key;
             auth_data.result = 1;
-            var user = UserManager.Instance.GetUser(key);
+            var user = UserManager.Instance.GetUserT<UserBase>(key);
             if (user != null)
             {
                 auth_data.token = user.AccessToken;

@@ -1,34 +1,16 @@
 //// 新增设备纪录
 
+using Game;
 using Logger;
+
 
 //
 namespace Server
 {
-    /// <summary>
-    /// 
-    /// </summary>
-    public class DBUserData
-    {
-        public string server_uid = "";
-        public string client_uid = "";
-        public string passphrase = "";
-        public string token = "";
-        public DateTime datetime = DateTime.Now;
-        public string device = "";
-
-        public int privilege_level = 0;
-    }
 
     /// <summary>
     /// 
     /// </summary>
-    public class DBAuthUserData : DBUserData
-    {
-        ///
-        public string custom_id = "";
-    }
-
     public partial class UserManager
     {
         /// <summary>
@@ -36,7 +18,7 @@ namespace Server
         /// </summary>
         /// <param name="user_data"></param>
         /// <returns></returns>
-        protected int DBAuthUser(DBAuthUserData user_data)
+        protected int DBAuthUser(UserAuthenticationData user_data)
         {
             var db = DatabaseManager.Instance.New();
             try
@@ -44,26 +26,29 @@ namespace Server
                 int privilege_level = 0;
 
                 // PlayFab 
-                string sql = 
+                string sql =
                     $"SELECT uid, id AS server_id, client_id, token, passphrase, last_time, privilege_level, status " +
                     $"FROM t_user WHERE client_id = ? AND playfab_id = ? AND status >= 0;";
                 var result_code = db?.Query(sql, user_data.client_uid, user_data.custom_id);
-                if(result_code < 0) {
+                if (result_code < 0)
+                {
                     return -1;
                 }
                 // 不存在
                 // 自动创建新纪录
-                else if(result_code == 0) {
+                else if (result_code == 0)
+                {
                     sql =
                         $"INSERT INTO `t_user` " +
                         $"(`id`,`client_id`," +
                         $"`token`,`passphrase`,`playfab_id`, `device`)" +
                         $"VALUES(?, ?,  ?,?,?, ?);";
-                    result_code = db?.Query(sql, 
-                        user_data.server_uid, user_data.client_uid, 
+                    result_code = db?.Query(sql,
+                        user_data.server_uid, user_data.client_uid,
                         user_data.token, user_data.passphrase,
                         user_data.custom_id, user_data.device);
-                    if(result_code < 0) {
+                    if (result_code < 0)
+                    {
                         return -1;
                     }
                 }
@@ -74,13 +59,13 @@ namespace Server
                     int status = (int)(db?.ResultItems["status"]?.Number ?? 1);
 
                     user_data.server_uid = db?.ResultItems["server_id"]?.String ?? "";
-                    if(user_data.server_uid.Length == 0)
+                    if (user_data.server_uid.Length == 0)
                     {
                         return -1;
                     }
 
                     // 该账号不允许访问，已封禁
-                    if(status == 0)
+                    if (status == 0)
                     {
                         return -7;
                     }
@@ -89,13 +74,13 @@ namespace Server
                     privilege_level = (int)(db?.ResultItems["privilege_level"]?.Number ?? 0);
 
                     //
-                    sql = 
+                    sql =
                         $"UPDATE `t_user` " +
-                        $"SET " + 
+                        $"SET " +
                         $"    `token` = ?, `passphrase` = ?, " +
                         $"    `device` = ?, `last_time` = NOW() " +
                         $"WHERE `id` = ? AND `uid` = ?;";
-                    result_code = db?.Query(sql, 
+                    result_code = db?.Query(sql,
                         user_data.token, user_data.passphrase, user_data.device,
                         user_data.server_uid, uid);
 
@@ -112,56 +97,290 @@ namespace Server
                     {
                         return -1;
                     }
-                    
+
                     privilege_level = (int)(db?.ResultItems["privilege_level"]?.Number ?? 0);
                     user_data.privilege_level = privilege_level;
                 }
 
                 //
                 return 1;
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 _logger?.LogError("(User) Error :" + e.Message);
-            } finally {
+            }
+            finally
+            {
                 DatabaseManager.Instance.Free(db);
             }
             return -1;
         }
 
-        protected int DBInitHOL(DBUserData user_data)
+        protected int DBInitHOL(UserAuthenticationData user_data)
         {
             var db = DatabaseManager.Instance.New();
             try
             {
                 // 
-                string sql = 
+                string sql =
                     $"SELECT uid, id AS server_id, value, last_time, status " +
                     $"FROM t_hol WHERE id = ? AND status >= 0;";
                 var result_code = db?.Query(sql, user_data.server_uid);
-                if(result_code < 0) {
+                if (result_code < 0)
+                {
                     return -1;
                 }
 
                 // 不存在
                 // 自动创建新纪录
-                else if(result_code == 0) {
+                else if (result_code == 0)
+                {
                     sql =
                         $"INSERT INTO `t_hol` " +
                         $"(`id`,`value`)" +
                         $"VALUES(?, ?);";
-                    result_code = db?.Query(sql, 
+                    result_code = db?.Query(sql,
                         user_data.server_uid, 100);
-                    if(result_code < 0) {
+                    if (result_code < 0)
+                    {
                         return -1;
                     }
                 }
 
                 return 1;
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 _logger?.LogError("(User) Error :" + e.Message);
-            } finally {
+            }
+            finally
+            {
                 DatabaseManager.Instance.Free(db);
             }
             return -1;
         }
+
+
+        #region Inventory
+
+        /// <summary>
+        /// 数据库结果集转换为物品列表
+        /// </summary>
+        /// <param name="rows"></param>
+        /// <returns></returns>
+        protected Dictionary<string, UserInventoryItem> ToUserInventoryItems(List<DatabaseResultItemSet>? rows)
+        {
+            Dictionary<string, UserInventoryItem> items = new Dictionary<string, UserInventoryItem>(StringComparer.OrdinalIgnoreCase);
+            if (rows != null)
+            {
+                foreach (var v in rows)
+                {
+                    UserInventoryItem? inventory_item = v.To<UserInventoryItem>();
+                    if (inventory_item == null) { continue; }
+                    items.Add(inventory_item.iid, inventory_item);
+                }
+            }
+            return items;
+        }
+
+        /// <summary>
+        /// 物品添加，没有做数据查询回滚，这里设置为私有函数
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        protected async Task<int> DBAddUserInventoryItems(DatabaseQuery? query, string user_uid, List<AMToolkits.Game.GeneralItemData> items)
+        {
+            if (query == null)
+            {
+                return -1;
+            }
+
+            foreach (var item in items)
+            {
+                // 
+                string sql =
+                        $"INSERT INTO `t_inventory` " +
+                        $"  (`id`,`tid`,`name`,`user_id`, " +
+                        $"  `create_time`, `last_time`, `expired_time`, `remaining_time`, `using_time`, " +
+                        $"  `custom_data`, " +
+                        $"  `status`) " +
+                        $"VALUES " +
+                        $"(?, ?, ?, ?, " +
+                        $"CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,NULL,NULL,NULL, " +
+                        $"NULL,1); ";
+                int result_code = query.Query(sql,
+                        item.IID, item.ID, item.GetTemplateData<TItems>()?.Name ?? "", user_uid);
+                if (result_code < 0)
+                {
+                    return -1;
+                }
+
+            }
+
+            return items.Count;
+        }
+
+        /// <summary>
+        /// 更新物品
+        ///   更新参数
+        ///     - 数量
+        /// </summary>
+        /// <param name="query"></param>
+        /// <param name="user_uid"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        protected async Task<int> DBUpdateUserInventoryItems(DatabaseQuery? query, string user_uid, List<AMToolkits.Game.GeneralItemData> items)
+        {
+            if (query == null)
+            {
+                return -1;
+            }
+
+            // 如果名字有变更将更新
+            foreach (var item in items)
+            {
+                // 
+                string sql =
+                    $"UPDATE `t_inventory` " +
+                    $"SET `name` = ?, `count` = ? " +
+                    $"WHERE `id` = ? AND `tid` = ? AND `user_id` = ? ";
+                int result_code = query.Query(sql,
+                        item.GetTemplateData<TItems>()?.Name ?? "", item.Count,
+                        item.IID, item.ID, user_uid);
+                if (result_code < 0)
+                {
+                    return -1;
+                }
+
+            }
+
+            return items.Count;
+        }
+
+        /// <summary>
+        /// 废除物品
+        /// </summary>
+        /// <param name="query"></param>
+        /// <param name="user_uid"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        protected async Task<int> DBRevokeUserInventoryItems(DatabaseQuery? query, string user_uid, List<UserInventoryItem> items)
+        {
+            if (query == null)
+            {
+                return -1;
+            }
+
+            // 如果名字有变更将更新
+            foreach (var item in items)
+            {
+                // 
+                string sql =
+                    $"UPDATE `t_inventory` " +
+                    $"SET `status` = 0 " +
+                    $"WHERE `id` = ? AND `tid` = ? AND `user_id` = ? ";
+                int result_code = query.Query(sql,
+                        item.iid, item.index, user_uid);
+                if (result_code < 0)
+                {
+                    return -1;
+                }
+
+            }
+
+            return items.Count;
+        }
+
+        /// <summary>
+        /// 更新物品列表
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        public async Task<int> DBUpdateUserInventoryItems(string user_uid, List<AMToolkits.Game.GeneralItemData> items)
+        {
+            if (items.Count == 0)
+            {
+                return 0;
+            }
+
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                db?.Transaction();
+                //1. 获取用户背包物品
+                //
+                List<DatabaseResultItemSet>? list = null;
+                // 
+                string sql =
+                    $"SELECT " +
+                    $"    `uid`, id AS `iid`, tid AS `index`, " +
+                    $"    `user_id` AS `server_uid`, " +
+                    $"    `name`, `create_time`, `expired_time`, `remaining_time`, `using_time`, " +
+                    $"    `custom_data`, `status` " +
+                    $"FROM game.t_inventory AS i " +
+                    $"WHERE `user_id` = ? AND `status` > 0;";
+                var result_code = db?.QueryWithList(sql, out list, user_uid);
+                if (result_code < 0 || list == null)
+                {
+                    db?.Rollback();
+                    return -1;
+                }
+
+                //
+                Dictionary<string, UserInventoryItem> valided = ToUserInventoryItems(list);
+
+                List<UserInventoryItem> revoked = new List<UserInventoryItem>();
+                List<AMToolkits.Game.GeneralItemData> updated = new List<AMToolkits.Game.GeneralItemData>();
+                List<AMToolkits.Game.GeneralItemData> added = new List<AMToolkits.Game.GeneralItemData>();
+
+                var template_data = AMToolkits.Utility.TableDataManager.GetTableData<TItems>();
+                foreach (var v in items)
+                {
+                    if (valided.ContainsKey(v.IID))
+                    {
+                        updated.Add(v);
+                    }
+                    else
+                    {
+                        added.Add(v);
+                    }
+
+                    v.InitTemplateData(template_data?.Get(v.ID));
+                }
+
+                foreach (var kvp in valided)
+                {
+                    if (!items.Any(v => v.IID == kvp.Key))
+                    {
+                        revoked.Add(kvp.Value);
+                    }
+                }
+
+                if (await DBAddUserInventoryItems(db, user_uid, added) < 0 ||
+                    await DBUpdateUserInventoryItems(db, user_uid, updated) < 0 ||
+                    await DBRevokeUserInventoryItems(db, user_uid, revoked) < 0)
+                {
+                    db?.Rollback();
+                    return -1;
+                }
+
+                //
+                db?.Commit();
+            }
+            catch (Exception e)
+            {
+                db?.Rollback();
+                _logger?.LogError($"{TAGName} (UpdateUserInventoryItems) Error :" + e.Message);
+                return -1;
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return 1;
+        }
+        #endregion
     }
 }

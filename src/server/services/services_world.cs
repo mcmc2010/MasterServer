@@ -45,7 +45,7 @@ namespace Server.Services
                 hash = values[1].Trim();
             }
 
-            session = UserManager.Instance.GetAuthenticationSession(key, hash);
+            session = UserManager.Instance.RequireAuthenticationSession(key, hash);
             if (session != null)
             {
                 return 1;
@@ -157,7 +157,7 @@ namespace Server.Services
             }
 
             // 校验用户ID
-            if (packet.UserId != _session?.ID)
+            if (packet.UserId != _session?.User?.ID)
             {
                 return;
             }
@@ -174,7 +174,7 @@ namespace Server.Services
             response.Timestamp = AMToolkits.Utils.GetLongTimestamp();
 
             // 
-            response.UserId = _session?.ID;
+            response.UserId = _session?.User?.ID;
             response.UserName = packet.UserName;
 
             //this.Send(response.ToByteArray());
@@ -195,7 +195,7 @@ namespace Server.Services
             }
 
             // 校验用户ID
-            if (packet.UserId != _session?.ID)
+            if (packet.UserId != _session?.User?.ID)
             {
                 return;
             }
@@ -284,7 +284,7 @@ namespace Server.Services
             }
 
             // 校验用户ID
-            if (packet.UserId != _session?.ID)
+            if (packet.UserId != _session?.User?.ID)
             {
                 return;
             }
@@ -332,14 +332,14 @@ namespace Server.Services
             }
 
             // 校验用户ID
-            if (packet.UserId != _session?.ID)
+            if (packet.UserId != _session?.User?.ID)
             {
                 return;
             }
 
-            if (_session.PrivilegeLevel < (int)PrivilegeLevel.Master)
+            if (_session?.User?.PrivilegeLevel < (int)PrivilegeLevel.Master)
             {
-                Logger.LoggerFactory.Instance?.LogWarning($"[Service] (WorldService) Admin : (ID:{_session.ID}) Not Allow, No Permission");
+                Logger.LoggerFactory.Instance?.LogWarning($"[Service] (WorldService) Admin : (ID:{_session?.User?.ID}) Not Allow, No Permission");
                 return;
             }
 
@@ -355,7 +355,7 @@ namespace Server.Services
             response.Timestamp = AMToolkits.Utils.GetLongTimestamp();
 
             // 
-            response.UserId = _session?.ID;
+            response.UserId = _session?.User?.ID;
             //response.Name = packet.Name;
 
             //this.Send(response.ToByteArray());
