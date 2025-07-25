@@ -183,6 +183,59 @@ namespace Server
             return items;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        protected async Task<int> DBGetUserInventoryItems(DatabaseQuery? query, string user_uid,
+                            List<UserInventoryItem> items, int type = -1)
+        {
+            //
+            List<DatabaseResultItemSet>? list = null;
+            // 
+            string sql =
+                $"SELECT " +
+                $"    `uid`, id AS `iid`, tid AS `index`, " +
+                $"    `user_id` AS `server_uid`, " +
+                $"    `name`, `create_time`, `expired_time`, `remaining_time`, `using_time`, " +
+                $"    `count`, `custom_data`, `status` " +
+                $"FROM game.t_inventory AS i " +
+                $"WHERE " +
+                $" ((? >= 0 AND `type` = ?) OR (? < 0 AND `type` >= 0)) AND " +
+                $" `user_id` = ? AND `status` > 0;";
+            var result_code = query?.QueryWithList(sql, out list,
+                type, type, type,
+                user_uid);
+            if (result_code < 0 || list == null)
+            {
+                return -1;
+            }
+
+            items.AddRange(ToUserInventoryItems(list).Values);
+            return items.Count;
+        }
+        
+
+        protected async Task<int> DBUsingUserInventoryItem(DatabaseQuery? query, string user_uid,
+                            UserInventoryItem item, bool is_using = true)
+        {
+            // 
+            string sql =
+                $"UPDATE `t_inventory` " +
+                $"SET " +
+                $"  `using_time` = ?, `last_time` = CURRENT_TIMESTAMP " +
+                $"WHERE `id` = ? AND `tid` = ? AND `user_id` = ? ";
+            var result_code = query?.Query(sql,
+                !is_using ? null : DateTime.Now,
+                item.iid, item.index, user_uid);
+            if (result_code < 0)
+            {
+                return -1;
+            }
+            return 1;
+        }
 
         /// <summary>
         /// 获取物品列表
@@ -197,26 +250,12 @@ namespace Server
             var db = DatabaseManager.Instance.New();
             try
             {
-                //
-                List<DatabaseResultItemSet>? list = null;
-                // 
-                string sql =
-                    $"SELECT " +
-                    $"    `uid`, id AS `iid`, tid AS `index`, " +
-                    $"    `user_id` AS `server_uid`, " +
-                    $"    `name`, `create_time`, `expired_time`, `remaining_time`, `using_time`, " +
-                    $"    `count`, `custom_data`, `status` " +
-                    $"FROM game.t_inventory AS i " +
-                    $"WHERE `user_id` = ? AND `status` > 0;";
-                var result_code = db?.QueryWithList(sql, out list, user_uid);
-                if (result_code < 0 || list == null)
+                int result_code = await DBGetUserInventoryItems(db, user_uid, items);
+                if (result_code < 0)
                 {
                     return -1;
                 }
 
-                //
-                items.AddRange(ToUserInventoryItems(list).Values);
-                
             }
             catch (Exception e)
             {
@@ -228,6 +267,91 @@ namespace Server
                 DatabaseManager.Instance.Free(db);
             }
             return 1;
+        }
+
+        /// <summary>
+        /// 使用物品
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        public async Task<int> DBUsingUserInventoryItem(string user_uid, string item_iid,
+                            Game.TItems item_template_data,
+                            List<UserInventoryItem> items)
+        {
+            items.Clear();
+
+            //
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                db?.Transaction();
+
+                // 获取该类所有物品
+                List<UserInventoryItem> list = new List<UserInventoryItem>();
+                int result_code = await DBGetUserInventoryItems(db, user_uid, list, item_template_data.Type);
+                if (result_code < 0)
+                {
+                    db?.Rollback();
+                    return -1;
+                }
+
+                var using_item = list.FirstOrDefault(v => v.iid == item_iid && v.index == item_template_data.Id);
+                if (list.Count == 0 || using_item == null)
+                {
+                    db?.Rollback();
+                    return 0;
+                }
+
+                // 物品已经在使用中，无需重复使用
+                if (using_item.using_time != null)
+                {
+                    db?.Rollback();
+                    return 1;
+                }
+                items.Add(using_item);
+
+                // 更新使用物品
+                if (await DBUsingUserInventoryItem(db, user_uid, using_item) < 0)
+                {
+                    db?.Rollback();
+                    return -1;
+                }
+                using_item.using_time = DateTime.Now;
+
+
+                // 移除已经在使用的物品
+                var using_item_list = list.Where(v => v.index == item_template_data.Id && v.using_time != null).ToList();
+                using_item_list.Remove(using_item);
+
+                foreach (var v in using_item_list)
+                {
+                    if (v.using_time == null) { continue; }
+
+                    if (await DBUsingUserInventoryItem(db, user_uid, v, false) < 0)
+                    {
+                        db?.Rollback();
+                        return -1;
+                    }
+                    v.using_time = null;
+
+                    items.Add(v);
+                }
+
+                db?.Commit();
+
+            }
+            catch (Exception e)
+            {
+                db?.Rollback();
+                _logger?.LogError($"{TAGName} (UpdateUserInventoryItems) Error :" + e.Message);
+                return -1;
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return 7;
         }
 
         /// <summary>

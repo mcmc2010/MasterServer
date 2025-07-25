@@ -55,6 +55,25 @@ namespace Server
         public List<NUserInventoryItem>? Items = null;
     }
 
+
+    [System.Serializable]
+    public class NUsingUserInventoryItemsRequest
+    {
+        [JsonPropertyName("iid")]
+        public string IID = "";
+        [JsonPropertyName("index")]
+        public int Index = 0;
+    }
+
+    [System.Serializable]
+    public class NUsingUserInventoryItemsResponse
+    {
+        [JsonPropertyName("code")]
+        public int Code;
+        [JsonPropertyName("items")]
+        public List<NUserInventoryItem>? Items = null;
+    }
+
     public partial class UserManager
     {
 
@@ -164,6 +183,7 @@ namespace Server
             };
 
             List<NUserInventoryItem> list = new List<NUserInventoryItem>();
+            // 成功返回物品数量
             int result_code = await this.GetUserInventoryItems(auth_data.id, list);
             if (result_code <= 0)
             {
@@ -174,6 +194,48 @@ namespace Server
                 result.Code = 1;
                 result.Items = list;
             }
+            //
+            await context.ResponseResult(result);
+        }
+
+
+        /// <summary>
+        /// 使用物品
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        protected async Task HandleUsingUserInventoryItem(HttpContext context)
+        {
+            SessionAuthData auth_data = new SessionAuthData();
+            if (await ServerApplication.Instance.AuthSessionAndResult(context, auth_data) <= 0)
+            {
+                return;
+            }
+
+            // 解析 JSON
+            var request = await context.Request.JsonBodyAsync<NUsingUserInventoryItemsRequest>();
+            if (request == null)
+            {
+                await context.ResponseError(HttpStatusCode.BadRequest, ErrorMessage.UNKNOW);
+                return;
+            }
+
+            //
+            var result = new NUsingUserInventoryItemsResponse
+            {
+                Code = 0,
+                Items = null
+            };
+
+            List<NUserInventoryItem> list = new List<NUserInventoryItem>();
+            int result_code = await this.UsingUserInventoryItem(auth_data.id, request.IID, request.Index, list);
+            if (result_code > 0)
+            {
+                result.Items = list;
+            }
+
+            result.Code = result_code;
+
             //
             await context.ResponseResult(result);
         }

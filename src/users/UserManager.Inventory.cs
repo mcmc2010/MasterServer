@@ -103,6 +103,7 @@ namespace Server
             {
                 return -1;
             }
+            user_uid = user_uid.Trim();
 
             List<UserInventoryItem> list = new List<UserInventoryItem>();
             if (await DBGetUserInventoryItems(user_uid, list) < 0)
@@ -111,13 +112,69 @@ namespace Server
                 return -1;
             }
 
+            var template_data = AMToolkits.Utility.TableDataManager.GetTableData<Game.TItems>();
             // 转换为可通用的物品类
             foreach (var v in list)
             {
+                var item_template_data = template_data?.Get(v.index);
                 items.Add(v.ToNItem());
             }
 
             return items.Count;
+        }
+
+        public async Task<int> UsingUserInventoryItem(string? user_uid, string item_iid, int item_index,
+                                    List<NUserInventoryItem> items)
+        {
+            if (user_uid == null || user_uid.IsNullOrWhiteSpace())
+            {
+                return -1;
+            }
+            user_uid = user_uid.Trim();
+
+            //
+            var template_data = AMToolkits.Utility.TableDataManager.GetTableData<Game.TItems>();
+            var item_template_data = template_data?.Get(item_index);
+            if (item_template_data == null)
+            {
+                return -1;
+            }
+
+            // 该物品不允许使用
+            if (!item_template_data.Useable)
+            {
+                return -10;
+            }
+
+            int result_code = 0;
+            List<UserInventoryItem> list = new List<UserInventoryItem>();
+            if ((result_code = await DBUsingUserInventoryItem(user_uid, item_iid, item_template_data, list)) < 0)
+            {
+                _logger?.LogError($"{TAGName} (GetUserInventoryItems) (User:{user_uid}) Failed");
+                return -1;
+            }
+
+            // 物品不存在
+            if (result_code == 0)
+            {
+                return 0;
+            }
+
+            // 物品已经在使用
+            if (result_code == 1)
+            {
+                return 1;
+            }
+
+            // 转换为可通用的物品类
+            foreach (var v in list)
+            {
+                item_template_data = template_data?.Get(v.index);
+                items.Add(v.ToNItem());
+            }
+
+            return result_code;
+
         }
 
         #endregion

@@ -88,7 +88,7 @@ namespace Server
         /// </summary>
         /// <param name="sql"></param>
         /// <returns></returns>
-        public int Query(string sql, params object[] args)
+        public int Query(string sql, params object?[] args)
         {
             if(db == null) {
                 return -1;

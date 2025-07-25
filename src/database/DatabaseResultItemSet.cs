@@ -118,6 +118,10 @@ namespace Server
             {
                 return (T?)(object?)value.GetDateTime();
             }
+            else if(convert == typeof(System.DateTime?))
+            {
+                return (T?)(object?)value.GetDateTime();
+            }
             //return System.Text.Json.JsonSerializer.Deserialize(value.GetRawText(), convert, options);
             return default(T);
         }
