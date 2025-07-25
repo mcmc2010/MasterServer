@@ -88,6 +88,10 @@ namespace Server
             root.TryGetProperty("value", out value);
             if(value.ValueKind == JsonValueKind.Null || value.ValueKind == JsonValueKind.Undefined)
             {
+                if (typeof(T) == typeof(DateTime?))
+                {
+                    return default; // 返回 null
+                }
                 return default(T);
             }
             if(convert == typeof(string))
@@ -150,7 +154,9 @@ namespace Server
                                     new DatabaseResultJsonConverter<System.Int64>(),
                                     new DatabaseResultJsonConverter<System.Double>(),
                                     new DatabaseResultJsonConverter<System.Boolean>(),
-                                    new DatabaseResultJsonConverter<System.DateTime>(),
+                                    // 同时添加DateTime和DateTime?的转换器
+                                    new DatabaseResultJsonConverter<DateTime>(),
+                                    new DatabaseResultJsonConverter<DateTime?>(),
                                 }
                             });
             return o;

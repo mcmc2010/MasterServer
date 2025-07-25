@@ -41,6 +41,20 @@ namespace Server
         public int PrivilegeLevel = 0;
     }
 
+    [System.Serializable]
+    public class NGetUserInventoryItemsRequest
+    {
+    }
+
+    [System.Serializable]
+    public class NGetUserInventoryItemsResponse
+    {
+        [JsonPropertyName("code")]
+        public int Code;
+        [JsonPropertyName("items")]
+        public List<NUserInventoryItem>? Items = null;
+    }
+
     public partial class UserManager
     {
 
@@ -51,7 +65,7 @@ namespace Server
         /// <returns></returns>
         protected async Task HandleUserAuth(HttpContext context)
         {
-            if(ServerApplication.Instance.CheckSecretKey(context) < 0)
+            if (ServerApplication.Instance.CheckSecretKey(context) < 0)
             {
                 await context.ResponseError(HttpStatusCode.Unauthorized, ErrorMessage.NotAllowAccess_Unauthorized_NotKey);
                 return;
@@ -71,7 +85,7 @@ namespace Server
             string passphrase = AMToolkits.Utility.Guid.GeneratorID8();
             string token = $"{uid}_{time}_{passphrase}_{rand}";
             token = AMToolkits.Hash.SHA256String(token);
-            string date_time = AMToolkits.Utils.DateTimeToString(DateTime.UtcNow, 
+            string date_time = AMToolkits.Utils.DateTimeToString(DateTime.UtcNow,
                     AMToolkits.Utils.DATETIME_FORMAT_LONG_STRING);
 
             // 0: 第三方验证平台
@@ -101,7 +115,7 @@ namespace Server
             };
 
             result_code = await this.AuthenticationAndInitUser(user_data);
-            
+
 
             //
             var result = new NAuthUserResponse
@@ -116,6 +130,50 @@ namespace Server
                 PrivilegeLevel = user_data.privilege_level,
             };
 
+            //
+            await context.ResponseResult(result);
+        }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        protected async Task HandleGetUserInventoryItems(HttpContext context)
+        {
+            SessionAuthData auth_data = new SessionAuthData();
+            if (await ServerApplication.Instance.AuthSessionAndResult(context, auth_data) <= 0)
+            {
+                return;
+            }
+
+            // 解析 JSON
+            var request = await context.Request.JsonBodyAsync<NGetUserInventoryItemsRequest>();
+            if (request == null)
+            {
+                await context.ResponseError(HttpStatusCode.BadRequest, ErrorMessage.UNKNOW);
+                return;
+            }
+
+            //
+            var result = new NGetUserInventoryItemsResponse
+            {
+                Code = 0,
+                Items = null
+            };
+
+            List<NUserInventoryItem> list = new List<NUserInventoryItem>();
+            int result_code = await this.GetUserInventoryItems(auth_data.id, list);
+            if (result_code <= 0)
+            {
+                result.Code = result_code;
+            }
+            else
+            {
+                result.Code = 1;
+                result.Items = list;
+            }
             //
             await context.ResponseResult(result);
         }

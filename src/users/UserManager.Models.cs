@@ -183,6 +183,53 @@ namespace Server
             return items;
         }
 
+
+        /// <summary>
+        /// 获取物品列表
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        public async Task<int> DBGetUserInventoryItems(string user_uid, List<UserInventoryItem> items)
+        {
+
+            //
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                //
+                List<DatabaseResultItemSet>? list = null;
+                // 
+                string sql =
+                    $"SELECT " +
+                    $"    `uid`, id AS `iid`, tid AS `index`, " +
+                    $"    `user_id` AS `server_uid`, " +
+                    $"    `name`, `create_time`, `expired_time`, `remaining_time`, `using_time`, " +
+                    $"    `count`, `custom_data`, `status` " +
+                    $"FROM game.t_inventory AS i " +
+                    $"WHERE `user_id` = ? AND `status` > 0;";
+                var result_code = db?.QueryWithList(sql, out list, user_uid);
+                if (result_code < 0 || list == null)
+                {
+                    return -1;
+                }
+
+                //
+                items.AddRange(ToUserInventoryItems(list).Values);
+                
+            }
+            catch (Exception e)
+            {
+                _logger?.LogError($"{TAGName} (UpdateUserInventoryItems) Error :" + e.Message);
+                return -1;
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return 1;
+        }
+
         /// <summary>
         /// 物品添加，没有做数据查询回滚，这里设置为私有函数
         /// </summary>
@@ -201,16 +248,19 @@ namespace Server
                 // 
                 string sql =
                         $"INSERT INTO `t_inventory` " +
-                        $"  (`id`,`tid`,`name`,`user_id`, " +
+                        $"  (`id`,`tid`,`name`, `type`, `user_id`, " +
                         $"  `create_time`, `last_time`, `expired_time`, `remaining_time`, `using_time`, " +
                         $"  `custom_data`, " +
                         $"  `status`) " +
                         $"VALUES " +
-                        $"(?, ?, ?, ?, " +
+                        $"(?, ?, ?, ?, ?, " +
                         $"CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,NULL,NULL,NULL, " +
                         $"NULL,1); ";
                 int result_code = query.Query(sql,
-                        item.IID, item.ID, item.GetTemplateData<TItems>()?.Name ?? "", user_uid);
+                        item.IID, item.ID,
+                        item.GetTemplateData<TItems>()?.Name ?? "",
+                        item.GetTemplateData<TItems>()?.Type ?? 0,
+                        user_uid);
                 if (result_code < 0)
                 {
                     return -1;
@@ -243,10 +293,12 @@ namespace Server
                 // 
                 string sql =
                     $"UPDATE `t_inventory` " +
-                    $"SET `name` = ?, `count` = ? " +
+                    $"SET `name` = ?, `type` = ?, `count` = ? " +
                     $"WHERE `id` = ? AND `tid` = ? AND `user_id` = ? ";
                 int result_code = query.Query(sql,
-                        item.GetTemplateData<TItems>()?.Name ?? "", item.Count,
+                        item.GetTemplateData<TItems>()?.Name ?? "",
+                        item.GetTemplateData<TItems>()?.Type ?? 0,
+                        item.Count,
                         item.IID, item.ID, user_uid);
                 if (result_code < 0)
                 {
@@ -298,7 +350,7 @@ namespace Server
         /// <param name="user_uid"></param>
         /// <param name="items"></param>
         /// <returns></returns>
-        public async Task<int> DBUpdateUserInventoryItems(string user_uid, List<AMToolkits.Game.GeneralItemData> items)
+        public async Task<int> _DBUpdateUserInventoryItems(string user_uid, List<AMToolkits.Game.GeneralItemData> items)
         {
             if (items.Count == 0)
             {

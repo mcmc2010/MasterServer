@@ -150,7 +150,8 @@ namespace Server
 
             //
             args.app?.Map("api/user/auth", HandleUserAuth);
-
+            //
+            args.app?.Map("api/user/inventory/list", HandleGetUserInventoryItems);
         }
 
         public TU AllocT<TU>() where TU : UserBase, new()

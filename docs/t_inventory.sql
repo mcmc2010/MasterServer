@@ -20,3 +20,8 @@ ADD COLUMN `count` INT NOT NULL DEFAULT 1 COMMENT '物品数量' AFTER `status`;
 ALTER TABLE `game`.`t_inventory` 
 CHANGE COLUMN `count` `count` INT NOT NULL DEFAULT '1' COMMENT '物品数量' AFTER `user_id`;
 
+ALTER TABLE `game`.`t_inventory` 
+ADD COLUMN `type` INT NOT NULL DEFAULT '0' COMMENT '物品类型' AFTER `status`;
+
+ALTER TABLE `game`.`t_inventory` 
+CHANGE COLUMN `type` `type` INT NOT NULL DEFAULT '0' COMMENT '物品类型' AFTER `name`;

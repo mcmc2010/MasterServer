@@ -442,3 +442,4 @@ data/DataTables/*.txt
 data/DataTables/*.xlsx
 src/tables/*.cs
 
+src/tables/TAIPlayers.cs
