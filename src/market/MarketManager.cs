@@ -121,17 +121,17 @@ namespace Server
 
             var item_gd = AMToolkits.Game.ItemUtils.GetVirtualCurrency(items, AMToolkits.Game.ItemConstants.ID_GD);
             var item_gm = AMToolkits.Game.ItemUtils.GetVirtualCurrency(items, AMToolkits.Game.ItemConstants.ID_GM);
-            var item_list = AMToolkits.Game.ItemUtils.GetGeneralItems(items);
+            var item_list = UserManager.Instance.InitGeneralItemData(items);
 
             // 首先 : 扣除货币
             Dictionary<string, object?>? result = null;
             if (cost.ID == AMToolkits.Game.ItemConstants.ID_GM)
             {
-                result = await PlayFabService.Instance.PFUpdateVirtualCurrency(user_uid, amount, AMToolkits.Game.VirtualCurrency.GM);
+                result = await UserManager.Instance._UpdateVirtualCurrency(user_uid, amount, AMToolkits.Game.VirtualCurrency.GM);
             }
             else if (cost.ID == AMToolkits.Game.ItemConstants.ID_GD)
             {
-                result = await PlayFabService.Instance.PFUpdateVirtualCurrency(user_uid, amount, AMToolkits.Game.VirtualCurrency.GD);
+                result = await UserManager.Instance._UpdateVirtualCurrency(user_uid, amount, AMToolkits.Game.VirtualCurrency.GD);
             }
             else
             {
@@ -150,21 +150,30 @@ namespace Server
             string currency = System.Convert.ToString(result.Get("currency")) ?? AMToolkits.Game.CurrencyUtils.CURRENCY_GOLD_SHORT;
 
             // 发放物品 :
+            int result_code = 0;
             if (item_list != null)
             {
-                result = await PlayFabService.Instance.PFAddInventoryItems(user_uid, item_list);
-                this.BuyProductFinalItems(user_uid, id, item_list.ToList(), result);
-                b_result.Items = new List<AMToolkits.Game.GeneralItemData>(item_list);
+                result_code = await UserManager.Instance._AddUserInventoryItems(user_uid, item_list);
+                if (result_code >= 0)
+                {
+                    b_result.Items = new List<AMToolkits.Game.GeneralItemData>(item_list);
+                }
+            }
+            // 发放物品失败
+            if (result_code < 0)
+            {
+                b_result.Code = 0;
+                return b_result;
             }
 
             // 最后 : 给予货币
             if (item_gd != null)
             {
-                result = await PlayFabService.Instance.PFUpdateVirtualCurrency(user_uid, item_gd.Count, AMToolkits.Game.VirtualCurrency.GD);
+                result = await UserManager.Instance._UpdateVirtualCurrency(user_uid, item_gd.Count, AMToolkits.Game.VirtualCurrency.GD);
             }
             if (item_gm != null)
             {
-                result = await PlayFabService.Instance.PFUpdateVirtualCurrency(user_uid, item_gm.Count, AMToolkits.Game.VirtualCurrency.GM);
+                result = await UserManager.Instance._UpdateVirtualCurrency(user_uid, item_gm.Count, AMToolkits.Game.VirtualCurrency.GM);
             }
             // 货币结算失败
             if (result == null)
@@ -173,6 +182,8 @@ namespace Server
                 return b_result;
             }
 
+            await this.BuyProductFinal(user_uid, id, item_list?.ToList());
+
             //
             _logger?.Log($"{TAGName} (BuyProduct) Balance {balance} ({currency}), Amount {amount} ({shop_item.Discount})");
 
@@ -180,44 +191,17 @@ namespace Server
             return b_result;
         }
 
-
-        private int BuyProductFinalItems(string user_uid, string id,
-                                List<AMToolkits.Game.GeneralItemData> items,
-                                Dictionary<string, object?>? result)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="id"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        private async Task<int> BuyProductFinal(string user_uid, string id,
+                                List<AMToolkits.Game.GeneralItemData>? items)
         {
-            if (result == null) { return 0; }
-
-            var o = result.Get("items", null);
-            if (o == null) { return 0; }
-
-            //
-            int index = 0;
-            if (o is System.Text.Json.JsonElement elem && elem.ValueKind == System.Text.Json.JsonValueKind.Array)
-            {
-                foreach (var v in elem.EnumerateArray())
-                {
-                    string item_id = "";
-                    System.Text.Json.JsonElement iv;
-                    if (v.TryGetProperty("item_id", out iv))
-                    {
-                        item_id = iv.GetString() ?? "";
-                    }
-                    if (v.TryGetProperty("iid", out iv))
-                    {
-                        string? s = iv.GetString();
-                        if (!s.IsNullOrWhiteSpace())
-                        {
-                            if (items[index].ItemID == item_id)
-                            {
-                                items[index].IID = s ?? "";
-                            }
-                        }
-                    }
-
-                    index++;
-                }
-            }
-            return index;
+            return 1;
         }
     }
 }

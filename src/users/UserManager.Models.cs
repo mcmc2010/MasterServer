@@ -592,6 +592,54 @@ namespace Server
         /// <param name="user_uid"></param>
         /// <param name="items"></param>
         /// <returns></returns>
+        public async Task<int> _DBAddUserInventoryItems(string user_uid, List<AMToolkits.Game.GeneralItemData> items)
+        {
+            if (items.Count == 0)
+            {
+                return 0;
+            }
+
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                db?.Transaction();
+ 
+                //
+                var template_data = AMToolkits.Utility.TableDataManager.GetTableData<TItems>();
+                foreach (var v in items)
+                {
+                    
+                    v.InitTemplateData(template_data?.Get(v.ID));
+                }
+
+                if (await DBAddUserInventoryItems(db, user_uid, items) < 0)
+                {
+                    db?.Rollback();
+                    return -1;
+                }
+
+                //
+                db?.Commit();
+            }
+            catch (Exception e)
+            {
+                db?.Rollback();
+                _logger?.LogError($"{TAGName} (AddUserInventoryItems) Error :" + e.Message);
+                return -1;
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return 1;
+        }
+
+        /// <summary>
+        /// 更新物品列表 (完整)
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
         public async Task<int> _DBUpdateUserInventoryItems(string user_uid, List<AMToolkits.Game.GeneralItemData> items)
         {
             if (items.Count == 0)
@@ -675,6 +723,8 @@ namespace Server
             }
             return 1;
         }
+
+
         #endregion
         #endregion
     }

@@ -23,7 +23,7 @@ namespace Server
         [JsonPropertyName("index")]
         public int Index;
         [JsonPropertyName("items")]
-        public List<string?>? Items = null;
+        public List<object?>? Items = null;
     }
     
 
@@ -63,7 +63,7 @@ namespace Server
             if (b_result.Code > 0)
             {
                 if (b_result.Items != null) {
-                    //result.Items = b_result.Items.Select(v => AMToolkits.Game.ItemUtils.GeneralItemToValue(v)).ToList();
+                    result.Items = b_result.Items.Select(v => v).ToList<object?>();
                 }
             }
 

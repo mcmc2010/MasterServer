@@ -8,6 +8,7 @@ namespace AMToolkits.Game
     {
         public bool Enabled = true;
         public string IID = "";  // 物品实例ID
+        public int NID = -1;     // 每批次物品的唯一ID，用来对齐数据传递
         public int ID = Game.ItemConstants.ID_NONE;      // 物品ID
         public int Count = 0;   // 物品数量
         public int Type  = (int)Game.ItemType.Default;    // 物品类型
@@ -201,7 +202,7 @@ namespace AMToolkits.Game
         }
 
         /// <summary>
-        /// 
+        /// 获取物品（不包括货币或等效虚拟道具）
         /// </summary>
         /// <param name="items"></param>
         /// <returns></returns>

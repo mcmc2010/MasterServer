@@ -115,6 +115,72 @@ namespace Server
     public partial class UserManager
     {
         #region Server Internal
+
+        /// <summary>
+        /// 物品增加
+        /// </summary>
+        public async Task<int> _AddUserInventoryItems(string? user_uid,
+                        List<AMToolkits.Game.GeneralItemData>? items, string reason = "")
+        {
+            if (user_uid == null || user_uid.IsNullOrWhiteSpace())
+            {
+                return -1;
+            }
+
+            if (items == null || items.Count == 0)
+            {
+                return -1;
+            }
+
+            // 获取用户
+            var user = UserManager.Instance.GetUserT<UserBase>(user_uid);
+            if (user == null)
+            {
+                return -1;
+            }
+
+            string print = "";
+            print = string.Join(";", items.Select(v => $"{v.ID} - {v.GetTemplateData<Game.TItems>()?.Name}"));
+
+            // 需要对齐
+            int index = 1000;
+            foreach (var v in items)
+            {
+                v.NID = ++index;
+            }
+            
+
+            // 首先要更新PlayFab 服务
+            var result = await PlayFabService.Instance.PFAddInventoryItems(user_uid, user.CustomID, items, reason);
+            if (result == null || result.Data?.ItemList == null)
+            {
+                _logger?.LogError($"{TAGName} (AddUserInventoryItems) (User:{user_uid}) ${print} Failed");
+                return -1;
+            }
+
+            // 同步数据
+            foreach (var v in result.Data.ItemList)
+            {
+                var item = items.FirstOrDefault(i => i.NID > 0 && i.NID == v.NID);
+                if (item != null)
+                {
+                    item.IID = v.IID;
+                    item.Count = v.Count;
+                    item.NID = -1;
+                }
+            }
+
+            // 增加数据库记录
+            if (await _DBAddUserInventoryItems(user_uid, items) < 0)
+            {
+                _logger?.LogError($"{TAGName} (AddUserInventoryItems) (User:{user_uid}) {print} Failed");
+                return -1;
+            }
+
+            // 
+            return items.Count;
+        }
+
         /// <summary>
         /// 物品更新
         /// </summary>
@@ -139,6 +205,33 @@ namespace Server
         #endregion
 
         #region Client General
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        public List<AMToolkits.Game.GeneralItemData>? InitGeneralItemData(IEnumerable<AMToolkits.Game.GeneralItemData>? items)
+        {
+            if (items == null)
+            {
+                return null;
+            }
+
+            // 目前只有类型需要关联
+            var item_templates_data = AMToolkits.Utility.TableDataManager.GetTableData<Game.TItems>();
+            foreach (var item in items)
+            {
+                var template_data = item_templates_data?.Get(item.ID);
+                if (template_data != null)
+                {
+                    item.Type = template_data.Type;
+                    item.InitTemplateData<Game.TItems>(template_data);
+                }
+            }
+
+            return items.ToList();
+        }
         /// <summary>
         /// 获取物品列表
         /// </summary>
@@ -207,7 +300,7 @@ namespace Server
             List<UserInventoryItem> list = new List<UserInventoryItem>();
             if ((result_code = await DBUsingUserInventoryItem(user_uid, item_iid, item_template_data, list)) < 0)
             {
-                _logger?.LogError($"{TAGName} (GetUserInventoryItems) (User:{user_uid}) Failed");
+                _logger?.LogError($"{TAGName} (UsingUserInventoryItems) (User:{user_uid}) Failed");
                 return -1;
             }
 
