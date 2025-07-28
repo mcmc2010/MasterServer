@@ -153,7 +153,7 @@ namespace Server
             //
             args.app?.Map("api/user/inventory/list", HandleGetUserInventoryItems);
             args.app?.MapPost("api/user/inventory/using", HandleUsingUserInventoryItem);
-            //args.app?.MapPost("api/user/inventory/upgrade", HandleUpgradeUserInventoryItem);
+            args.app?.MapPost("api/user/inventory/upgrade", HandleUpgradeUserInventoryItem);
         }
 
         public TU AllocT<TU>() where TU : UserBase, new()

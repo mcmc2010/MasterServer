@@ -1,6 +1,7 @@
 
 
 using AMToolkits.Extensions;
+using AMToolkits.Game;
 using Logger;
 
 namespace Server
@@ -20,6 +21,7 @@ namespace Server
         public DateTime? expired_time = null;
         public DateTime? remaining_time = null;
         public DateTime? using_time = null;
+        public string custom_data = "";
     }
 
     /// <summary>
@@ -38,6 +40,8 @@ namespace Server
         public DateTime? expired_time = null;
         public DateTime? remaining_time = null;
         public DateTime? using_time = null;
+
+        private Dictionary<string, string>? _custom_data = null;
         public int status = 0;
 
         /// <summary>
@@ -56,10 +60,54 @@ namespace Server
                 expired_time = this.expired_time,
                 remaining_time = this.remaining_time,
                 using_time = this.using_time,
+                custom_data = this.GetAttributes() ?? ""
             };
+        }
+
+        /// <summary>
+        /// 初始化属性
+        /// </summary>
+        /// <param name="pairs"></param>
+        public void InitAttributes(Dictionary<string, string> pairs)
+        {
+            _custom_data = new Dictionary<string, string>(pairs);
+        }
+
+        public string? GetAttributes()
+        {
+            if (_custom_data == null) { return null; }
+            return ItemUtils.ToAttributeValues(_custom_data);
+        }
+
+        /// <summary>
+        /// 设置属性
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public bool SetAttributeValue(string name, string value)
+        {
+            if (_custom_data == null)
+            {
+                return false;
+            }
+            _custom_data.Set(name, value.Trim());
+            return true;
         }
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    public enum InventoryItemAttributeIndex
+    {
+        // 物品升级，不涉及品质升级，只是增加属性
+        Upgrade​​               = 0x1000, //单纯的升级，此处为升级等级
+        Upgrade​​Value          = 0x1001, //如果涉及物品升级经验或其它使用
+        // 物品强化，不涉及品质升级，只是强化属性
+        Enhance​​               = 0x2000, //单纯的强化，此处为强化等级
+        Enhance​​Value          = 0x2001, //如果涉及物品强化经验或其它使用(通常不使用)
+    }
 
     /// <summary>
     /// 
@@ -123,6 +171,15 @@ namespace Server
             return items.Count;
         }
 
+        /// <summary>
+        /// 使用物品目前处理了，单类必选一，比如装备只能选择其中一个
+        /// 
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="item_iid"></param>
+        /// <param name="item_index"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
         public async Task<int> UsingUserInventoryItem(string? user_uid, string item_iid, int item_index,
                                     List<NUserInventoryItem> items)
         {
@@ -164,6 +221,76 @@ namespace Server
             if (result_code == 1)
             {
                 return 1;
+            }
+
+            // 转换为可通用的物品类
+            foreach (var v in list)
+            {
+                item_template_data = template_data?.Get(v.index);
+                items.Add(v.ToNItem());
+            }
+
+            return result_code;
+
+        }
+
+        /// <summary>
+        /// 升级物品
+        /// 
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="item_iid"></param>
+        /// <param name="item_index"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        public async Task<int> UpgradeUserInventoryItem(string? user_uid, string item_iid, int item_index,
+                                    List<NUserInventoryItem> items)
+        {
+            if (user_uid == null || user_uid.IsNullOrWhiteSpace())
+            {
+                return -1;
+            }
+            user_uid = user_uid.Trim();
+
+            //
+            var template_data = AMToolkits.Utility.TableDataManager.GetTableData<Game.TItems>();
+            var item_template_data = template_data?.Get(item_index);
+            if (item_template_data == null)
+            {
+                return -1;
+            }
+
+            // 该物品不允许升级
+            // 限时物品，过期物品不可以升级
+            if (item_template_data.Type != (int)AMToolkits.Game.ItemType.Equipment ||
+                item_template_data.Remaining > 0 || item_template_data.Expired > 0)
+            {
+                return -10;
+            }
+
+            int result_code = 0;
+            List<UserInventoryItem> list = new List<UserInventoryItem>();
+            if ((result_code = await DBGetUserInventoryItem(user_uid, item_iid, item_template_data, list)) < 0)
+            {
+                _logger?.LogError($"{TAGName} (UpgradeUserInventoryItems) (User:{user_uid}) ${item_template_data.Id} - ${item_template_data.Name} Failed");
+                return -1;
+            }
+
+            // 物品不存在
+            if (result_code == 0 || list.Count == 0)
+            {
+                return 0;
+            }
+
+            // 需要根据配置表里物品升级属性对应索引来写这个值
+            list[0].SetAttributeValue($"{InventoryItemAttributeIndex.Upgrade}", $"{0}");
+
+            //
+            result_code = await DBUpdateUserInventoryItemCustomData(user_uid, list);
+            if ((result_code = await DBGetUserInventoryItem(user_uid, item_iid, item_template_data, list)) < 0)
+            {
+                _logger?.LogError($"{TAGName} (UpgradeUserInventoryItems) (User:{user_uid}) ${item_template_data.Id} - ${item_template_data.Name} Failed");
+                return -1;
             }
 
             // 转换为可通用的物品类

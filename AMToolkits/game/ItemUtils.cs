@@ -132,6 +132,49 @@ namespace AMToolkits.Game
         }
 
         /// <summary>
+        /// 解析属性字符串
+        /// </summary>
+        /// <param name="attributes"></param>
+        /// <param name="separator"></param>
+        /// <returns></returns>
+        public static Dictionary<string, string> ParseAttributeValues(string? attributes, string separator = ",|")
+        {
+            Dictionary<string, string> pairs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var items = ItemUtils.ParseItemValues(attributes, separator[0].ToString());
+            if (items == null)
+            {
+                return pairs;
+            }
+
+            foreach (var item in items)
+            {
+                var values = ItemUtils.ParseItemValue(item, separator[1].ToString());
+                if (values.Length == 0) { continue; }
+
+                string name = values[0];
+                string value = "";
+                if (values.Length > 1)
+                {
+                    value = values[1].Trim();
+                }
+
+                pairs.Add(name.ToLower(), value);
+            }
+            return pairs;
+        }
+
+        public static string ToAttributeValues(Dictionary<string, string> pairs, string separator = ",|")
+        {
+            List<string> items = new List<string>();
+            foreach (var v in pairs)
+            {
+                items.Add($"{v.Key}{separator[1].ToString()}{v.Value}");
+            }
+            string attributes = string.Join(separator[0].ToString(), items);
+            return attributes;
+        }
+
+        /// <summary>
         /// 获取物品列表中是否设置了特殊道具转换为货币
         /// 仅仅是列表中的第一个其它会忽略
         /// </summary>

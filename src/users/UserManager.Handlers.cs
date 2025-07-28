@@ -7,6 +7,9 @@ using Logger;
 
 namespace Server
 {
+    /// <summary>
+    /// 
+    /// </summary>
     [System.Serializable]
     public class NAuthUserRequest
     {
@@ -41,6 +44,9 @@ namespace Server
         public int PrivilegeLevel = 0;
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
     [System.Serializable]
     public class NGetUserInventoryItemsRequest
     {
@@ -56,6 +62,9 @@ namespace Server
     }
 
 
+    /// <summary>
+    /// 
+    /// </summary>
     [System.Serializable]
     public class NUsingUserInventoryItemsRequest
     {
@@ -67,6 +76,27 @@ namespace Server
 
     [System.Serializable]
     public class NUsingUserInventoryItemsResponse
+    {
+        [JsonPropertyName("code")]
+        public int Code;
+        [JsonPropertyName("items")]
+        public List<NUserInventoryItem>? Items = null;
+    }
+
+    /// <summary>
+    /// 升级物品
+    /// </summary>
+    [System.Serializable]
+    public class NUpgradeUserInventoryItemsRequest
+    {
+        [JsonPropertyName("iid")]
+        public string IID = "";
+        [JsonPropertyName("index")]
+        public int Index = 0;
+    }
+
+    [System.Serializable]
+    public class NUpgradeUserInventoryItemsResponse
     {
         [JsonPropertyName("code")]
         public int Code;
@@ -229,6 +259,47 @@ namespace Server
 
             List<NUserInventoryItem> list = new List<NUserInventoryItem>();
             int result_code = await this.UsingUserInventoryItem(auth_data.id, request.IID, request.Index, list);
+            if (result_code > 0)
+            {
+                result.Items = list;
+            }
+
+            result.Code = result_code;
+
+            //
+            await context.ResponseResult(result);
+        }
+
+        /// <summary>
+        /// 升级物品
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        protected async Task HandleUpgradeUserInventoryItem(HttpContext context)
+        {
+            SessionAuthData auth_data = new SessionAuthData();
+            if (await ServerApplication.Instance.AuthSessionAndResult(context, auth_data) <= 0)
+            {
+                return;
+            }
+
+            // 解析 JSON
+            var request = await context.Request.JsonBodyAsync<NUpgradeUserInventoryItemsRequest>();
+            if (request == null)
+            {
+                await context.ResponseError(HttpStatusCode.BadRequest, ErrorMessage.UNKNOW);
+                return;
+            }
+
+            //
+            var result = new NUpgradeUserInventoryItemsResponse
+            {
+                Code = 0,
+                Items = null
+            };
+
+            List<NUserInventoryItem> list = new List<NUserInventoryItem>();
+            int result_code = await this.UpgradeUserInventoryItem(auth_data.id, request.IID, request.Index, list);
             if (result_code > 0)
             {
                 result.Items = list;

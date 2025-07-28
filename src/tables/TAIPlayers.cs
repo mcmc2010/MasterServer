@@ -38,6 +38,7 @@
 
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 #pragma warning disable CS8618
@@ -124,9 +125,36 @@ namespace Game
         }
 
         /// <summary>
-        /// 物品
+        /// 球杆ID
         /// </summary>
         public int[] Items
+        {
+            get;
+            protected set;
+        }
+
+        /// <summary>
+        /// 速度
+        /// </summary>
+        public float Speed
+        {
+            get;
+            protected set;
+        }
+
+        /// <summary>
+        /// 准确率误差为+-X，这个是范围值
+        /// </summary>
+        public float Accuracy
+        {
+            get;
+            protected set;
+        }
+
+        /// <summary>
+        /// 出现准确率误差概率使用大随机数，基数10000
+        /// </summary>
+        public int AProbability
         {
             get;
             protected set;
@@ -176,6 +204,10 @@ namespace Game
             Id = id;
             index++;
 
+            Speed = 1.0f;
+            Accuracy = 0.2f;
+            AProbability = 6000;
+
             if (index < columns.Length) Name = columns[index++].TrimStart('\"').TrimEnd('\"').Trim();
             if (index < columns.Length) Value = columns[index++].TrimStart('\"').TrimEnd('\"').Trim();
             if (index < columns.Length) Gender = columns[index++].TrimStart('\"').TrimEnd('\"').Trim();
@@ -190,8 +222,9 @@ namespace Game
                 string[] vs = text.Split("|");
                 this.Items = vs.Where(s => int.TryParse(s, out _)).Select(int.Parse).ToArray();
             }
-
-
+            if (index < columns.Length) Speed = (float)double.Parse(columns[index++]);
+            if (index < columns.Length) Accuracy = (float)double.Parse(columns[index++]);
+            if (index < columns.Length) AProbability = int.Parse(columns[index++]);
             // 仅仅只做可以为null的处理，配表尽可能在前期纠正错误
             if (index < columns.Length)
             {

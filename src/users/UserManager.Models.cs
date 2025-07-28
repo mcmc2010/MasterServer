@@ -1,5 +1,6 @@
 //// 新增设备纪录
 
+using AMToolkits.Game;
 using Game;
 using Logger;
 
@@ -177,6 +178,14 @@ namespace Server
                 {
                     UserInventoryItem? inventory_item = v.To<UserInventoryItem>();
                     if (inventory_item == null) { continue; }
+
+                    DatabaseResultItem data;
+                    if (v.TryGetValue("custom_data", out data))
+                    {
+                        string text = data.AsString("");
+                        var attributes = ItemUtils.ParseAttributeValues(text);
+                        inventory_item.InitAttributes(attributes);
+                    }
                     items.Add(inventory_item.iid, inventory_item);
                 }
             }
@@ -213,10 +222,41 @@ namespace Server
                 return -1;
             }
 
-            items.AddRange(ToUserInventoryItems(list).Values);
+            items.AddRange(this.ToUserInventoryItems(list).Values);
             return items.Count;
         }
-        
+
+        /// <summary>
+        /// 目前更新包含
+        ///    - 自定义属性
+        /// </summary>
+        /// <param name="query"></param>
+        /// <param name="user_uid"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        protected async Task<int> DBUpdateUserInventoryItems(DatabaseQuery? query, string user_uid,
+                            List<UserInventoryItem> items)
+        {
+            foreach (var item in items)
+            {
+                string? attributes = item.GetAttributes();
+                // 
+                string sql =
+                $"UPDATE `t_inventory` " +
+                $"SET " +
+                $"  `custom_data` = ? , `last_time` = CURRENT_TIMESTAMP " +
+                $"WHERE `id` = ? AND `tid` = ? AND `user_id` = ? ";
+                var result_code = query?.Query(sql,
+                    attributes,
+                    item.iid, item.index, user_uid);
+                if (result_code < 0)
+                {
+                    return -1;
+                }
+            }
+            return 1;
+        }
+
 
         protected async Task<int> DBUsingUserInventoryItem(DatabaseQuery? query, string user_uid,
                             UserInventoryItem item, bool is_using = true)
@@ -233,6 +273,38 @@ namespace Server
             if (result_code < 0)
             {
                 return -1;
+            }
+            return 1;
+        }
+
+        /// <summary>
+        /// 更新物品自定义数据
+        /// </summary>
+        /// <returns></returns>
+        protected async Task<int> DBUpdateUserInventoryItemCustomData(string user_uid, List<UserInventoryItem> items)
+        {
+            //
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                db?.Transaction();
+                int result_code = await DBUpdateUserInventoryItems(db, user_uid, items);
+                if (result_code < 0)
+                {
+                    db?.Rollback();
+                    return -1;
+                }
+                db?.Commit();
+            }
+            catch (Exception e)
+            {
+                db?.Rollback();
+                _logger?.LogError($"{TAGName} (UpdateUserInventoryItems) Error :" + e.Message);
+                return -1;
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
             }
             return 1;
         }
@@ -354,6 +426,52 @@ namespace Server
             return 7;
         }
 
+        /// <summary>
+        /// 获取物品
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        public async Task<int> DBGetUserInventoryItem(string user_uid, string item_iid,
+                            Game.TItems item_template_data,
+                            List<UserInventoryItem> items)
+        {
+            items.Clear();
+
+            //
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                // 获取该类所有物品
+                List<UserInventoryItem> list = new List<UserInventoryItem>();
+                int result_code = await DBGetUserInventoryItems(db, user_uid, list, item_template_data.Type);
+                if (result_code < 0)
+                {
+                    return -1;
+                }
+
+                var item = list.FirstOrDefault(v => v.iid == item_iid && v.index == item_template_data.Id);
+                if (list.Count == 0 || item == null)
+                {
+                    return 0;
+                }
+
+                //
+                items.Add(item);
+            }
+            catch (Exception e)
+            {
+                _logger?.LogError($"{TAGName} (UpdateUserInventoryItems) Error :" + e.Message);
+                return -1;
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return 1;
+        }
+
+        #region Inventory Internal
         /// <summary>
         /// 物品添加，没有做数据查询回滚，这里设置为私有函数
         /// </summary>
@@ -557,6 +675,7 @@ namespace Server
             }
             return 1;
         }
+        #endregion
         #endregion
     }
 }
