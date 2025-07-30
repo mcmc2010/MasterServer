@@ -7,6 +7,7 @@ using Logger;
 
 namespace Server
 {
+    #region User
     /// <summary>
     /// 
     /// </summary>
@@ -44,6 +45,39 @@ namespace Server
         public int PrivilegeLevel = 0;
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    [System.Serializable]
+    public class NUserProfileRequest
+    {
+        [JsonPropertyName("uid")]
+        public string UID = "";
+    }
+
+    [System.Serializable]
+    public class NUserProfileResponse
+    {
+        [JsonPropertyName("code")]
+        public int Code;
+
+        [JsonPropertyName("data")]
+        public UserProfile? Profile = null;
+    }
+
+    [System.Serializable]
+    public class NUserProfileExtendResponse 
+    {
+        [JsonPropertyName("code")]
+        public int Code;
+
+        [JsonPropertyName("data")]
+        public UserProfileExtend? Profile = null;
+    }
+
+    #endregion
+
+    #region User Inventory Packets
     /// <summary>
     /// 
     /// </summary>
@@ -103,10 +137,14 @@ namespace Server
         [JsonPropertyName("items")]
         public List<NUserInventoryItem>? Items = null;
     }
+    #endregion
 
+    /// <summary>
+    /// 
+    /// </summary>
     public partial class UserManager
     {
-
+        #region User
         /// <summary>
         /// 
         /// </summary>
@@ -184,6 +222,43 @@ namespace Server
         }
 
 
+        protected async Task HandleUserProfile(HttpContext context)
+        {
+            SessionAuthData auth_data = new SessionAuthData();
+            if (await ServerApplication.Instance.AuthSessionAndResult(context, auth_data) <= 0)
+            {
+                return;
+            }
+
+            // 解析 JSON
+            var request = await context.Request.JsonBodyAsync<NUserProfileRequest>();
+            if (request == null)
+            {
+                await context.ResponseError(HttpStatusCode.BadRequest, ErrorMessage.UNKNOW);
+                return;
+            }
+
+            //
+            var result = new NUserProfileExtendResponse
+            {
+                Code = 0,
+            };
+
+            UserProfileExtend profile = new UserProfileExtend();
+            int result_code = await this.GetUserProfile(auth_data.id, request.UID.Trim(), profile);
+            if (result_code > 0)
+            {
+                result.Profile = profile;
+            }
+
+            result.Code = result_code;
+
+            await context.ResponseResult(result);
+        }
+
+        #endregion
+
+        #region User Inventory
         /// <summary>
         /// 
         /// </summary>
@@ -310,5 +385,7 @@ namespace Server
             //
             await context.ResponseResult(result);
         }
+
+        #endregion
     }
 }

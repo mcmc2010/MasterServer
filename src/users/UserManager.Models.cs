@@ -1,5 +1,5 @@
 //// 新增设备纪录
-
+using System.Text.Json.Serialization;
 using AMToolkits.Game;
 using Game;
 using Logger;
@@ -8,6 +8,89 @@ using Logger;
 //
 namespace Server
 {
+    [System.Serializable]
+    public class DBUserProfile
+    {
+        [JsonPropertyName("nid")]
+        public int NID = -1;
+
+        [JsonPropertyName("uid")]
+        public string UID = "";
+
+        [JsonPropertyName("name")]
+        public string Name = "";
+
+        [JsonPropertyName("gender")]
+        public int Gender = (int)UserGender.Female;
+
+        [JsonPropertyName("region")]
+        public string Region = "";
+
+        /// <summary>
+        /// 目前头像只能选择已有图像
+        /// </summary>
+        [JsonPropertyName("avatar_id")]
+        public int AvatarID = 0;
+        /// <summary>
+        /// 未使用
+        /// </summary>
+        [JsonPropertyName("avatar_url")]
+        public string AvatarUrl = "";
+
+
+    }
+
+
+    [System.Serializable]
+    public class DBUserProfileExtend 
+    {
+        [JsonPropertyName("nid")]
+        public int NID = -1;
+
+        [JsonPropertyName("uid")]
+        public string UID = "";
+        /// <summary>
+        /// 当前赛季 段位
+        /// </summary>
+        [JsonPropertyName("rank_level")]
+        public int RankLevel = 0;
+
+        /// <summary>
+        /// 当前赛季 段位
+        /// </summary>
+        [JsonPropertyName("rank_value")]
+        public int RankValue = 0;
+
+        /// <summary>
+        /// 上赛季 段位
+        /// </summary>
+        [JsonPropertyName("last_rank_level")]
+        public int LastRankLevel = 0;
+
+        /// <summary>
+        /// 上赛季 段位
+        /// </summary>
+        [JsonPropertyName("last_rank_value")]
+        public int LastRankValue = 0;
+
+        /// <summary>
+        /// 大师印记
+        /// </summary>
+        [JsonPropertyName("challenger_reals")]
+        public int ChallengerReals = 0;
+
+        /// <summary>
+        /// 玩家参与的赛季
+        /// </summary>
+        [JsonPropertyName("season")]
+        public int Season = 1;
+
+        /// <summary>
+        /// 玩家参与的赛季时间
+        /// </summary>
+        [JsonPropertyName("season_time")]
+        public DateTime? SeasonTime = null;
+    }
 
     /// <summary>
     /// 
@@ -148,6 +231,108 @@ namespace Server
                     }
                 }
 
+                return 1;
+            }
+            catch (Exception e)
+            {
+                _logger?.LogError("(User) Error :" + e.Message);
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return -1;
+        }
+
+        /// <summary>
+        /// 获取用户信息
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="profile"></param>
+        /// <returns></returns>
+        protected int DBGetUserProfile(UserBase user, string user_uid, out DBUserProfile? profile)
+        {
+            profile = null;
+
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                // 已经封了的用户是无法获取信息的
+                string sql =
+                    $"SELECT " +
+                    $"    `uid`as nid, " +
+                    $"    `id` as uid, " +
+                    $"    `name`,`gender`,`region`, " +
+                    $"    `avatar` as avatar_id, " +
+                    $"    `create_time`, `last_time`, " +
+                    $"    `status` " +
+                    $"FROM `t_user` " +
+                    $"WHERE id = ? AND status > 0;";
+                var result_code = db?.Query(sql, user_uid);
+                if (result_code < 0)
+                {
+                    return -1;
+                }
+
+                //
+                profile = db?.ResultItems.To<DBUserProfile>();
+                if (profile == null)
+                {
+                    return -1;
+                }
+
+                //
+                return 1;
+            }
+            catch (Exception e)
+            {
+                _logger?.LogError("(User) Error :" + e.Message);
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return -1;
+        }
+
+        /// <summary>
+        /// 获取用户信息
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="profile"></param>
+        /// <returns></returns>
+        protected int DBGetUserProfileExtend(UserBase user, UserProfile user_profile, out DBUserProfileExtend? profile)
+        {
+            profile = null;
+
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                // 已经封了的用户是无法获取信息的
+                string sql =
+                    $"SELECT " +
+                    $"    `uid`as nid, " +
+                    $"    `id` as uid, " +
+                    $"    `last_rank_level`, `last_rank_value`, `rank_level`, `rank_value`,  " +
+                    $"    `challenger_reals`, `season`, `season_time`, " +
+                    $"    `create_time`, `last_time`, " +
+                    $"    `status` " +
+                    $"FROM `t_hol` " +
+                    $"WHERE id = ? AND status > 0;";
+                var result_code = db?.Query(sql, user_profile.UID);
+                if (result_code < 0)
+                {
+                    return -1;
+                }
+
+                //
+                profile = db?.ResultItems.To<DBUserProfileExtend>();
+                if (profile == null)
+                {
+                    return -1;
+                }
+
+                //
                 return 1;
             }
             catch (Exception e)
@@ -603,12 +788,12 @@ namespace Server
             try
             {
                 db?.Transaction();
- 
+
                 //
                 var template_data = AMToolkits.Utility.TableDataManager.GetTableData<TItems>();
                 foreach (var v in items)
                 {
-                    
+
                     v.InitTemplateData(template_data?.Get(v.ID));
                 }
 

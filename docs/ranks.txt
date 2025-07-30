@@ -1,0 +1,23 @@
+#	段位配置表											
+#	Id		Name	Value	Level	Rank1	Rank2	Rank3	RankValue	RankNext	Type	Status
+#	int		string	string	int	string	string	string	int		int	int
+#	编号	策划备注	组	(可选)	等级	段位	段位	段位	段位星级			
+	1000	Bronze;Apprentice;Private		Bronze;Apprentice;Private	1	青铜三星	见习三级	列兵一等	3	1001		
+	1001	Bronze;Apprentice;Private		Bronze;Apprentice;Private	1	青铜二星	见习二级	列兵二等	3	1002		
+	1002	Bronze;Apprentice;Private		Bronze;Apprentice;Private	1	青铜一星	见习一级	列兵三等	3	1100		
+	1100	Silver;Newcomers;Noncommissioned		Silver;Newcomers;Noncommissioned	2	白银三星	新秀三级	上士	3	1101		
+	1101	Silver;Newcomers;Noncommissioned		Silver;Newcomers;Noncommissioned	2	白银二星	新秀二级	中士	3	1102		
+	1102	Silver;Newcomers;Noncommissioned		Silver;Newcomers;Noncommissioned	2	白银一星	新秀一级	下士	3	1200		
+	1201	Gold;Elite;Sergeant		Gold;Elite;Sergeant	3	黄金三星	精英三级	一级军士长	4	1201		
+	1202	Gold;Elite;Sergeant		Gold;Elite;Sergeant	3	黄金二星	精英二级	二级军士长	4	1202		
+	1203	Gold;Elite;Sergeant		Gold;Elite;Sergeant	3	黄金一星	精英一级	三级军士长	4	1300		
+	1300	Platinum;Epic;Lieutenant		Platinum;Epic;Lieutenant	4	铂金四星	史诗四级	准尉	5	1301		
+	1301	Platinum;Epic;Lieutenant		Platinum;Epic;Lieutenant	4	铂金三星	史诗三级	少尉	5	1302		
+	1302	Platinum;Epic;Lieutenant		Platinum;Epic;Lieutenant	4	铂金二星	史诗二级	中尉	5	1303		
+	1303	Platinum;Epic;Lieutenant		Platinum;Epic;Lieutenant	4	铂金一星	史诗一级	上尉	5	1400		
+	1400	Diamond;Legendary;Captain		Diamond;Legendary;Captain	5	钻石五星	传奇五级	少校	6	1401		
+	1401	Diamond;Legendary;Captain		Diamond;Legendary;Captain	5	钻石四星	传奇四级	中校	6	1402		
+	1402	Diamond;Legendary;Captain		Diamond;Legendary;Captain	5	钻石三星	传奇三级	上校	6	1403		
+	1403	Diamond;Legendary;Captain		Diamond;Legendary;Captain	5	钻石二星	传奇二级	大校	6	1404		
+	1404	Diamond;Legendary;Captain		Diamond;Legendary;Captain	5	钻石一星	传奇一级	准将	6	2000		
+	2000	Challenger;Challenger;General		Challenger;Challenger;General	6	大师	大师	少将	0	0		

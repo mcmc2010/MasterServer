@@ -2,9 +2,16 @@
 using AMToolkits.Extensions;
 using Logger;
 using Microsoft.AspNetCore.Builder;
+using System.Text.Json.Serialization;
+
+
 
 namespace Server
 {
+    /// <summary>
+    /// 
+    /// </summary>
+    [System.Serializable]
     public enum UserGender
     {
         Female = 0,
@@ -20,7 +27,7 @@ namespace Server
         Normal = 1, //认证或绑定后的用户
         Master = 7,
     }
-    
+
     /// <summary>
     /// 
     /// </summary>
@@ -68,9 +75,9 @@ namespace Server
     {
         private IUser? _user = null;
         public UserBase? User { get { return (UserBase?)_user; } }
-        
+
         private string _network_id = "";
-        
+
         private Server.Services.IService? _service = null;
 
         /// <summary>
@@ -100,7 +107,8 @@ namespace Server
 
         public async Task BroadcastAsync(byte[] data, int index, int level = 0)
         {
-            if(_service == null) {
+            if (_service == null)
+            {
                 return;
             }
 
@@ -108,6 +116,10 @@ namespace Server
         }
     }
 
+    
+    /// <summary>
+    /// 
+    /// </summary>
     public partial class UserManager : AMToolkits.SingletonT<UserManager>, AMToolkits.ISingleton
     {
         [AMToolkits.AutoInitInstance]
@@ -150,6 +162,7 @@ namespace Server
 
             //
             args.app?.Map("api/user/auth", HandleUserAuth);
+            args.app?.Map("api/user/profile", HandleUserProfile);
             //
             args.app?.Map("api/user/inventory/list", HandleGetUserInventoryItems);
             args.app?.MapPost("api/user/inventory/using", HandleUsingUserInventoryItem);
@@ -212,17 +225,18 @@ namespace Server
         /// <returns></returns>
         public UserSession? RequireAuthenticationSession(string id, string token)
         {
-            if(id.Length == 0 || token.Length == 0)
+            if (id.Length == 0 || token.Length == 0)
             {
                 return null;
             }
-            
+
             var user = this.GetUserT<UserBase>(id);
-            if(user == null) { 
+            if (user == null)
+            {
                 return null;
             }
 
-            if(user.AccessToken != token.ToUpper())
+            if (user.AccessToken != token.ToUpper())
             {
                 return null;
             }
@@ -248,7 +262,7 @@ namespace Server
         /// <returns></returns>
         public async Task<int> BroadcastAsync(byte[] data, int index, int level = 0)
         {
-            if(data.Length == 0)
+            if (data.Length == 0)
             {
                 return 0;
             }
@@ -261,7 +275,7 @@ namespace Server
                 if (session == null) { continue; }
 
                 session?.BroadcastAsync(data, index, level);
-                count ++;
+                count++;
             }
 
             return count;
