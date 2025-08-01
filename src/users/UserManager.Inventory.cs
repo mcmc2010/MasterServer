@@ -139,9 +139,6 @@ namespace Server
                 return -1;
             }
 
-            string print = "";
-            print = string.Join(";", items.Select(v => $"{v.ID} - {v.GetTemplateData<Game.TItems>()?.Name}"));
-
             // 需要对齐
             int index = 1000;
             foreach (var v in items)
@@ -149,12 +146,15 @@ namespace Server
                 v.NID = ++index;
             }
             
+            string print = "";
+            print = string.Join(";", items.Select(v => $"[{v.NID}] {v.ID} - {v.GetTemplateData<Game.TItems>()?.Name} ({v.Count})"));
+            _logger?.Log($"{TAGName} (AddUserInventoryItems) (User:{user_uid}) {print} ");
 
             // 首先要更新PlayFab 服务
             var result = await PlayFabService.Instance.PFAddInventoryItems(user_uid, user.CustomID, items, reason);
             if (result == null || result.Data?.ItemList == null)
             {
-                _logger?.LogError($"{TAGName} (AddUserInventoryItems) (User:{user_uid}) ${print} Failed");
+                _logger?.LogError($"{TAGName} (AddUserInventoryItems) (User:{user_uid}) {print} Failed");
                 return -1;
             }
 
@@ -176,6 +176,9 @@ namespace Server
                 _logger?.LogError($"{TAGName} (AddUserInventoryItems) (User:{user_uid}) {print} Failed");
                 return -1;
             }
+
+            print = string.Join(";", items.Select(v => $"{v.IID} {v.ID} - {v.GetTemplateData<Game.TItems>()?.Name} ({v.Count})"));
+            _logger?.Log($"{TAGName} (AddUserInventoryItems) (User:{user_uid}) {print} Success");
 
             // 
             return items.Count;
@@ -365,7 +368,7 @@ namespace Server
             List<UserInventoryItem> list = new List<UserInventoryItem>();
             if ((result_code = await DBGetUserInventoryItem(user_uid, item_iid, item_template_data, list)) < 0)
             {
-                _logger?.LogError($"{TAGName} (UpgradeUserInventoryItems) (User:{user_uid}) ${item_template_data.Id} - ${item_template_data.Name} Failed");
+                _logger?.LogError($"{TAGName} (UpgradeUserInventoryItems) (User:{user_uid}) {item_template_data.Id} - {item_template_data.Name} Failed");
                 return -1;
             }
 
@@ -382,7 +385,7 @@ namespace Server
             result_code = await DBUpdateUserInventoryItemCustomData(user_uid, list);
             if ((result_code = await DBGetUserInventoryItem(user_uid, item_iid, item_template_data, list)) < 0)
             {
-                _logger?.LogError($"{TAGName} (UpgradeUserInventoryItems) (User:{user_uid}) ${item_template_data.Id} - ${item_template_data.Name} Failed");
+                _logger?.LogError($"{TAGName} (UpgradeUserInventoryItems) (User:{user_uid}) {item_template_data.Id} - {item_template_data.Name} Failed");
                 return -1;
             }
 

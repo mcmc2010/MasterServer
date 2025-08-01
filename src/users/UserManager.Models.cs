@@ -772,7 +772,7 @@ namespace Server
         }
 
         /// <summary>
-        /// 更新物品列表
+        /// 增加物品列表
         /// </summary>
         /// <param name="user_uid"></param>
         /// <param name="items"></param>
@@ -791,13 +791,35 @@ namespace Server
 
                 //
                 var template_data = AMToolkits.Utility.TableDataManager.GetTableData<TItems>();
+
+                List<UserInventoryItem> inventory_items = new List<UserInventoryItem>();
+                if (await DBGetUserInventoryItems(user_uid, inventory_items) < 0)
+                {
+                    return -1;
+                }
+
+                Dictionary<string, UserInventoryItem> valided = inventory_items.ToDictionary(v => v.iid, v => v);
+
+                //
+                List<AMToolkits.Game.GeneralItemData> updated = new List<AMToolkits.Game.GeneralItemData>();
+                List<AMToolkits.Game.GeneralItemData> added = new List<AMToolkits.Game.GeneralItemData>();
                 foreach (var v in items)
                 {
+                    if (valided.ContainsKey(v.IID))
+                    {
+                        updated.Add(v);
+                    }
+                    else
+                    {
+                        added.Add(v);
+                    }
 
                     v.InitTemplateData(template_data?.Get(v.ID));
                 }
 
-                if (await DBAddUserInventoryItems(db, user_uid, items) < 0)
+
+                if (await DBAddUserInventoryItems(db, user_uid, added) < 0 ||
+                    await DBUpdateUserInventoryItems(db, user_uid, updated) < 0)
                 {
                     db?.Rollback();
                     return -1;

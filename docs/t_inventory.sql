@@ -25,3 +25,6 @@ ADD COLUMN `type` INT NOT NULL DEFAULT '0' COMMENT '物品类型' AFTER `status`
 
 ALTER TABLE `game`.`t_inventory` 
 CHANGE COLUMN `type` `type` INT NOT NULL DEFAULT '0' COMMENT '物品类型' AFTER `name`;
+
+ALTER TABLE `game`.`t_inventory` 
+ADD UNIQUE INDEX `id_UNIQUE` (`id` ASC) VISIBLE;
