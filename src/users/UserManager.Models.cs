@@ -1,6 +1,8 @@
 //// 新增设备纪录
 using System.Text.Json.Serialization;
+using AMToolkits.Extensions;
 using AMToolkits.Game;
+
 using Game;
 using Logger;
 
@@ -527,6 +529,56 @@ namespace Server
         }
 
         /// <summary>
+        /// 消耗物品
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="item_amount"></param>
+        /// <param name="item_template_data"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        public async Task<int> DBConsumableUserInventoryItem(string user_uid,
+                            int item_amount,
+                            Game.TItems item_template_data,
+                            List<UserInventoryItem> revoked,
+                            List<UserInventoryItem> updated)
+        {
+            if (item_amount <= 0)
+            {
+                return 0;
+            }
+
+
+            //
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                db?.Transaction();
+
+                // 获取该类所有物品
+                if (await DBRevokeUserInventoryItems(db, user_uid, revoked, "consumable") < 0 ||
+                    await DBUpdateUserInventoryItemsRemainingUses(db, user_uid, updated) < 0)
+                {
+                    db?.Rollback();
+                    return -1;
+                }
+
+                db?.Commit();
+
+            }
+            catch (Exception e)
+            {
+                db?.Rollback();
+                _logger?.LogError($"{TAGName} (ConsumableUserInventoryItems) Error :" + e.Message);
+                return -1;
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return 7;
+        }
+
+        /// <summary>
         /// 使用物品
         /// </summary>
         /// <param name="user_uid"></param>
@@ -738,13 +790,63 @@ namespace Server
         }
 
         /// <summary>
+        /// 更新物品数量
+        /// </summary>
+        /// <param name="query"></param>
+        /// <param name="user_uid"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        protected async Task<int> DBUpdateUserInventoryItemsRemainingUses(DatabaseQuery? query, string user_uid, List<UserInventoryItem> items)
+        {
+            if (query == null)
+            {
+                return -1;
+            }
+
+            List<UserInventoryItem> revoked = new List<UserInventoryItem>();
+            // 如果名字有变更将更新
+            foreach (var item in items)
+            {
+                if (item.count == 0)
+                {
+                    revoked.Add(item);
+                    continue;
+                }
+
+                // 
+                string sql =
+                    $"UPDATE `t_inventory` " +
+                    $"SET `count` = ? " +
+                    $"WHERE `id` = ? AND `tid` = ? AND `user_id` = ? ";
+                int result_code = query.Query(sql,
+                        item.count,
+                        item.iid, item.index, user_uid);
+                if (result_code < 0)
+                {
+                    return -1;
+                }
+
+            }
+
+            // 如果数量为0的直接删除物品，这里是一种安全措施
+            // 
+            if (revoked.Count > 0 && await DBRevokeUserInventoryItems(query, user_uid, revoked) < 0)
+            {
+                return -1;
+            }
+
+            return items.Count;
+        }
+
+        /// <summary>
         /// 废除物品
         /// </summary>
         /// <param name="query"></param>
         /// <param name="user_uid"></param>
         /// <param name="items"></param>
         /// <returns></returns>
-        protected async Task<int> DBRevokeUserInventoryItems(DatabaseQuery? query, string user_uid, List<UserInventoryItem> items)
+        protected async Task<int> DBRevokeUserInventoryItems(DatabaseQuery? query, string user_uid,
+                                List<UserInventoryItem> items, string reason = "none")
         {
             if (query == null)
             {

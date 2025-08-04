@@ -190,7 +190,7 @@ namespace Server
                 int result_count = 0;
                 if ((result_count = await this._DBUpdateUserInventoryItems(user_data.server_uid, [.. items.Data.ItemList])) < 0)
                 {
-                    _logger?.LogWarning($"(User:{user_data.server_uid}) UpdateInventoryItems Faile (Count: {items.Data.ItemList.Length}) Result:${result_count}");
+                    _logger?.LogWarning($"(User:{user_data.server_uid}) UpdateInventoryItems Failed (Count: {items.Data.ItemList.Length}) Result:{result_count}");
                 }
             }
             else

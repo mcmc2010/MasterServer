@@ -94,6 +94,24 @@ namespace Server
             _custom_data.Set(name, value.Trim());
             return true;
         }
+
+        public bool IsExpired(DateTime now)
+        {
+            // 1. 检查绝对过期时间
+            if (this.expired_time.HasValue)
+            {
+                return this.expired_time.Value < now;
+            }
+            
+            // 2. 检查相对剩余时间
+            if (this.remaining_time.HasValue)
+            {
+                return this.remaining_time.Value < now;
+            }
+            
+            // 3. 没有过期信息 - 视为永不过期
+            return false;
+        }
     }
 
     /// <summary>
@@ -205,6 +223,53 @@ namespace Server
                 return;
             }
         }
+
+        /// <summary>
+        /// 物品消耗
+        /// </summary>
+        public async Task<int> _ConsumableUserInventoryItems(string? user_uid,
+                        List<UserInventoryItem>? items,
+                        string reason = "")
+        {
+            if (user_uid == null || user_uid.IsNullOrWhiteSpace())
+            {
+                return -1;
+            }
+
+            // 获取用户
+            var user = UserManager.Instance.GetUserT<UserBase>(user_uid);
+            if (user == null)
+            {
+                return -1;
+            }
+
+            var consumable_items = this.InitGeneralItemData(items);
+            if (consumable_items == null || consumable_items.Count == 0)
+            {
+                return 0;
+            }
+
+            // 需要对齐
+            int index = 1000;
+            foreach (var v in consumable_items)
+            {
+                v.NID = ++index;
+            }
+
+            string print = "";
+            print = string.Join(";", consumable_items.Select(v => $"[{v.NID}] {v.ID} - {v.GetTemplateData<Game.TItems>()?.Name} ({v.Count})"));
+            _logger?.Log($"{TAGName} (ConsumableUserInventoryItems) (User:{user_uid}) {print} ");
+
+            // 首先要更新PlayFab 服务
+            var result = await PlayFabService.Instance.PFConsumableInventoryItems(user_uid, user.CustomID, consumable_items, reason);
+            if (result == null || result.Data?.ItemList == null)
+            {
+                _logger?.LogError($"{TAGName} (ConsumableUserInventoryItems) (User:{user_uid}) {print} Failed");
+                return -1;
+            }
+
+            return 1;
+        }
         #endregion
 
         #region Client General
@@ -235,6 +300,38 @@ namespace Server
 
             return items.ToList();
         }
+
+        /// <summary>
+        ///  不包括物品属性
+        /// </summary>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        public List<AMToolkits.Game.GeneralItemData>? InitGeneralItemData(IEnumerable<UserInventoryItem>? items)
+        {
+            if (items == null)
+            {
+                return null;
+            }
+
+            List<GeneralItemData>? list = new List<GeneralItemData>();
+            // 目前只有类型需要关联
+            var item_templates_data = AMToolkits.Utility.TableDataManager.GetTableData<Game.TItems>();
+            foreach (var item in items)
+            {
+                var data = new AMToolkits.Game.GeneralItemData();
+                data.IID = item.iid;
+                data.ID = item.index;
+                data.Count = item.count;
+
+                list.Add(data);
+            }
+
+            list = this.InitGeneralItemData(list);
+
+            return list;
+        }
+
+
         /// <summary>
         /// 获取物品列表
         /// </summary>
@@ -265,6 +362,148 @@ namespace Server
             }
 
             return items.Count;
+        }
+
+        /// <summary>
+        /// 消耗物品道具
+        /// 
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="item_iid"></param>
+        /// <param name="item_index"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        public async Task<int> ConsumableUserInventoryItem(string? user_uid, int item_index, int item_amount,
+                                    List<NUserInventoryItem> items, string reason = "none")
+        {
+            if (user_uid == null || user_uid.IsNullOrWhiteSpace())
+            {
+                return -1;
+            }
+            user_uid = user_uid.Trim();
+
+            //
+            var template_data = AMToolkits.Utility.TableDataManager.GetTableData<Game.TItems>();
+            var item_template_data = template_data?.Get(item_index);
+            if (item_template_data == null)
+            {
+                return -1;
+            }
+
+            // 该物品必须为道具
+            if (!(item_template_data.Type == (int)AMToolkits.Game.ItemType.Item || item_template_data.Type == (int)AMToolkits.Game.ItemType.Item_1))
+            {
+                return -10;
+            }
+
+            int result_code = 0;
+            List<UserInventoryItem> list = new List<UserInventoryItem>();
+            // 获取道具物品列表
+            if ((result_code = await DBGetUserInventoryItems(user_uid, list)) < 0)
+            {
+                _logger?.LogError($"{TAGName} (ConsumableUserInventoryItems) (User:{user_uid}) Failed");
+                return -1;
+            }
+
+            // 物品不存在
+            // 排序是否具有过期时效
+            var consumable_items = list.Where(v => v.index == item_template_data.Id && !v.IsExpired(DateTime.Now)).ToList();
+            if (consumable_items.Count == 0)
+            {
+                _logger?.LogWarning($"{TAGName} (ConsumableUserInventoryItems) (User:{user_uid}) Not found ({item_template_data.Id} - {item_template_data.Name})");
+                return 0;
+            }
+
+            // 优化排序：按过期时间升序排序（最早过期的在前）
+            consumable_items = consumable_items
+                .OrderBy(v =>
+                {
+                    // 1. 优先使用 expired_time
+                    if (v.expired_time.HasValue)
+                    {
+                        return v.expired_time.Value;
+                    }
+                    // 2. 
+                    if (v.remaining_time.HasValue)
+                    {
+                        return v.remaining_time.Value;
+                    }
+
+                    return DateTime.MaxValue;
+                })
+                .ToList();
+
+            int available_count = consumable_items.Sum(v =>
+            {
+                return v.count;
+            });
+
+            // 计算总可用数量
+            if (available_count < item_amount)
+            {
+                _logger?.LogWarning($"{TAGName} (ConsumableUserInventoryItems) (User:{user_uid}) Count {available_count}, Amount {item_amount}  ({item_template_data.Id} - {item_template_data.Name})");
+                return 0;
+            }
+
+            // 判断是否可以消耗，逐个消耗物品
+            int remaining = item_amount;
+            List<UserInventoryItem> revoked = new List<UserInventoryItem>();
+            List<UserInventoryItem> updated = new List<UserInventoryItem>();
+            for (int i = 0; i < consumable_items.Count; i++)
+            {
+                if(remaining <= 0) { break; }
+
+                int consume_amount = Math.Min(consumable_items[i].count, remaining);
+                remaining -= consume_amount;
+
+                if (consume_amount < consumable_items[i].count)
+                {
+                    consumable_items[i].count = consumable_items[i].count - remaining;
+                    updated.Add(consumable_items[i]);
+                }
+                else
+                {
+                    consumable_items[i].count = 0;
+                    revoked.Add(consumable_items[i]);
+                }
+            }
+
+            consumable_items.Clear();
+            consumable_items.AddRange(updated);
+            consumable_items.AddRange(revoked);
+
+            // 从PlayFab消耗
+            result_code = await _ConsumableUserInventoryItems(user_uid, consumable_items, reason);
+            if (result_code < 0)
+            {
+                _logger?.LogError($"{TAGName} (ConsumableUserInventoryItems) (User:{user_uid}) ({item_template_data.Id} - {item_template_data.Name}) Failed");
+                return -1;
+            }
+
+            // 从数据库中消耗
+            if ((result_code = await DBConsumableUserInventoryItem(user_uid, item_amount,
+                            item_template_data, revoked, updated)) < 0)
+            {
+                _logger?.LogError($"{TAGName} (ConsumableUserInventoryItems) (User:{user_uid}) ({item_template_data.Id} - {item_template_data.Name}) Failed");
+                return -1;
+            }
+
+            // 物品不存在，或数量不足
+            if (result_code == 0)
+            {
+                _logger?.LogWarning($"{TAGName} (ConsumableUserInventoryItems) (User:{user_uid}) Count {available_count}, Amount {item_amount},  ({item_template_data.Id} - {item_template_data.Name})");
+                return 0;
+            }
+
+            // 转换为可通用的物品类
+            foreach (var v in consumable_items)
+            {
+                item_template_data = template_data?.Get(v.index);
+                items.Add(v.ToNItem());
+            }
+
+            return result_code;
+
         }
 
         /// <summary>
@@ -378,8 +617,23 @@ namespace Server
                 return 0;
             }
 
+            List<NUserInventoryItem> consumable_items = new List<NUserInventoryItem>();
+            if ((result_code = await this.ConsumableUserInventoryItem(user_uid, 4001, 1, consumable_items, "upgrade")) < 0)
+            {
+                _logger?.LogError($"{TAGName} (UpgradeUserInventoryItems) (User:{user_uid}) {item_template_data.Id} - {item_template_data.Name} Failed");
+                return -1;
+            }
+
+            // 没有物品可消耗
+            if (result_code == 0)
+            {
+                _logger?.LogError($"{TAGName} (UpgradeUserInventoryItems) (User:{user_uid}) {item_template_data.Id} - {item_template_data.Name} Failed");
+                return 0;
+            }
+
             // 需要根据配置表里物品升级属性对应索引来写这个值
-            list[0].SetAttributeValue($"{InventoryItemAttributeIndex.Upgrade}", $"{0}");
+            // Fixed bugs：这里是数值，不是文本
+            list[0].SetAttributeValue($"{(int)InventoryItemAttributeIndex.Upgrade}", $"{0}");
 
             //
             result_code = await DBUpdateUserInventoryItemCustomData(user_uid, list);
