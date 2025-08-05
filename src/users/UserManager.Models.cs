@@ -502,14 +502,14 @@ namespace Server
         /// <param name="user_uid"></param>
         /// <param name="items"></param>
         /// <returns></returns>
-        public async Task<int> DBGetUserInventoryItems(string user_uid, List<UserInventoryItem> items)
+        public async Task<int> DBGetUserInventoryItems(string user_uid, List<UserInventoryItem> items, int type = -1)
         {
 
             //
             var db = DatabaseManager.Instance.New();
             try
             {
-                int result_code = await DBGetUserInventoryItems(db, user_uid, items);
+                int result_code = await DBGetUserInventoryItems(db, user_uid, items, type);
                 if (result_code < 0)
                 {
                     return -1;
@@ -528,55 +528,7 @@ namespace Server
             return 1;
         }
 
-        /// <summary>
-        /// 消耗物品
-        /// </summary>
-        /// <param name="user_uid"></param>
-        /// <param name="item_amount"></param>
-        /// <param name="item_template_data"></param>
-        /// <param name="items"></param>
-        /// <returns></returns>
-        public async Task<int> DBConsumableUserInventoryItem(string user_uid,
-                            int item_amount,
-                            Game.TItems item_template_data,
-                            List<UserInventoryItem> revoked,
-                            List<UserInventoryItem> updated)
-        {
-            if (item_amount <= 0)
-            {
-                return 0;
-            }
 
-
-            //
-            var db = DatabaseManager.Instance.New();
-            try
-            {
-                db?.Transaction();
-
-                // 获取该类所有物品
-                if (await DBRevokeUserInventoryItems(db, user_uid, revoked, "consumable") < 0 ||
-                    await DBUpdateUserInventoryItemsRemainingUses(db, user_uid, updated) < 0)
-                {
-                    db?.Rollback();
-                    return -1;
-                }
-
-                db?.Commit();
-
-            }
-            catch (Exception e)
-            {
-                db?.Rollback();
-                _logger?.LogError($"{TAGName} (ConsumableUserInventoryItems) Error :" + e.Message);
-                return -1;
-            }
-            finally
-            {
-                DatabaseManager.Instance.Free(db);
-            }
-            return 7;
-        }
 
         /// <summary>
         /// 使用物品
@@ -803,16 +755,9 @@ namespace Server
                 return -1;
             }
 
-            List<UserInventoryItem> revoked = new List<UserInventoryItem>();
             // 如果名字有变更将更新
             foreach (var item in items)
             {
-                if (item.count == 0)
-                {
-                    revoked.Add(item);
-                    continue;
-                }
-
                 // 
                 string sql =
                     $"UPDATE `t_inventory` " +
@@ -828,13 +773,34 @@ namespace Server
 
             }
 
-            // 如果数量为0的直接删除物品，这里是一种安全措施
-            // 
-            if (revoked.Count > 0 && await DBRevokeUserInventoryItems(query, user_uid, revoked) < 0)
+            return items.Count;
+        }
+
+        protected async Task<int> DBUpdateUserInventoryItemsRemainingUses(DatabaseQuery? query, string user_uid, List<AMToolkits.Game.GeneralItemData> items)
+        {
+            if (query == null)
             {
                 return -1;
             }
 
+            // 如果名字有变更将更新
+            foreach (var item in items)
+            {
+                // 
+                string sql =
+                    $"UPDATE `t_inventory` " +
+                    $"SET `count` = ? " +
+                    $"WHERE `id` = ? AND `tid` = ? AND `user_id` = ? ";
+                int result_code = query.Query(sql,
+                        item.Count,
+                        item.IID, item.ID, user_uid);
+                if (result_code < 0)
+                {
+                    return -1;
+                }
+
+            }
+            
             return items.Count;
         }
 
@@ -853,7 +819,7 @@ namespace Server
                 return -1;
             }
 
-            // 如果名字有变更将更新
+            // 
             foreach (var item in items)
             {
                 // 
@@ -863,6 +829,35 @@ namespace Server
                     $"WHERE `id` = ? AND `tid` = ? AND `user_id` = ? ";
                 int result_code = query.Query(sql,
                         item.iid, item.index, user_uid);
+                if (result_code < 0)
+                {
+                    return -1;
+                }
+
+            }
+
+            return items.Count;
+        }
+
+
+        protected async Task<int> DBRevokeUserInventoryItems(DatabaseQuery? query, string user_uid,
+                                List<AMToolkits.Game.GeneralItemData> items, string reason = "none")
+        {
+            if (query == null)
+            {
+                return -1;
+            }
+
+            // 
+            foreach (var item in items)
+            {
+                // 
+                string sql =
+                    $"UPDATE `t_inventory` " +
+                    $"SET `status` = 0 " +
+                    $"WHERE `id` = ? AND `tid` = ? AND `user_id` = ? ";
+                int result_code = query.Query(sql,
+                        item.IID, item.ID, user_uid);
                 if (result_code < 0)
                 {
                     return -1;
@@ -971,7 +966,7 @@ namespace Server
                     $"    `name`, `create_time`, `expired_time`, `remaining_time`, `using_time`, " +
                     $"    `custom_data`, `status` " +
                     $"FROM game.t_inventory AS i " +
-                    $"WHERE `user_id` = ? AND `status` > 0;";
+                    $"WHERE `user_id` = ? AND `status` >= 0;";
                 var result_code = db?.QueryWithList(sql, out list, user_uid);
                 if (result_code < 0 || list == null)
                 {
@@ -989,9 +984,19 @@ namespace Server
                 var template_data = AMToolkits.Utility.TableDataManager.GetTableData<TItems>();
                 foreach (var v in items)
                 {
-                    if (valided.ContainsKey(v.IID))
+                    UserInventoryItem? item = null;
+                    if (valided.TryGetValue(v.IID, out item) && item != null)
                     {
-                        updated.Add(v);
+                        // 已经删除的物品
+                        if (item.status == 0)
+                        {
+                            _logger?.LogWarning($"{TAGName} (UpdateUserInventoryItems) (User:{user_uid}) {item.iid} - {item.index} - {item.name} ignore");
+                            continue;
+                        }
+                        else
+                        {
+                            updated.Add(v);
+                        }
                     }
                     else
                     {
@@ -1033,6 +1038,65 @@ namespace Server
             return 1;
         }
 
+        /// <summary>
+        /// 消耗物品
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        public async Task<int> _DBConsumableUserInventoryItem(string user_uid,
+                            List<AMToolkits.Game.GeneralItemData> items)
+        {
+            if (items.Count == 0)
+            {
+                return 0;
+            }
+
+
+            //
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                db?.Transaction();
+
+                //
+                List<AMToolkits.Game.GeneralItemData> updated = new List<AMToolkits.Game.GeneralItemData>();
+                List<AMToolkits.Game.GeneralItemData> revoked = new List<AMToolkits.Game.GeneralItemData>();
+                foreach (var v in items)
+                {
+                    if (v.Count > 0)
+                    {
+                        updated.Add(v);
+                    }
+                    else
+                    {
+                        revoked.Add(v);
+                    }
+                }
+
+                // 获取该类所有物品
+                if (await DBRevokeUserInventoryItems(db, user_uid, revoked, "consumable") < 0 ||
+                    await DBUpdateUserInventoryItemsRemainingUses(db, user_uid, updated) < 0)
+                {
+                    db?.Rollback();
+                    return -1;
+                }
+
+                db?.Commit();
+
+            }
+            catch (Exception e)
+            {
+                db?.Rollback();
+                _logger?.LogError($"{TAGName} (ConsumableUserInventoryItems) Error :" + e.Message);
+                return -1;
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return 7;
+        }
 
         #endregion
         #endregion

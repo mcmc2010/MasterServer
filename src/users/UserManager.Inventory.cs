@@ -268,6 +268,26 @@ namespace Server
                 return -1;
             }
 
+
+            // 同步数据
+            // 返回物品剩余数量，为0代表该物品被删除
+            foreach (var v in result.Data.ItemList)
+            {
+                var item = consumable_items.FirstOrDefault(i => i.NID > 0 && i.NID == v.NID);
+                if (item != null)
+                {
+                    item.Count = v.Count;
+                    item.NID = -1;
+                }
+            }
+
+            // 从数据库中消耗
+            if ((await _DBConsumableUserInventoryItem(user_uid, consumable_items)) < 0)
+            {
+                _logger?.LogError($"{TAGName} (ConsumableUserInventoryItems) (User:{user_uid}) {print} Failed");
+                return -1;
+            }
+
             return 1;
         }
         #endregion
@@ -399,7 +419,7 @@ namespace Server
             int result_code = 0;
             List<UserInventoryItem> list = new List<UserInventoryItem>();
             // 获取道具物品列表
-            if ((result_code = await DBGetUserInventoryItems(user_uid, list)) < 0)
+            if ((result_code = await DBGetUserInventoryItems(user_uid, list, item_template_data.Type)) < 0)
             {
                 _logger?.LogError($"{TAGName} (ConsumableUserInventoryItems) (User:{user_uid}) Failed");
                 return -1;
@@ -458,7 +478,7 @@ namespace Server
 
                 if (consume_amount < consumable_items[i].count)
                 {
-                    consumable_items[i].count = consumable_items[i].count - remaining;
+                    consumable_items[i].count = remaining;
                     updated.Add(consumable_items[i]);
                 }
                 else
@@ -478,28 +498,6 @@ namespace Server
             {
                 _logger?.LogError($"{TAGName} (ConsumableUserInventoryItems) (User:{user_uid}) ({item_template_data.Id} - {item_template_data.Name}) Failed");
                 return -1;
-            }
-
-            // 从数据库中消耗
-            if ((result_code = await DBConsumableUserInventoryItem(user_uid, item_amount,
-                            item_template_data, revoked, updated)) < 0)
-            {
-                _logger?.LogError($"{TAGName} (ConsumableUserInventoryItems) (User:{user_uid}) ({item_template_data.Id} - {item_template_data.Name}) Failed");
-                return -1;
-            }
-
-            // 物品不存在，或数量不足
-            if (result_code == 0)
-            {
-                _logger?.LogWarning($"{TAGName} (ConsumableUserInventoryItems) (User:{user_uid}) Count {available_count}, Amount {item_amount},  ({item_template_data.Id} - {item_template_data.Name})");
-                return 0;
-            }
-
-            // 转换为可通用的物品类
-            foreach (var v in consumable_items)
-            {
-                item_template_data = template_data?.Get(v.index);
-                items.Add(v.ToNItem());
             }
 
             return result_code;
