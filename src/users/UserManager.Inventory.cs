@@ -374,13 +374,40 @@ namespace Server
             }
 
             var template_data = AMToolkits.Utility.TableDataManager.GetTableData<Game.TItems>();
+
+            UserInventoryItem? current = null;
             // 转换为可通用的物品类
             foreach (var v in list)
             {
                 var item_template_data = template_data?.Get(v.index);
                 items.Add(v.ToNItem());
+
+                if (item_template_data?.Type == (int)AMToolkits.Game.ItemType.Equipment)
+                {
+                    if (v.using_time != null)
+                    {
+                        current = v;
+                    }
+                }
             }
 
+            // 物品必要检测
+            if (current == null)
+            {
+                current = list.FirstOrDefault(v => v.index == 101);
+                var item_template_data = template_data?.Get(current?.index ?? AMToolkits.Game.ItemConstants.ID_NONE);
+                if (current == null || item_template_data == null)
+                {
+                    _logger?.LogError($"{TAGName} (GetUserInventoryItems) (User:{user_uid}) Not found Default Equipment");
+                }
+                else
+                {
+                    current.using_time = DateTime.Now;
+                    await this.DBUsingUserInventoryItem(user_uid, current.iid, item_template_data, null);
+                }
+            }
+
+            //
             return items.Count;
         }
 
@@ -389,7 +416,6 @@ namespace Server
         /// 
         /// </summary>
         /// <param name="user_uid"></param>
-        /// <param name="item_iid"></param>
         /// <param name="item_index"></param>
         /// <param name="items"></param>
         /// <returns></returns>

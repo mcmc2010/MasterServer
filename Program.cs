@@ -63,6 +63,7 @@ try
 
     // 2 - 1:
     var market_manager = Server.MarketManager.NewInstance(args, config);
+    var cashshop_manager = Server.CashShopManager.NewInstance(args, config);
 
     // 3 - 0:
     var ai_manager = Server.AIPlayerManager.NewInstance(args, config);
@@ -83,6 +84,7 @@ try
     
     app.RegisterHandlersListner += user_manager.OnRegisterHandlers;
     app.RegisterHandlersListner += market_manager.OnRegisterHandlers;
+    app.RegisterHandlersListner += cashshop_manager.OnRegisterHandlers;
     app.RegisterHandlersListner += match_manager.OnRegisterHandlers;
 
     app.CreateHTTPServer();

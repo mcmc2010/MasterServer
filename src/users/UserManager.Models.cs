@@ -538,8 +538,13 @@ namespace Server
         /// <returns></returns>
         public async Task<int> DBUsingUserInventoryItem(string user_uid, string item_iid,
                             Game.TItems item_template_data,
-                            List<UserInventoryItem> items)
+                            List<UserInventoryItem>? items)
         {
+            if (items == null)
+            {
+                items = new List<UserInventoryItem>();
+            }
+            
             items.Clear();
 
             //
@@ -676,22 +681,31 @@ namespace Server
 
             foreach (var item in items)
             {
+                // 过期时间
+                DateTime? expired = null;
+                var template_data = item.GetTemplateData<TItems>();
+                if (template_data?.Expired > 0)
+                {
+                    expired = DateTime.Now.AddSeconds(template_data?.Expired ?? 0);
+                }
+
                 // 
                 string sql =
-                        $"INSERT INTO `t_inventory` " +
-                        $"  (`id`,`tid`,`name`, `type`, `user_id`, " +
-                        $"  `create_time`, `last_time`, `expired_time`, `remaining_time`, `using_time`, " +
-                        $"  `custom_data`, " +
-                        $"  `status`) " +
-                        $"VALUES " +
-                        $"(?, ?, ?, ?, ?, " +
-                        $"CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,NULL,NULL,NULL, " +
-                        $"NULL,1); ";
+                    $"INSERT INTO `t_inventory` " +
+                    $"  (`id`,`tid`,`name`, `type`, `user_id`, " +
+                    $"  `create_time`, `last_time`, `expired_time`, `remaining_time`, `using_time`, " +
+                    $"  `custom_data`, " +
+                    $"  `status`) " +
+                    $"VALUES " +
+                    $"(?, ?, ?, ?, ?, " +
+                    $"CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,?,NULL,NULL, " +
+                    $"NULL,1); ";
                 int result_code = query.Query(sql,
                         item.IID, item.ID,
                         item.GetTemplateData<TItems>()?.Name ?? "",
                         item.GetTemplateData<TItems>()?.Type ?? 0,
-                        user_uid);
+                        user_uid,
+                        expired);
                 if (result_code < 0)
                 {
                     return -1;
