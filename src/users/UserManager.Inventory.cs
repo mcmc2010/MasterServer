@@ -257,7 +257,7 @@ namespace Server
             }
 
             string print = "";
-            print = string.Join(";", consumable_items.Select(v => $"[{v.NID}] {v.ID} - {v.GetTemplateData<Game.TItems>()?.Name} ({v.Count})"));
+            print = string.Join(";", consumable_items.Select(v => $"[{v.NID}] {v.ID} {v.IID} - {v.GetTemplateData<Game.TItems>()?.Name} ({v.Count})"));
             _logger?.Log($"{TAGName} (ConsumableUserInventoryItems) (User:{user_uid}) {print} ");
 
             // 首先要更新PlayFab 服务
@@ -496,7 +496,6 @@ namespace Server
             result_code = await _ConsumableUserInventoryItems(user_uid, consumable_items, reason);
             if (result_code < 0)
             {
-                _logger?.LogError($"{TAGName} (ConsumableUserInventoryItems) (User:{user_uid}) ({item_template_data.Id} - {item_template_data.Name}) Failed");
                 return -1;
             }
 

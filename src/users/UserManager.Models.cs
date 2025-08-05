@@ -990,7 +990,8 @@ namespace Server
                         // 已经删除的物品
                         if (item.status == 0)
                         {
-                            _logger?.LogWarning($"{TAGName} (UpdateUserInventoryItems) (User:{user_uid}) {item.iid} - {item.index} - {item.name} ignore");
+                            _logger?.LogWarning($"{TAGName} (UpdateUserInventoryItems) (User:{user_uid}) {item.iid} - {item.index} - {item.name} ignore, " +
+                                    $"The database has been deleted" );
                             continue;
                         }
                         else
