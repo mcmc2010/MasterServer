@@ -149,6 +149,17 @@ namespace AMToolkits.Utility
             return this.SubSet(values);
         }
 
+        public T? First(Func<T, bool> predicate)
+        {
+            if (data.Count == 0)
+            {
+                return default(T);
+            }
+
+            T? value = data.FirstOrDefault(predicate);
+            return value;
+        }
+
         /// <summary>
         /// New sub set
         /// </summary>

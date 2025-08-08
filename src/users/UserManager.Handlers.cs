@@ -182,6 +182,9 @@ namespace Server
                     request?.SessionToken ?? "");
             if (result_code < 0)
             {
+                 _logger?.LogWarning($"(User) Auth User (ClientUID:{request?.UID} - {request?.SessionUID}) Failed, Result: {result_code}");
+
+                //
                 await context.ResponseError(HttpStatusCode.Unauthorized, ErrorMessage.NotAllowAccess_Unauthorized_NotLogin);
                 return;
             }
@@ -202,7 +205,10 @@ namespace Server
             };
 
             result_code = await this.AuthenticationAndInitUser(user_data);
-
+            if (result_code <= 0)
+            {
+                _logger?.LogWarning($"(User) Auth User (ClientUID:{user_data.client_uid} - {user_data.server_uid}) Failed, Result: {result_code}");
+            }
 
             //
             var result = new NAuthUserResponse

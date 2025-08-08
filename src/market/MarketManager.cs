@@ -108,7 +108,7 @@ namespace Server
             float amount = -cost.Count;
             if (shop_item.Discount > 0)
             {
-                amount = (int)System.Math.Round(AMToolkits.Game.ItemUtils.GetDiscountPrice(cost.Count, shop_item.Discount));
+                amount = -(int)System.Math.Round(AMToolkits.Game.ItemUtils.GetDiscountPrice(cost.Count, shop_item.Discount));
             }
 
             // 获取道具

@@ -11,8 +11,8 @@ namespace Server
     [System.Serializable]
     public class NCashShopBuyProductRequest
     {
-        [JsonPropertyName("index")]
-        public int Index = 0;
+        [JsonPropertyName("item_id")]
+        public string ItemID = "";
     }
     [System.Serializable]
     public class NCashShopBuyProductResponse
@@ -21,8 +21,8 @@ namespace Server
         public int Code;
         [JsonPropertyName("id")]
         public string ID = ""; //流程编号
-        [JsonPropertyName("index")]
-        public int Index;
+        [JsonPropertyName("item_id")]
+        public string ItemID = "";
         [JsonPropertyName("items")]
         public List<object?>? Items = null;
     }
@@ -62,11 +62,11 @@ namespace Server
             {
                 Code = 0,
                 ID = uid,
-                Index = request.Index,
+                ItemID = request.ItemID,
             };
 
             // 流水单
-            var b_result = await this.BuyProduct(auth_data.id, uid, request.Index);
+            var b_result = await this.BuyProduct(auth_data.id, uid, request.ItemID);
             if (b_result.Code > 0)
             {
                 if (b_result.Items != null)

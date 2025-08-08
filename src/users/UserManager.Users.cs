@@ -177,10 +177,10 @@ namespace Server
             this.AddUser(user);
 
             //
-            _logger?.Log($"(User) Auth User:{user_data.client_uid} - {user_data.server_uid}, Token:{user_data.token} Result: {result_code}");
+            _logger?.Log($"(User) Auth User (ClientUID:{user_data.client_uid} - {user_data.server_uid}) Token:{user_data.token} Result: {result_code}");
             if (user_data.privilege_level >= 7)
             {
-                _logger?.LogWarning($"(User) Admin:{user_data.server_uid}, Level:{user_data.privilege_level}");
+                _logger?.LogWarning($"(UserAdmin) (ClientUID:{user_data.client_uid} - {user_data.server_uid}) Level:{user_data.privilege_level}");
             }
 
             // 5.

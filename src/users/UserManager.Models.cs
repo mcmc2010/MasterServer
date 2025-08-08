@@ -544,7 +544,7 @@ namespace Server
             {
                 items = new List<UserInventoryItem>();
             }
-            
+
             items.Clear();
 
             //
@@ -814,7 +814,7 @@ namespace Server
                 }
 
             }
-            
+
             return items.Count;
         }
 
@@ -1005,7 +1005,7 @@ namespace Server
                         if (item.status == 0)
                         {
                             _logger?.LogWarning($"{TAGName} (UpdateUserInventoryItems) (User:{user_uid}) {item.iid} - {item.index} - {item.name} ignore, " +
-                                    $"The database has been deleted" );
+                                    $"The database has been deleted");
                             continue;
                         }
                         else
@@ -1114,6 +1114,126 @@ namespace Server
         }
 
         #endregion
+        #endregion
+
+
+        #region CashShop
+
+        protected async Task<int> DBAddCashshopItem(DatabaseQuery? query, string user_uid,
+                                TShop template_data, PFNCashShopItemData data)
+        {
+            if (query == null)
+            {
+                return -1;
+            }
+
+            // 
+            string sql =
+                $"INSERT INTO `t_cashshop_items` " +
+                $"  (`id`,`product_id`,`name`, `type`, `user_id`, `custom_id`, " +
+                $"  `create_time`, `custom_data`, " +
+                $"  `count`, `balance`, `amount`, " +
+                $"  `status`) " +
+                $"VALUES " +
+                $"(?, ?, ?, ?, ?, ?, " +
+                $"CURRENT_TIMESTAMP,NULL, " +
+                $"?, ?, ?, " +
+                $"1); ";
+            int result_code = query.Query(sql,
+                    data.NID, data.ProductID,
+                    template_data.Name, 0, user_uid, data.PlayFabUID,
+                    1, data.Balance, data.Amount);
+            if (result_code < 0)
+            {
+                return -1;
+            }
+
+            return 1;
+        }
+        
+        protected async Task<int> DBUpdateCashshopItemData(DatabaseQuery? query, string user_uid,
+                                string nid, string product_id, 
+                                int index,
+                                AMToolkits.Game.GeneralItemData data)
+        {
+            if (query == null || index >= 3)
+            {
+                return -1;
+            }
+
+            // 
+            string sql =
+                $"UPDATE `t_cashshop_items` SET " +
+                $"  `item_{index}` = ? " +
+                $"WHERE `id` = ? AND `product_id` = ? AND `user_id` = ?;";
+            int result_code = query.Query(sql,
+                    $"{data.ID},{data.Count},{data.IID}",
+                    nid, product_id, user_uid);
+            if (result_code < 0)
+            {
+                return -1;
+            }
+
+            return 1;
+        }
+
+        public async Task<int> _DBAddCashshopItems(string user_uid,
+                            PFNCashShopItemData data)
+        {
+            if (data.ItemList == null || data.ItemList?.Length == 0)
+            {
+                return 0;
+            }
+
+            //
+            var template_data = AMToolkits.Utility.TableDataManager.GetTableData<TShop>();
+            var template_item = template_data?.First(v => v.ProductId == data.ProductID);
+            if (template_item == null)
+            {
+                return -1;
+            }
+
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                db?.Transaction();
+
+
+                List<UserInventoryItem> inventory_items = new List<UserInventoryItem>();
+                if (await DBAddCashshopItem(db, user_uid, template_item, data) < 0)
+                {
+                    db?.Rollback();
+                    return -1;
+                }
+
+                int index = 0;
+                foreach (var item in data.ItemList)
+                {
+                    if (await DBUpdateCashshopItemData(db, user_uid, data.NID, data.ProductID,
+                            index, item) < 0)
+                    {
+                        db?.Rollback();
+                        return -1;
+                    }
+                    index++;
+                }
+
+                //
+                db?.Commit();
+            }
+            catch (Exception e)
+            {
+                db?.Rollback();
+                _logger?.LogError($"{TAGName} (AddCashshopItems) Error :" + e.Message);
+                return -1;
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return 1;
+        }
+
         #endregion
     }
 }
