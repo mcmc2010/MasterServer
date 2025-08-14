@@ -17,6 +17,7 @@
           "YamlDotNet": "16.3.0",
           "Google.Protobuf": "3.32.0.0",
           "MySql.Data": "8.4.0.0",
+          "StackExchange.Redis": "2.0.0.0",
           "System.Configuration.ConfigurationManager": "4.0.0.0",
           "System.Security.Permissions": "4.0.3.0",
           "WebSocket": "1.0.0.0",
@@ -1896,6 +1897,14 @@
           }
         }
       },
+      "StackExchange.Redis/2.0.0.0": {
+        "runtime": {
+          "StackExchange.Redis.dll": {
+            "assemblyVersion": "2.0.0.0",
+            "fileVersion": "2.0.0.0"
+          }
+        }
+      },
       "System.Configuration.ConfigurationManager/4.0.0.0": {
         "runtime": {
           "System.Configuration.ConfigurationManager.dll": {
@@ -2441,6 +2450,11 @@
       "sha512": ""
     },
     "MySql.Data/8.4.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "StackExchange.Redis/2.0.0.0": {
       "type": "reference",
       "serviceable": false,
       "sha512": ""

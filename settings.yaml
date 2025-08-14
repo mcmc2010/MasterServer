@@ -58,6 +58,17 @@ database:
      ssl: true
      ssl_certs: "certs/db.crt"
      ssl_key: "certs/db_rsa_2048.pem.unsecure"
+redis:
+  # 主数据库
+  name: "master-server"
+  user: service
+  pass: "game123..."
+  address: "127.0.0.1"
+  port: 6379
+  # SSL 默认:开启
+  ssl: true
+  ssl_certs: "certs/redis.crt"
+  ssl_key: "certs/redis_rsa_2048.pem.unsecure"
 logging:
   # 默认服务日志
   - name: main
@@ -67,6 +78,12 @@ logging:
   - name: http
     level: Information
     file: "logs/http.log"
+  # PlayFab 第三方代理服务
+  - name: redis
+    level: Information
+    file: "logs/redis.log"
+    is_file: true
+    is_console: true
   # 数据库日志
   - name: database
     level: Information

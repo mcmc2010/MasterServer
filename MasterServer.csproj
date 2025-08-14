@@ -5,6 +5,9 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <!-- 添加 USING_REDIS 宏定义 -->
+    <DefineConstants>$(DefineConstants);USING_REDIS</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -31,13 +34,21 @@
       <Private>true</Private> 
     </Reference>
   </ItemGroup>
-  <!-- MYSQL SDK -->
+  
   <ItemGroup>
+    <!-- MYSQL SDK -->
     <Reference Include="MySql.Data">
       <HintPath>$(ProjectDir)libs\MySql.Data.dll</HintPath>
       <!-- 必须添加 -->
       <Private>true</Private> 
     </Reference>
+    <!-- REDIS SDK -->
+    <Reference Include="StackExchange.Redis">
+      <HintPath>$(ProjectDir)libs\StackExchange.Redis.dll</HintPath>
+      <!-- 必须添加 -->
+      <Private>true</Private> 
+    </Reference>
+    
     <Reference Include="System.Security.Permissions">
       <HintPath>$(ProjectDir)libs\System.Security.Permissions.dll</HintPath>
       <Private>true</Private>
@@ -46,5 +57,10 @@
       <HintPath>$(ProjectDir)libs\System.Configuration.ConfigurationManager.dll</HintPath>
       <Private>true</Private>
     </Reference>
+  </ItemGroup>
+  <!-- Redis 必须添加 -->
+  <ItemGroup>
+    <PackageReference Include="Pipelines.Sockets.Unofficial" Version="2.2.8" />
+    <PackageReference Include="System.IO.Pipelines" Version="9.0.3" />
   </ItemGroup>
 </Project>

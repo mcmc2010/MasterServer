@@ -95,13 +95,33 @@ namespace Server {
         [YamlMember(Alias = "ssl_key", ApplyNamingConventions = false)]
         public string SSLKey { get; set; } = "";
     }
+    
+    public class ConfigItem_Redis
+    {
+        [YamlMember(Alias = "name")]
+        public string Name { get; set; } = "redis"; 
+        [YamlMember(Alias = "user")]
+        public string UserName { get; set; } = "sa";
+        [YamlMember(Alias = "pass")]
+        public string Password { get; set; } = "123456";
+        [YamlMember(Alias = "address")]
+        public string Address { get; set; } = "127.0.0.1"; 
+        [YamlMember(Alias = "port")]
+        public int Port { get; set; } = 6379; 
+        [YamlMember(Alias = "ssl")]
+        public bool HasSSL { get; set; } = false;
+        [YamlMember(Alias = "ssl_certs", ApplyNamingConventions = false)]
+        public string SSLCertificates { get; set; } = "";
+        [YamlMember(Alias = "ssl_key", ApplyNamingConventions = false)]
+        public string SSLKey { get; set; } = "";
+    }
 
     public class ConfigItem_RoomManager
     {
         [YamlMember(Alias = "enabled")]
-        public bool Enabled { get; set; } = true; 
+        public bool Enabled { get; set; } = true;
         [YamlMember(Alias = "room_max")]
-        public int RoomMaxNum { get; set; } = 100; 
+        public int RoomMaxNum { get; set; } = 100;
         [YamlMember(Alias = "players_max")]
         public int PlayersMaxNum { get; set; } = 2;
         [YamlMember(Alias = "lookon_max")]
@@ -189,7 +209,11 @@ namespace Server {
         /// </summary>
         [YamlMember(Alias = "database", ApplyNamingConventions = false)]
         public ConfigItem_Database[] Databases = new ConfigItem_Database[]{ };
-
+        /// <summary>
+        /// 
+        /// </summary>
+        [YamlMember(Alias = "redis", ApplyNamingConventions = false)]
+        public ConfigItem_Redis Redis = new ConfigItem_Redis ();
         /// <summary>
         /// 
         /// </summary>

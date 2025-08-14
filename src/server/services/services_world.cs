@@ -102,6 +102,7 @@ namespace Server.Services
             //
             if (_session != null)
             {
+                UserManager.Instance.FreeSession(_session);
                 _session.FreeService();
                 _session = null;
             }

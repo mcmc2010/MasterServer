@@ -1,10 +1,13 @@
 
+//
 using AMToolkits.Extensions;
 using Logger;
 using Microsoft.AspNetCore.Builder;
 using System.Text.Json.Serialization;
 
-
+#if USING_REDIS
+using AMToolkits.Redis;   
+#endif
 
 namespace Server
 {
@@ -33,11 +36,13 @@ namespace Server
     /// </summary>
     public interface IUser
     {
-
+        string UID { get; }
     }
 
     public interface IUserSession
     {
+        string UID { get; }
+
         void InitUser(IUser user);
 
         public void BindService(Server.Services.IService service);
@@ -68,11 +73,17 @@ namespace Server
         /// 
         /// </summary>
         public int PrivilegeLevel = 0;
+
+        //
+        public string UID { get { return this.ID; } }
     }
 
     [System.Serializable]
     public class UserSession : IUserSession
     {
+        public string ID = ""; //会话ID
+        public string UID { get { return this.ID; } }
+
         private IUser? _user = null;
         public UserBase? User { get { return (UserBase?)_user; } }
 
@@ -86,10 +97,12 @@ namespace Server
         /// <param name="user"></param>
         public UserSession()
         {
+            this.ID = AMToolkits.Utility.Guid.GeneratorID10();
         }
 
         public void InitUser(IUser user)
         {
+            this.ID = user.UID;
             this._user = user;
         }
 
@@ -125,6 +138,9 @@ namespace Server
         [AMToolkits.AutoInitInstance]
         protected static UserManager? _instance;
 
+        public const string KEY_USERS = "users";
+        public const string KEY_SESSIONS = "sessions";
+
         private string[]? _arguments = null;
         private ServerConfig? _config = null;
         private Logger.LoggerEntry? _logger = null;
@@ -154,6 +170,11 @@ namespace Server
             //
             _user_list.Clear();
             _session_list.Clear();
+
+#if USING_REDIS
+            RedisManager.Instance.SetNodeKey(KEY_USERS);
+            RedisManager.Instance.SetNodeKey(KEY_SESSIONS);
+#endif
         }
 
         public void OnRegisterHandlers(object? sender, HandlerEventArgs args)
@@ -191,10 +212,14 @@ namespace Server
             user.Time = DateTime.Now;
 
             //
+#if USING_REDIS
+            AMToolkits.Redis.RedisManager.Instance.SetNodeKeyValue(KEY_USERS, user.ID, user);
+#else
             lock (_async_lock)
             {
                 _user_list[user.ID] = user;
             }
+#endif
             return true;
         }
 
@@ -209,11 +234,15 @@ namespace Server
             id = id.Trim();
             if (id.IsNullOrWhiteSpace()) { return default(TU); }
 
-            IUser? user;
+            IUser? user;                
+#if USING_REDIS
+            user = AMToolkits.Redis.RedisManager.Instance.GetNodeKeyValueT<TU>(KEY_USERS, id);
+#else
             lock (_async_lock)
             {
                 _user_list.TryGetValue(id, out user);
             }
+#endif
             return (TU?)user;
         }
 
@@ -242,6 +271,16 @@ namespace Server
             }
 
             IUserSession? session;
+#if USING_REDIS
+            session = AMToolkits.Redis.RedisManager.Instance.GetNodeKeyValueT<UserSession>(KEY_SESSIONS, id);
+            if (session == null)
+            {
+                session = new UserSession();
+            }
+
+            session.InitUser(user);
+            AMToolkits.Redis.RedisManager.Instance.SetNodeKeyValue(KEY_SESSIONS, id, session);
+#else
             lock (_async_lock)
             {
                 _session_list.TryGetValue(id, out session);
@@ -252,7 +291,24 @@ namespace Server
                     _session_list.Add(user.ID, session);
                 }
             }
+#endif
             return (UserSession?)session;
+        }
+
+        public void FreeSession(IUserSession session)
+        {
+#if USING_REDIS
+            AMToolkits.Redis.RedisManager.Instance.DeleteNodeKeyValue(KEY_SESSIONS, session.UID);
+#else
+            lock (_async_lock)
+            {
+                _session_list.TryGetValue(session.UID, out session);
+                if (session != null)
+                {
+                    _session_list.(session.UID);
+                }
+            }
+#endif
         }
 
         /// <summary>

@@ -12,13 +12,13 @@ try
     var os_architecture = System.Runtime.InteropServices.RuntimeInformation.OSArchitecture;
 
     // 判断是否为开发模式
-    var environment = System.Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") 
-               ?? System.Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") 
+    var environment = System.Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+               ?? System.Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
                ?? "Production";
 #if DEBUG
     environment = "Development";
 #endif
-    if(environment != "Development")
+    if (environment != "Development")
     {
         is_development = false;
     }
@@ -26,7 +26,7 @@ try
     // 输出格式化信息
     System.Console.WriteLine(
         $"[System Environment]\n" +
-        $"OS: {os_description}\n" + 
+        $"OS: {os_description}\n" +
         $"Architecture: {os_architecture}\n" +
         $"Development Mode: {(is_development ? "Enabled" : "Disabled")}\n"
     );
@@ -34,7 +34,7 @@ try
     //
     var config = Server.ServerConfigLoader.LoadFromFile("settings.yaml");
     var cfg = config.Logging.FirstOrDefault(v => v.Name.Trim().ToLower() == "main");
-    if(cfg == null)
+    if (cfg == null)
     {
         System.Console.WriteLine("Init Logger Error, Not Config");
         return;
@@ -56,6 +56,31 @@ try
     // 1:
     var db_manager = Server.DatabaseManager.NewInstance(args, config);
     logger.Log("Init DatabaseManager Completed");
+
+#if USING_REDIS
+    // 1-1:
+    Logger.LoggerEntry? redis_logger = null;
+    var redis_logger_config = config.Logging.FirstOrDefault(v => v.Name == "redis");
+    if (redis_logger_config != null)
+    {
+        redis_logger = Logger.LoggerFactory.CreateLogger(redis_logger_config.Name, redis_logger_config.IsConsole, redis_logger_config.IsFile);
+        redis_logger.SetOutputFileName(redis_logger_config.File);
+    }
+    AMToolkits.Redis.RedisManager.NewInstance(args, new AMToolkits.Redis.RedisOptions()
+    {
+        Name = config.Redis.Name,
+        Address = config.Redis.Address,
+        Port = config.Redis.Port,
+        UserName = config.Redis.UserName,
+        Password = config.Redis.Password,
+        HasSSL = config.Redis.HasSSL,
+        SSLCertificates = config.Redis.SSLCertificates,
+        SSLKey = config.Redis.SSLKey,
+    },
+    redis_logger ?? logger);
+    logger.Log("Init RedisManager Completed");
+
+#endif
 
     // 2 - 0:
     var user_manager = Server.UserManager.NewInstance(args, config);
@@ -81,7 +106,7 @@ try
 
     // 
     var app = Server.ServerApplication.NewInstance(args, config);
-    
+
     app.RegisterHandlersListner += user_manager.OnRegisterHandlers;
     app.RegisterHandlersListner += market_manager.OnRegisterHandlers;
     app.RegisterHandlersListner += cashshop_manager.OnRegisterHandlers;
@@ -99,11 +124,15 @@ try
 
     //
     proxy_service.StartWorking();
-    
+
     //
     int result = await app.StartWorking();
     app.EndWorking();
 
-} catch (Exception ex) {
+    AMToolkits.Redis.RedisManager.Instance.Dispose();
+
+}
+catch (Exception ex)
+{
     System.Console.WriteLine(ex);
 }
