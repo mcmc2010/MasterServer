@@ -104,6 +104,9 @@ try
 
     var proxy_service = Server.PlayFabService.NewInstance(args, config);
 
+    // 6:
+    var internal_service =Server.InternalService.NewInstance(args, config);
+
     // 
     var app = Server.ServerApplication.NewInstance(args, config);
 
@@ -111,6 +114,7 @@ try
     app.RegisterHandlersListner += market_manager.OnRegisterHandlers;
     app.RegisterHandlersListner += cashshop_manager.OnRegisterHandlers;
     app.RegisterHandlersListner += match_manager.OnRegisterHandlers;
+    app.RegisterHandlersListner += internal_service.OnRegisterHandlers;
 
     app.CreateHTTPServer();
     app.CreateWSServer();

@@ -93,39 +93,6 @@ namespace Server
     /// <summary>
     /// 
     /// </summary>
-    public class HTTPLoggingMiddleware
-    {
-        private readonly RequestDelegate _next;
-        private readonly Microsoft.Extensions.Logging.ILogger _logger;
-
-        public HTTPLoggingMiddleware(RequestDelegate next, ILogger<HTTPLoggingMiddleware> logger)
-        {
-            _next = next;
-            _logger = logger;
-        }
-
-        public async Task Invoke(HttpContext context)
-        {
-            var ip = context.GetClientAddress();
-            using (var scope = _logger.BeginScope(new Dictionary<string, object>
-            {
-                ["Scheme"] = context.Request.Scheme.ToUpper(),
-                ["Methed"] = context.Request.Method.ToUpper(),
-                ["Path"] = context.Request.Path.ToString(),
-                ["StatusCode"] = context.Response.StatusCode,
-                ["RemoteIP"] = ip,
-                ["UserAgent"] = context.Request.Headers.UserAgent
-            }))
-            {
-                await _next(context);
-                _logger.LogInformation("[{Scheme}] ({Methed})  Remote Client : {Path} - {StatusCode} [{RemoteIP}]");
-            }            
-        }
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
     public partial class ServerApplication : AMToolkits.SingletonT<ServerApplication>, AMToolkits.ISingleton
     {
         private string[]? _arguments = null;
@@ -189,6 +156,8 @@ namespace Server
                 return false;
             }
 
+            _webservices.Clear();
+
             //
             var builder = WebApplication.CreateBuilder();
 
@@ -204,16 +173,55 @@ namespace Server
                     {
                         address = IPAddress.Parse(v.Address);
                     }
-                    if (v.HasSSL && v.Certificates.Trim().Length > 0)
+                    // HTTPS
+                    if (v.HasSSL && v.SSLCertificates.Trim().Length > 0)
                     {
-                        options.Listen(IPAddress.Any, 5443, listen =>
+                        var cert = this.LoadCertificate(v.SSLCertificates, v.SSLKey);
+                        if (cert == null)
                         {
-                            listen.UseHttps(v.Certificates.Trim(), null); // 配置 HTTPS
-                        });
+                            _logger?.LogError($"[Server] (HTTPS) Not Listen {v.Port}, Certificat Error.");
+                        }
+                        else
+                        {
+                            options.Listen(address, v.Port, listen =>
+                            {
+                                // 配置 HTTPS
+                                listen.UseHttps(cert);
+                                // 添加服务标识中间件
+                                ServiceData service;
+                                _webservices.Add((System.Net.IPEndPoint)listen.EndPoint, service = new ServiceData()
+                                { 
+                                    EndPoint = listen.EndPoint.ToString() ?? "",
+                                    IsInternalService = v.IsInternalService,
+                                });
+                                if (v.IsInternalService)
+                                {
+                                    service.AllowAddressList = new List<string>(v.AllowAddressList);
+                                }
+
+                                _logger?.Log($"[Server] (HTTPS) Listen {listen.EndPoint.ToString()} (Certificate SerialNumber: {cert.GetSerialNumberString()})");
+                            });
+                        }
                     }
                     else
                     {
-                        options.Listen(address, v.Port);   // 监听 HTTP 5000 端口
+                        options.Listen(address, v.Port, listen =>
+                        {
+                            // 添加服务标识中间件
+                            ServiceData service;
+                            _webservices.Add((System.Net.IPEndPoint)listen.EndPoint, service = new ServiceData()
+                            { 
+                                EndPoint = listen.EndPoint.ToString() ?? "",
+                                IsInternalService = v.IsInternalService,
+                            });
+
+                            if (v.IsInternalService)
+                            {
+                                service.AllowAddressList = new List<string>(v.AllowAddressList);
+                            }
+
+                            _logger?.Log($"[Server] (HTTP) Listen {listen.EndPoint.ToString()}");
+                        });
                     }
                 }
             });
@@ -239,28 +247,8 @@ namespace Server
             //
             RegisterHandlers();
 
-            // 限制权限访问
-            _webserver.UseWhen(context =>
-            {
-                string[] paths = new string[] {
-                    "/local",
-                    "/internal",
-                    "/api/internal",
-                    "/api/local"
-                };
-                return paths.Any(v => context.Request.Path.StartsWithSegments(v));
-            },
-            (s) => s.Use(async (context, next) =>
-            {
-                var ip = context.Connection.RemoteIpAddress;
-                if (ip == null || !IPAddress.IsLoopback(ip))
-                {
-                    await context.ResponseStatusAsync("error", "Not Allow Access", HttpStatusCode.Forbidden);
-                    return;
-                }
-                await next();
-            })
-            );
+            // 限制IP权限,实现域访问
+            _webserver.UseMiddleware<HTTPPrivateDomainMiddleware>(this);
 
             // 捕获所有未匹配的路由，返回默认 JSON
             _webserver.MapFallback(async context =>

@@ -6,6 +6,8 @@
 ```shell
 openssl req -x509 -newkey rsa:2048 -keyout private.key -out https.crt -days 365 -nodes -subj "/CN=localhost"
 openssl pkcs12 -export -out https.pfx -inkey private.key -in https.crt
+# 去除自定义证书私钥的密码
+openssl rsa -in ./certs/private.key -out ./certs/https.pem.unsecure
 dotnet nuget locals all --clear
 dotnet restore
 dotnet run

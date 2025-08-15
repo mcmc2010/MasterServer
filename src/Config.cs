@@ -51,13 +51,26 @@ namespace Server {
     public class ConfigItem_HTTPServer
     {
         [YamlMember(Alias = "address")]
-        public string Address { get; set; } = "0.0.0.0"; 
+        public string Address { get; set; } = "0.0.0.0";
         [YamlMember(Alias = "port")]
-        public int Port { get; set; } = 5000; 
+        public int Port { get; set; } = 5000;
+
+
         [YamlMember(Alias = "ssl")]
         public bool HasSSL { get; set; } = false;
-        [YamlMember(Alias = "certs")]
-        public string Certificates { get; set; } = "";
+        [YamlMember(Alias = "ssl_certs", ApplyNamingConventions = false)]
+        public string SSLCertificates { get; set; } = "";
+        [YamlMember(Alias = "ssl_key", ApplyNamingConventions = false)]
+        public string SSLKey { get; set; } = "";
+
+
+        [YamlMember(Alias = "internal")]
+        public bool IsInternalService { get; set; } = false;
+        /// <summary>
+        /// 仅仅只有允许访问的IP可以访问
+        /// </summary>
+        [YamlMember(Alias = "allow_address_list")]
+        public string[] AllowAddressList { get; set; } = new string[] { "127.0.0.1" };
     }
 
     public class ConfigItem_WSServer
