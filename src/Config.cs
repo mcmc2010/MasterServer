@@ -166,6 +166,9 @@ namespace Server {
         /// <summary>
         /// 
         /// </summary>
+        [YamlMember(Alias = "server_index", ApplyNamingConventions = false)]
+        public int ServerIndex { get; set; } = 0;
+        
         [YamlMember(Alias = "secret_key", ApplyNamingConventions = false)]
         public string SecretKey { get; set; } = "";
         [YamlMember(Alias = "database_auth_enabled", ApplyNamingConventions = false)]

@@ -44,6 +44,8 @@ try
     var logger = Logger.LoggerFactory.CreateLogger(cfg.Name);
     logger.SetOutputFileName(cfg.File);
     logger.Log("Init Logger Completed");
+    logger.Log($"Server Index - {config.ServerIndex}");
+
     // 0 - 1:
     AMToolkits.Utility.ResourcesManager.NewInstance(args);
     // 0 - 2:

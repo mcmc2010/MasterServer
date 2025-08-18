@@ -29,3 +29,8 @@ ADD COLUMN `season_time` INT NULL DEFAULT NULL COMMENT '玩家赛季开始时间
 
 ALTER TABLE `game`.`t_hol` 
 ADD COLUMN `challenger_reals` INT NOT NULL DEFAULT 0 COMMENT '大师印记' AFTER `rank_value`;
+
+ALTER TABLE `game`.`t_hol` 
+ADD COLUMN `played_count` INT NOT NULL DEFAULT '0' COMMENT '游戏次数或局数' AFTER `season_time`,
+ADD COLUMN `played_win_count` INT NOT NULL DEFAULT '0' COMMENT '游戏次数或局数' AFTER `played_count`;
+
