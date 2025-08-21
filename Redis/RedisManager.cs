@@ -3,6 +3,8 @@ using System.Text.Json.Serialization;
 using AMToolkits;
 using AMToolkits.Extensions;
 using Logger;
+using Server;
+
 
 //
 using StackExchange.Redis;
@@ -271,6 +273,8 @@ namespace AMToolkits.Redis
                 this.Ping();
                 //
                 this.Performances();
+
+                //
             }
             catch (RedisConnectionException e)
             {
@@ -472,6 +476,63 @@ namespace AMToolkits.Redis
             return value.ToString();
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="node"></param>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        public async System.Threading.Tasks.Task<List<T?>> GetNodeKeyValuesT<T>(string node,
+                        int offset = 0, int size = 100)
+        {
+            List<T?> values = new List<T?>();
+
+            List<string?> json = await GetNodeKeyValues(node, offset, size);
+            if (json.Count == 0)
+            {
+                return values;
+            }
+
+            foreach (var t in json)
+            {
+                if (t == null || t.Length == 0)
+                {
+                    values.Add(default(T?));
+                }
+                else
+                {
+                    values.Add(this.ToJsonDeserialize<T>(t));
+                }
+            }
+            return values;
+        }
+
+        public async System.Threading.Tasks.Task<List<string?>> GetNodeKeyValues(string node,
+                        int offset = 0, int size = 100)
+        {
+            List<string?> values = new List<string?>();
+            if (_database == null)
+            {
+                return values;
+            }
+
+            var result = _database.HashScanAsync(node, RedisValue.Null, size, offset, 0, CommandFlags.None).ConfigureAwait(false);
+            // 遍历当前页的所有键值对
+            await foreach (var entry in result)
+            {
+                values.Add(entry.Value);
+            }
+            return values;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="node"></param>
+        /// <param name="key"></param>
+        /// <returns></returns>
         public T? GetKeyValueT<T>(string node, string key)
         {
             string? json = GetKeyValue(node, key);

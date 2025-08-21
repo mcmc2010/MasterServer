@@ -1,10 +1,12 @@
 //// 新增设备纪录
+using System.Security.Cryptography;
 using System.Text.Json.Serialization;
 using AMToolkits.Extensions;
 using AMToolkits.Game;
 
 using Game;
 using Logger;
+using Mysqlx.Crud;
 
 
 //
@@ -1116,6 +1118,318 @@ namespace Server
         #endregion
         #endregion
 
+
+        #region Game Events
+
+
+        /// <summary>
+        /// 数据库结果集转换为事件列表
+        /// </summary>
+        /// <param name="rows"></param>
+        /// <returns></returns>
+        protected Dictionary<int, GameEventItem> ToGameEvents(List<DatabaseResultItemSet>? rows)
+        {
+            Dictionary<int, GameEventItem> items = new Dictionary<int, GameEventItem>();
+            if (rows != null)
+            {
+                foreach (var v in rows)
+                {
+                    GameEventItem? event_item = v.To<GameEventItem>();
+                    if (event_item == null) { continue; }
+
+                    DatabaseResultItem data;
+                    if (v.TryGetValue("items", out data))
+                    {
+                        string text = data.AsString("");
+                        var list = ItemUtils.ParseGeneralItem(text);
+                        event_item.InitGeneralItems(list);
+                    }
+                    items.Add(event_item.id, event_item);
+                }
+            }
+            return items;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="query"></param>
+        /// <param name="user_uid"></param>
+        /// <param name="items"></param>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        protected async Task<int> DBGetGameEvents(DatabaseQuery? query, string user_uid,
+                            List<GameEventItem> items, int type = -1)
+        {
+            //
+            List<DatabaseResultItemSet>? list = null;
+            // 
+            string sql =
+                $"SELECT " +
+                $"    `uid`, id AS `id`, `name`, `type` as `event_type`, " +
+                $"    `user_id` AS `server_uid`, " +
+                $"    `create_time`, `last_time`, `completed_time`, " +
+                $"    `count`, `items`, `status` " +
+                $"FROM `t_gameevents` " +
+                $"WHERE " +
+                $" ((? >= 0 AND `type` = ?) OR (? < 0 AND `type` >= 0)) AND " +
+                $" `user_id` = ? AND `status` > 0;";
+            var result_code = query?.QueryWithList(sql, out list,
+                type, type, type,
+                user_uid);
+            if (result_code < 0 || list == null)
+            {
+                return -1;
+            }
+
+            items.AddRange(this.ToGameEvents(list).Values);
+            return items.Count;
+        }
+        
+        /// <summary>
+        /// 添加，没有做数据查询回滚，这里设置为私有函数
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        protected async Task<int> DBAddGameEvent(DatabaseQuery? query, string user_uid,
+                            GameEventItem item)
+        {
+            if (query == null)
+            {
+                return -1;
+            }
+
+            // 
+            string sql =
+                $"INSERT INTO `t_gameevents` " +
+                $"  (`id`,`name`, `type`, `user_id`, " +
+                $"  `create_time`, `last_time`, `completed_time`, " +
+                $"  `items`, " +
+                $"  `status`) " +
+                $"VALUES " +
+                $"(?, ?, ?, ?, " +
+                $"CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,NULL, " +
+                $"NULL,1); ";
+            int result_code = query.Query(sql,
+                    item.id,
+                    item.GetTemplateData<TGameEvents>()?.Name ?? "",
+                    item.GetTemplateData<TGameEvents>()?.EventType ?? 0,
+                    user_uid);
+            if (result_code < 0)
+            {
+                return -1;
+            }
+
+            return 1;
+        }
+
+        /// <summary>
+        /// 目前更新包含
+        ///    
+        /// </summary>
+        /// <param name="query"></param>
+        /// <param name="user_uid"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        protected async Task<int> DBUpdateGameEvent(DatabaseQuery? query, string user_uid,
+                            GameEventItem item, NGameEventData data)
+        {
+            var template_data = item.GetTemplateData<Game.TGameEvents>();
+
+            DateTime? completed_time = null;
+
+            item.count = item.count + data.Count;
+            if (template_data != null)
+            {
+                // 计算更新数量
+                if (template_data.RequireCount > 0 && item.count >= template_data.RequireCount)
+                {
+                    item.count = template_data.RequireCount;
+                }
+
+                if (template_data.RequireCount == item.count)
+                {
+                    completed_time = DateTime.Now;
+                }
+            }
+
+            // 
+            string sql =
+            $"UPDATE `t_gameevents` " +
+            $"SET " +
+            $" `name` = ?,`count` = ?, " +
+            $" `completed_time` = ? , `last_time` = CURRENT_TIMESTAMP " +
+            $"WHERE `id` = ? AND `user_id` = ? ";
+            var result_code = query?.Query(sql,
+                template_data?.Name ?? data.Name, item.count,
+                completed_time,
+                data.ID, user_uid);
+            if (result_code < 0)
+            {
+                return -1;
+            }
+            return 1;
+        }
+        
+        /// <summary>
+        /// 更新事件物品
+        /// </summary>
+        /// <param name="query"></param>
+        /// <param name="user_uid"></param>
+        /// <param name="id"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        protected async Task<int> DBUpdateGameEventItemData(DatabaseQuery? query, string user_uid,
+                                int id, // 事件ID，不是UID
+                                AMToolkits.Game.GeneralItemData[]? items)
+        {
+            if (query == null)
+            {
+                return -1;
+            }
+
+            string? values = null;
+            if (items != null && items.Length > 0)
+            {
+                values = string.Join("|", items.Select(v => $"{v.ID},{v.Count},{v.IID}").ToList());
+            }
+
+            // 
+            string sql =
+            $"UPDATE `t_gameevents` " +
+            $"SET " +
+            $" `items` = ? " +
+            $"WHERE `id` = ? AND `user_id` = ? AND `status` > 0 ";
+            int result_code = query.Query(sql,
+                    values,
+                    id, user_uid);
+            if (result_code < 0)
+            {
+                return -1;
+            }
+
+            return 1;
+        }
+
+
+        public async Task<int> _DBUpdateGameEventData(string user_uid,
+                            NGameEventData data)
+        {
+            // 事件必须存在
+            var template_data = AMToolkits.Utility.TableDataManager.GetTableData<Game.TGameEvents>();
+            if (template_data == null)
+            {
+                return -1;
+            }
+            // 
+            var template_item = template_data.First(v => v.Id == data.ID);
+            if (template_item == null)
+            {
+                return -1;
+            }
+
+            //
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                db?.Transaction();
+
+
+                List<GameEventItem> list = new List<GameEventItem>();
+                if (await DBGetGameEvents(db, user_uid, list, -1) < 0)
+                {
+                    db?.Rollback();
+                    return -1;
+                }
+
+                var item = list.FirstOrDefault(v => v.id == data.ID);
+                if (item == null)
+                {
+                    item = new GameEventItem()
+                    {
+                        uid = -1,
+                        id = data.ID,
+                        name = data.Name,
+                        count = data.Count,
+                        event_type = template_item.EventType,
+                        create_time = DateTime.Now,
+                        last_time = DateTime.Now,
+                        status = 1
+                    };
+                    item.InitTemplateData<Game.TGameEvents>(template_item);
+
+                    if (await DBAddGameEvent(db, user_uid, item) < 0)
+                    {
+                        db?.Rollback();
+                        return -1;
+                    }
+                }
+                else
+                {
+                    item.InitTemplateData<Game.TGameEvents>(template_item);
+
+                    // 已经完成，不再处理
+                    if (item.count >= template_item.RequireCount || item.completed_time != null)
+                    {
+                        db?.Rollback();
+                        return 0;
+                    }
+                }
+
+                if (await DBUpdateGameEvent(db, user_uid, item, data) < 0)
+                {
+                    db?.Rollback();
+                    return -1;
+                }
+
+                //
+                db?.Commit();
+            }
+            catch (Exception e)
+            {
+                db?.Rollback();
+                _logger?.LogError($"{TAGName} (UpdateGameEventData) Error :" + e.Message);
+                return -1;
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return 1;
+        }
+
+        public async Task<int> _DBUpdateGameEventItemData(string user_uid,
+                            NGameEventData data, List<AMToolkits.Game.GeneralItemData> items)
+        {
+            //
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                db?.Transaction();
+
+                if (await DBUpdateGameEventItemData(db, user_uid, data.ID, items.ToArray()) < 0)
+                {
+                    db?.Rollback();
+                    return -1;
+                }
+
+                db?.Commit();
+
+            }
+            catch (Exception e)
+            {
+                _logger?.LogError($"{TAGName} (DBUpdateGameEventItemData) Error :" + e.Message);
+                return -1;
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return 1;
+        }
+
+        #endregion
 
         #region CashShop
 

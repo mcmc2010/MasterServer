@@ -198,6 +198,22 @@ namespace Server
                 _logger?.LogWarning($"(User:{user_data.server_uid}) GetInventoryItems Failed");
             }
 
+            var wallet = await this._GetWalletData(user_data.server_uid);
+            if (wallet != null)
+            {
+                // Ranking
+                // 钻石大于5000加入排行榜
+                if (wallet.integer_gems > 5000)
+                {
+
+                }
+                // 金币大于100w加入排行榜
+                if (wallet.integer_gold > 10000000)
+                {
+
+                }
+            }
+
             return result_code;
         }
 

@@ -4,6 +4,8 @@ using AMToolkits.Extensions;
 using Logger;
 using Microsoft.AspNetCore.Builder;
 using System.Text.Json.Serialization;
+using MySqlX.XDevAPI;
+
 
 #if USING_REDIS
 using AMToolkits.Redis;   
@@ -324,6 +326,25 @@ namespace Server
             }
 
             int count = 0;
+#if USING_REDIS
+            int batch = 0;
+            //分批次广播消息
+            List<UserSession?> sessions = await AMToolkits.Redis.RedisManager.Instance.GetNodeKeyValuesT<UserSession>(KEY_SESSIONS);
+            do
+            {
+                if (sessions.Count > 0)
+                {
+                    foreach (var session in sessions)
+                    {
+                        session?.BroadcastAsync(data, index, level);
+                        count++;
+                    }
+                }
+
+                batch++;
+                sessions = await AMToolkits.Redis.RedisManager.Instance.GetNodeKeyValuesT<UserSession>(KEY_SESSIONS, count);
+            } while (sessions.Count > 0);
+#else
             //
             foreach (var v in _session_list)
             {
@@ -333,8 +354,8 @@ namespace Server
                 session?.BroadcastAsync(data, index, level);
                 count++;
             }
-
-            return count;
+#endif
+                return count;
         }
     }
 }
