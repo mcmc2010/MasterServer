@@ -29,6 +29,8 @@ namespace Server
     /// </summary>
     public class UserAuthenticationData : UserBaseData
     {
+        public string? name = null;
+
         ///
         public string custom_id = "";
         ///
@@ -115,6 +117,28 @@ namespace Server
     }
     #endregion
 
+
+    #region Ranking
+    /// <summary>
+    /// 
+    /// </summary>
+    [System.Serializable]
+    public class UserRankingItem
+    {
+        public int uid = 0;
+        public string server_uid = ""; //t_user表中的
+        public string name = "";
+        public int balance = 0;
+        public string currency = "";
+        public int ranking_type = 0;
+
+        public DateTime? create_time = null;
+        public DateTime? last_time = null;
+
+        public int status = 0;
+
+    }
+    #endregion
 
     /// <summary>
     /// 
@@ -203,14 +227,14 @@ namespace Server
             {
                 // Ranking
                 // 钻石大于5000加入排行榜
-                if (wallet.integer_gems > 5000)
+                if (wallet.integer_gems > GameSettingsInstance.Settings.Ranking.GemsLimitMin)
                 {
-
+                    await DBUpdateRankingRecord(user_data.server_uid, user_data.name, AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS_SHORT, wallet.integer_gems);
                 }
                 // 金币大于100w加入排行榜
-                if (wallet.integer_gold > 10000000)
+                if (wallet.integer_gold > GameSettingsInstance.Settings.Ranking.GoldLimitMin)
                 {
-
+                    await DBUpdateRankingRecord(user_data.server_uid, user_data.name, AMToolkits.Game.CurrencyUtils.CURRENCY_GOLD_SHORT, wallet.integer_gold);
                 }
             }
 

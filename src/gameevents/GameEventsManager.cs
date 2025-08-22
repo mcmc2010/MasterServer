@@ -30,6 +30,13 @@ namespace Server
 
         [JsonPropertyName("items")]
         public string Items = "";
+
+        [JsonPropertyName("create_time")]
+        public DateTime? CreateTime = null;
+        [JsonPropertyName("last_time")]
+        public DateTime? LastTime = null;
+        [JsonPropertyName("completed_time")]
+        public DateTime? CompletedTime = null;
     }
 
     [System.Serializable]

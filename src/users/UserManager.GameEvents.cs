@@ -1,7 +1,7 @@
 
 using System.Runtime.InteropServices;
 using AMToolkits.Extensions;
-
+using Logger;
 
 
 namespace Server
@@ -53,7 +53,35 @@ namespace Server
             }
         }
 
+        public string? ToNValue()
+        {
+            string? value = null;
+            if (_items != null && _items.Count > 0)
+            {
+                value = string.Join("|", _items.Select(v => $"{v.ID},{v.Count}").ToList());
+            }
+            return value;
+        }
 
+        /// <summary>
+        /// 需要转换为可通用的，与用户或角色关联的类
+        /// </summary>
+        /// <returns></returns>
+        public NGameEventData ToNItem()
+        {
+            return new NGameEventData()
+            {
+                //UserID = this.server_uid,
+                ID = this.id,
+                Name = this.name,
+                Count = this.count,
+                EventType = this.event_type,
+                CreateTime = this.create_time,
+                LastTime = this.last_time,
+                CompletedTime = this.completed_time,
+                Items = this.ToNValue() ?? "",
+            };
+        }
     }
 
 
@@ -63,6 +91,7 @@ namespace Server
     public partial class UserManager
     {
         #region Server Internal
+
         /// <summary>
         /// 事件更新
         ///   - 不包括物品
@@ -136,8 +165,33 @@ namespace Server
             }
             return 1;
         }
-        
+
 
         #endregion
+
+        public async Task<int> GetUserGameEvents(string user_uid,
+                            List<NGameEventData> items)
+        {
+            if (user_uid == null || user_uid.IsNullOrWhiteSpace())
+            {
+                return -1;
+            }
+            user_uid = user_uid.Trim();
+
+            List<GameEventItem> list = new List<GameEventItem>();
+            if (await DBGetGameEvents(user_uid, list) < 0)
+            {
+                _logger?.LogError($"{TAGName} (GetUserInventoryItems) (User:{user_uid}) Failed");
+                return -1;
+            }
+
+            // 转换为可通用的类
+            foreach (var v in list)
+            {
+                items.Add(v.ToNItem());
+            }
+
+            return items.Count;
+        }
     }
 }

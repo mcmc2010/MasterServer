@@ -275,6 +275,8 @@ namespace AMToolkits.Redis
                 this.Performances();
 
                 //
+                var list = await GetNodeKeyValues(UserManager.KEY_SESSIONS, (v) => true, 1);
+                var lis_1 = await GetNodeKeyValues(UserManager.KEY_SESSIONS, (v) => true, 10);
             }
             catch (RedisConnectionException e)
             {
@@ -366,6 +368,7 @@ namespace AMToolkits.Redis
                             IgnoreReadOnlyFields = true,
                             IgnoreReadOnlyProperties = true,
                             IncludeFields = true,
+                            
                             // PropertyNameCaseInsensitive = true,    // 启用不区分大小写的属性匹配
                             ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip,  // 自动跳过注释
                                                                                               // PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase, // 不使用驼峰命名
@@ -483,12 +486,11 @@ namespace AMToolkits.Redis
         /// <param name="node"></param>
         /// <param name="key"></param>
         /// <returns></returns>
-        public async System.Threading.Tasks.Task<List<T?>> GetNodeKeyValuesT<T>(string node,
-                        int offset = 0, int size = 100)
+        public async System.Threading.Tasks.Task<List<T?>> GetNodeKeyValuesT<T>(string node, int size = 100)
         {
             List<T?> values = new List<T?>();
 
-            List<string?> json = await GetNodeKeyValues(node, offset, size);
+            List<string?> json = await GetNodeKeyValues(node, size);
             if (json.Count == 0)
             {
                 return values;
@@ -505,11 +507,52 @@ namespace AMToolkits.Redis
                     values.Add(this.ToJsonDeserialize<T>(t));
                 }
             }
+
             return values;
         }
 
-        public async System.Threading.Tasks.Task<List<string?>> GetNodeKeyValues(string node,
-                        int offset = 0, int size = 100)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="node"></param>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        public async System.Threading.Tasks.Task<int> GetNodeKeyValuesT<T>(string node,
+                        System.Func<List<T?>, bool>? callback = null, int size = 100)
+        {
+            List<T?> values = new List<T?>();
+
+            int count = await GetNodeKeyValues(node, (v) =>
+            {
+                if (v.Count > 0)
+                {
+                    foreach (var t in v)
+                    {
+                        if (t == null || t.Length == 0)
+                        {
+                            values.Add(default(T?));
+                        }
+                        else
+                        {
+                            values.Add(this.ToJsonDeserialize<T>(t));
+                        }
+                    }
+                    callback?.Invoke(values);
+                    values.Clear();
+                }
+                return true;
+            }, size);
+            return count;
+        }
+        
+        /// <summary>
+        /// 如果条目不多，就全部返回
+        /// </summary>
+        /// <param name="node"></param>
+        /// <param name="size"></param>
+        /// <returns></returns>
+        public async System.Threading.Tasks.Task<List<string?>> GetNodeKeyValues(string node, int size = 100)
         {
             List<string?> values = new List<string?>();
             if (_database == null)
@@ -517,13 +560,53 @@ namespace AMToolkits.Redis
                 return values;
             }
 
-            var result = _database.HashScanAsync(node, RedisValue.Null, size, offset, 0, CommandFlags.None).ConfigureAwait(false);
+            // 获取全部数据，不需要每次都执行
+            // 游标会自动管理
+            var result = _database.HashScanAsync(node, RedisValue.Null, size, 0, 0, CommandFlags.None).ConfigureAwait(false);
+
+            int count = 0;
             // 遍历当前页的所有键值对
             await foreach (var entry in result)
             {
                 values.Add(entry.Value);
+                count++;
             }
             return values;
+        }
+
+        public async System.Threading.Tasks.Task<int> GetNodeKeyValues(string node,
+                        System.Func<List<string?>, bool>? callback = null, int size = 100)
+        {
+            if (_database == null)
+            {
+                return -1;
+            }
+
+            // 获取全部数据，不需要每次都执行
+            // 游标会自动管理
+            var result = _database.HashScanAsync(node, RedisValue.Null, size, 0, 0, CommandFlags.None).ConfigureAwait(false);
+
+            int count = 0;
+            List<string?> values = new List<string?>();
+            // 遍历当前页的所有键值对
+            await foreach (var entry in result)
+            {
+                values.Add(entry.Value);
+                if (values.Count == size)
+                {
+                    callback?.Invoke(values);
+                    values.Clear();
+                }
+
+                count++;
+            }
+
+            if (values.Count > 0)
+            {
+                callback?.Invoke(values);
+                values.Clear();
+            }
+            return count;
         }
 
         /// <summary>

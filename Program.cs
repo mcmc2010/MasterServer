@@ -40,6 +40,8 @@ try
         return;
     }
 
+    var settings = Server.GameSettingsInstance.LoadFromFile("data/game_settings.txt");
+
     // 0:
     var logger = Logger.LoggerFactory.CreateLogger(cfg.Name);
     logger.SetOutputFileName(cfg.File);

@@ -4,7 +4,6 @@ using AMToolkits.Extensions;
 using Logger;
 using Microsoft.AspNetCore.Builder;
 using System.Text.Json.Serialization;
-using MySqlX.XDevAPI;
 
 
 #if USING_REDIS
@@ -41,18 +40,6 @@ namespace Server
         string UID { get; }
     }
 
-    public interface IUserSession
-    {
-        string UID { get; }
-
-        void InitUser(IUser user);
-
-        public void BindService(Server.Services.IService service);
-        public void FreeService();
-
-        public Task BroadcastAsync(byte[] data, int index, int level);
-    }
-
     /// <summary>
     /// 
     /// </summary>
@@ -80,56 +67,7 @@ namespace Server
         public string UID { get { return this.ID; } }
     }
 
-    [System.Serializable]
-    public class UserSession : IUserSession
-    {
-        public string ID = ""; //会话ID
-        public string UID { get { return this.ID; } }
 
-        private IUser? _user = null;
-        public UserBase? User { get { return (UserBase?)_user; } }
-
-        private string _network_id = "";
-
-        private Server.Services.IService? _service = null;
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="user"></param>
-        public UserSession()
-        {
-            this.ID = AMToolkits.Utility.Guid.GeneratorID10();
-        }
-
-        public void InitUser(IUser user)
-        {
-            this.ID = user.UID;
-            this._user = user;
-        }
-
-        public void BindService(Server.Services.IService service)
-        {
-            _network_id = service.NetworkID;
-            _service = service;
-        }
-
-        public void FreeService()
-        {
-            _network_id = "";
-            _service = null;
-        }
-
-        public async Task BroadcastAsync(byte[] data, int index, int level = 0)
-        {
-            if (_service == null)
-            {
-                return;
-            }
-
-            int result = await _service.BroadcastAsync(data, index, level);
-        }
-    }
 
     
     /// <summary>
@@ -150,6 +88,8 @@ namespace Server
         private object _async_lock = new object();
         private Dictionary<string, IUser> _user_list = new Dictionary<string, IUser>();
         private Dictionary<string, IUserSession> _session_list = new Dictionary<string, IUserSession>();
+
+        private Dictionary<string, Server.Services.IService?> _service_list = new Dictionary<string, Services.IService?>();
 
         public UserManager()
         {
@@ -173,6 +113,9 @@ namespace Server
             _user_list.Clear();
             _session_list.Clear();
 
+            //
+            _service_list.Clear();
+
 #if USING_REDIS
             RedisManager.Instance.SetNodeKey(KEY_USERS);
             RedisManager.Instance.SetNodeKey(KEY_SESSIONS);
@@ -190,6 +133,8 @@ namespace Server
             args.app?.Map("api/user/inventory/list", HandleGetUserInventoryItems);
             args.app?.MapPost("api/user/inventory/using", HandleUsingUserInventoryItem);
             args.app?.MapPost("api/user/inventory/upgrade", HandleUpgradeUserInventoryItem);
+            // Game Events
+            args.app?.Map("api/user/game/events/list", HandleGetUserGameEvents);
         }
 
         public TU AllocT<TU>() where TU : UserBase, new()
@@ -297,10 +242,23 @@ namespace Server
             return (UserSession?)session;
         }
 
+        /// <summary>
+        /// Key是用户ID
+        /// </summary>
+        /// <param name="session"></param>
+        public void InitSession(IUserSession session)
+        {
+
+#if USING_REDIS
+            AMToolkits.Redis.RedisManager.Instance.SetNodeKeyValue(KEY_SESSIONS, session.UserID, session);
+#endif
+            _service_list.Set(session.UserID, session.Service);
+        }
+
         public void FreeSession(IUserSession session)
         {
 #if USING_REDIS
-            AMToolkits.Redis.RedisManager.Instance.DeleteNodeKeyValue(KEY_SESSIONS, session.UID);
+            AMToolkits.Redis.RedisManager.Instance.DeleteNodeKeyValue(KEY_SESSIONS, session.UserID);
 #else
             lock (_async_lock)
             {
@@ -327,23 +285,32 @@ namespace Server
 
             int count = 0;
 #if USING_REDIS
+            // 分批次广播消息
             int batch = 0;
-            //分批次广播消息
-            List<UserSession?> sessions = await AMToolkits.Redis.RedisManager.Instance.GetNodeKeyValuesT<UserSession>(KEY_SESSIONS);
-            do
-            {
-                if (sessions.Count > 0)
+            int total = await AMToolkits.Redis.RedisManager.Instance.GetNodeKeyValuesT<UserSession>(KEY_SESSIONS,
+                (sessions) =>
                 {
-                    foreach (var session in sessions)
+                    if (sessions.Count > 0)
                     {
-                        session?.BroadcastAsync(data, index, level);
-                        count++;
-                    }
-                }
+                        foreach (var session in sessions)
+                        {
+                            if (session == null) { continue; }
 
-                batch++;
-                sessions = await AMToolkits.Redis.RedisManager.Instance.GetNodeKeyValuesT<UserSession>(KEY_SESSIONS, count);
-            } while (sessions.Count > 0);
+                            Server.Services.IService? service = null;
+                            _service_list.TryGetValue(session.UserID, out service);
+                            if (service == null) { continue; }
+                            session.BindService(service);
+
+                            session?.BroadcastAsync(data, index, level);
+
+                            count++;
+                        }
+                    }
+                    batch++;
+                    return true;
+                });
+            
+
 #else
             //
             foreach (var v in _session_list)
@@ -355,7 +322,7 @@ namespace Server
                 count++;
             }
 #endif
-                return count;
+            return count;
         }
     }
 }

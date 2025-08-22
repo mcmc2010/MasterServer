@@ -75,6 +75,8 @@ namespace Server.Services
             //
             session.BindService(this);
             _session = session;
+            UserManager.Instance.InitSession(_session);
+
 
             //
             base.OnOpen();
