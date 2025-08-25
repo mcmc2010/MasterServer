@@ -6,7 +6,6 @@ using AMToolkits.Game;
 
 using Game;
 using Logger;
-using Mysqlx.Crud;
 
 
 //
@@ -208,6 +207,7 @@ namespace Server
             return -1;
         }
 
+        #region HOL
         protected int DBInitHOL(UserAuthenticationData user_data)
         {
             var db = DatabaseManager.Instance.New();
@@ -252,6 +252,54 @@ namespace Server
             return -1;
         }
 
+
+        protected int DBGetHOLData(string user_id, out UserHOLData? data)
+        {
+            data = null;
+
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                // 
+                string sql =
+                    $"SELECT  " +
+                    $"  h.`uid`, h.`id`, u.`name`, " +
+                    $"  h.`value`, " +
+                    $"  `cp_value`, `played_count`, `played_win_count`, " +
+                    $"  `season`, `season_time`, `challenger_reals`, " +
+                    $"  `last_rank_level`, `last_rank_value`, `rank_level`, `rank_value`, " +
+                    $"  h.`create_time`, h.`last_time`, " +
+                    $"  h.`status`  " +
+                    $"FROM `t_hol` AS h " +
+                    $"LEFT JOIN `t_user` AS u ON u.id = h.id  " +
+                    $"WHERE u.`id` = ? AND u.`status` > 0";
+                var result_code = db?.Query(sql, user_id);
+                if (result_code < 0)
+                {
+                    return -1;
+                }
+
+                //
+                data = db?.ResultItems.To<UserHOLData>();
+                if (data == null)
+                {
+                    return -1;
+                }
+
+                return 1;
+            }
+            catch (Exception e)
+            {
+                _logger?.LogError("(User) Error :" + e.Message);
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return -1;
+        }
+
+        #endregion HOL
         /// <summary>
         /// 获取用户信息
         /// </summary>
@@ -1587,7 +1635,7 @@ namespace Server
         #endregion
 
         #region Ranking
-        
+
 
         /// <summary>
         /// 数据库结果集转换为事件列表
@@ -1627,12 +1675,12 @@ namespace Server
             // 
             string sql =
                 $"SELECT " +
-                $"    `uid`, id AS `server_uid`, `name`, `type` as `ranking_type`, " +
+                $"    `uid`, `id`, `name`, `type` as `ranking_type`, " +
                 $"    `create_time`, `last_time`,  " +
-                $"    `balance`, `currency`, `status` " +
-                $"FROM `t_gameevents` " +
+                $"    `balance`, `cost`, `currency`, `rank`, `status` " +
+                $"FROM `t_rankings` " +
                 $"WHERE " +
-                $" `user_id` = ? AND `status` > 0;";
+                $" `id` = ? AND `status` > 0;";
             var result_code = query?.QueryWithList(sql, out list,
                 user_uid);
             if (result_code < 0 || list == null)
@@ -1659,10 +1707,92 @@ namespace Server
                 return -1;
             }
 
-            int type = 0;
-            if (currency == AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS_SHORT)
+            int type = (int)RankingType.Default;
+            if (currency == AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS ||
+                currency == AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS_SHORT)
             {
-                type = 1;
+                type = (int)RankingType.Paid;
+            }
+
+            // 
+            string sql =
+            $"INSERT INTO `t_rankings` " +
+            $"  (`id`,`name`, `type`, " +
+            $"  `create_time`, `last_time`, " +
+            $"  `balance`, `currency`, `rank`, " +
+            $"  `status`) " +
+            $"VALUES " +
+            $"(?, ?, ?, " +
+            $" CURRENT_TIMESTAMP,CURRENT_TIMESTAMP, " +
+            $" ?, ?, ?, " +
+            $"1); ";
+            int result_code = query.Query(sql,
+                    user_uid, name, type,
+                    balance, currency, "");
+            if (result_code < 0)
+            {
+                return -1;
+            }
+
+            return 1;
+        }
+
+        /// <summary>
+        /// 添加，没有做数据查询回滚，这里设置为私有函数
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        protected async Task<int> DBAddUserRankingRecord(DatabaseQuery? query, string user_uid, string? name,
+                            string currency, double cost)
+        {
+            if (query == null)
+            {
+                return -1;
+            }
+
+            int type = (int)RankingType.Cost_0;
+            if (currency == AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS ||
+                currency == AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS_SHORT)
+            {
+                type = (int)RankingType.Cost_1;
+            }
+
+            // 
+            string sql =
+            $"INSERT INTO `t_rankings` " +
+            $"  (`id`,`name`, `type`, " +
+            $"  `create_time`, `last_time`, " +
+            $"  `cost`, `currency`, `rank`, " +
+            $"  `status`) " +
+            $"VALUES " +
+            $"(?, ?, ?, " +
+            $" CURRENT_TIMESTAMP,CURRENT_TIMESTAMP, " +
+            $" ?, ?, ?, " +
+            $"1); ";
+            int result_code = query.Query(sql,
+                    user_uid, name, type,
+                    cost, currency, "");
+            if (result_code < 0)
+            {
+                return -1;
+            }
+
+            return 1;
+        }
+
+        /// <summary>
+        /// 添加段位，没有做数据查询回滚，这里设置为私有函数
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        protected async Task<int> DBAddUserRankingRecord(DatabaseQuery? query, string user_uid, string? name,
+                            int rank_level, int rank_value)
+        {
+            if (query == null)
+            {
+                return -1;
             }
 
             // 
@@ -1670,15 +1800,16 @@ namespace Server
                 $"INSERT INTO `t_rankings` " +
                 $"  (`id`,`name`, `type`, " +
                 $"  `create_time`, `last_time`, " +
-                $"  `balance`, `currency`," +
+                $"  `rank`, " +
                 $"  `status`) " +
                 $"VALUES " +
                 $"(?, ?, ?, " +
-                $"CURRENT_TIMESTAMP,CURRENT_TIMESTAMP, " +
-                $"NULL,1); ";
+                $" CURRENT_TIMESTAMP,CURRENT_TIMESTAMP, " +
+                $" ?, " +
+                $"1); ";
             int result_code = query.Query(sql,
-                    user_uid, name, type,
-                    balance, currency);
+                    user_uid, name, (int)RankingType.Rank,
+                    $"{rank_level},{rank_value}");
             if (result_code < 0)
             {
                 return -1;
@@ -1707,11 +1838,11 @@ namespace Server
             string sql =
             $"UPDATE `t_rankings` " +
             $"SET " +
-            $" `name` = ?, `balance` = ?, `last_time` = CURRENT_TIMESTAMP " +
-            $"WHERE `user_id` = ? AND `currency` = ? AND `status` > 0 ";
+            $" `name` = ?, `balance` = ?, `cost` = ?, `rank` = ?, `last_time` = CURRENT_TIMESTAMP " +
+            $"WHERE `id` = ? AND `type` = ? AND `status` > 0 ";
             int result_code = query.Query(sql,
-                    name, item.balance,
-                    user_uid, item.currency);
+                    name, item.balance, item.cost, item.rank, 
+                    user_uid, item.ranking_type);
             if (result_code < 0)
             {
                 return -1;
@@ -1721,6 +1852,14 @@ namespace Server
         }
 
 
+        /// <summary>
+        /// 统计余额
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="name"></param>
+        /// <param name="currency"></param>
+        /// <param name="balance"></param>
+        /// <returns></returns>
         public async Task<int> DBUpdateRankingRecord(string user_uid, string? name,
                             string currency = AMToolkits.Game.CurrencyUtils.CURRENCY_GOLD_SHORT,
                             int balance = 0)
@@ -1740,7 +1879,8 @@ namespace Server
                     return -1;
                 }
 
-                var item = list.FirstOrDefault(v => v.currency == currency);
+                var item = list.FirstOrDefault(v => v.currency == currency &&
+                    (v.ranking_type == (int)RankingType.Default || v.ranking_type == (int)RankingType.Paid));
                 if (item == null)
                 {
                     if (await DBAddUserRankingRecord(db, user_uid, name, currency, balance) < 0)
@@ -1759,7 +1899,110 @@ namespace Server
             }
             catch (Exception e)
             {
-                _logger?.LogError($"{TAGName} (DBAddRankingRecord) Error :" + e.Message);
+                _logger?.LogError($"{TAGName} (UpdateRankingRecord) Error :" + e.Message);
+                return -1;
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return 1;
+        }
+        
+
+        /// <summary>
+        /// 统计消费
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="name"></param>
+        /// <param name="currency"></param>
+        /// <param name="balance"></param>
+        /// <returns></returns>
+        public async Task<int> DBUpdateRankingRecord(string user_uid, string? name,
+                            string currency = AMToolkits.Game.CurrencyUtils.CURRENCY_GOLD_SHORT,
+                            double cost = 0.00)
+        {
+            if (cost == 0.00)
+            {
+                return 0;
+            }
+
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                //
+                List<UserRankingItem> list = new List<UserRankingItem>();
+                if (await this.DBGetUserRankingRecords(db, user_uid, list) < 0)
+                {
+                    return -1;
+                }
+
+                var item = list.FirstOrDefault(v => v.currency == currency &&
+                    (v.ranking_type == (int)RankingType.Cost_0 || v.ranking_type == (int)RankingType.Cost_1));
+                if (item == null)
+                {
+                    if (await DBAddUserRankingRecord(db, user_uid, name, currency, cost) < 0)
+                    {
+                        return -1;
+                    }
+                }
+                else
+                {
+                    item.cost = cost;
+                    if (await DBUpdateUserRankingRecord(db, user_uid, name, item) < 0)
+                    {
+                        return -1;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _logger?.LogError($"{TAGName} (UpdateRankingRecord) Error :" + e.Message);
+                return -1;
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return 1;
+        }
+  
+
+
+        public async Task<int> DBUpdateRankingRecord(string user_uid, string? name,
+                            int rank_level, int rank_value = 0)
+        {
+
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                //
+                List<UserRankingItem> list = new List<UserRankingItem>();
+                if (await this.DBGetUserRankingRecords(db, user_uid, list) < 0)
+                {
+                    return -1;
+                }
+
+                var item = list.FirstOrDefault(v => v.ranking_type == (int)RankingType.Rank);
+                if (item == null)
+                {
+                    if (await DBAddUserRankingRecord(db, user_uid, name, rank_level, rank_value) < 0)
+                    {
+                        return -1;
+                    }
+                }
+                else
+                {
+                    item.rank = $"{rank_level},{rank_value}";
+                    if (await DBUpdateUserRankingRecord(db, user_uid, name, item) < 0)
+                    {
+                        return -1;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _logger?.LogError($"{TAGName} (UpdateRankingRecord) Error :" + e.Message);
                 return -1;
             }
             finally

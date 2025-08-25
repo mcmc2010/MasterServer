@@ -118,28 +118,6 @@ namespace Server
     #endregion
 
 
-    #region Ranking
-    /// <summary>
-    /// 
-    /// </summary>
-    [System.Serializable]
-    public class UserRankingItem
-    {
-        public int uid = 0;
-        public string server_uid = ""; //t_user表中的
-        public string name = "";
-        public int balance = 0;
-        public string currency = "";
-        public int ranking_type = 0;
-
-        public DateTime? create_time = null;
-        public DateTime? last_time = null;
-
-        public int status = 0;
-
-    }
-    #endregion
-
     /// <summary>
     /// 
     /// </summary>
@@ -235,6 +213,27 @@ namespace Server
                 if (wallet.integer_gold > GameSettingsInstance.Settings.Ranking.GoldLimitMin)
                 {
                     await DBUpdateRankingRecord(user_data.server_uid, user_data.name, AMToolkits.Game.CurrencyUtils.CURRENCY_GOLD_SHORT, wallet.integer_gold);
+                }
+            }
+
+            UserHOLData? hol_data = null;
+            this.DBGetHOLData(user_data.server_uid, out hol_data);
+            if (hol_data != null)
+            {
+                if (hol_data.rank_level >= GameSettingsInstance.Settings.Ranking.GameRankMinLevel)
+                {
+                    await DBUpdateRankingRecord(user_data.server_uid, user_data.name, hol_data.rank_level, hol_data.rank_value);
+                }
+            }
+
+            // 获取全部消费记录
+            List<UserCashShopItem> cashshop_items = new List<UserCashShopItem>();
+            if (await CashShopManager.Instance._GetUserCashItems(user_data.server_uid, cashshop_items) > 0)
+            {
+                double cost = CashShopManager.Instance.TotalCashItemsCost(cashshop_items);
+                //if (cost >= GameSettingsInstance.Settings.Ranking.GemsLimitMinWeekly)
+                {
+                    await DBUpdateRankingRecord(user_data.server_uid, user_data.name, AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS_SHORT, cost);
                 }
             }
 

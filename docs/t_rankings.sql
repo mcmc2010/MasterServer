@@ -11,3 +11,10 @@ CREATE TABLE `t_rankings` (
   PRIMARY KEY (`uid`),
   KEY `index2` (`id`,`type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+
+ALTER TABLE `game`.`t_rankings` 
+ADD COLUMN `rank` VARCHAR(16) NOT NULL AFTER `currency`;
+
+ALTER TABLE `game`.`t_rankings` 
+ADD COLUMN `cost` DECIMAL(15,2) NOT NULL DEFAULT '0' AFTER `balance`;

@@ -18,6 +18,12 @@ namespace Server
 
         [JsonPropertyName("gems_limit_min_monthly")]
         public int GemsLimitMinMonthly = 10000; // 钻石最小上榜条件
+
+
+        /// <summary>
+        /// 上榜最小段位
+        /// </summary>
+        public int GameRankMinLevel = 1001;
     }
 
     [System.Serializable]

@@ -7,6 +7,47 @@ using AMToolkits.Extensions;
 namespace Server
 {
 
+    /// <summary>
+    /// 
+    /// </summary>
+    [System.Serializable]
+    public class UserCashShopItem
+    {
+        public int uid = 0;
+        public string id = ""; //流水单号
+        public string user_id = ""; //t_user表中的
+        public string custom_id = "";
+        public string user_name = "";
+        public string product_id = "";
+        public string name = "";
+        public int type = 0;
+        public int count = 0;
+        public int amount = 0;
+        public int balance = 0;
+        public string? item_0 = "";
+        public string? item_1 = "";
+        public string? item_2 = "";
+
+        public DateTime? create_time = null;
+        public DateTime? last_time = null;
+
+        public int status = 0;
+
+        private AMToolkits.Utility.ITableData? _template_data = null;
+
+        public void InitTemplateData<T>(T templete_data) where T : AMToolkits.Utility.ITableData
+        {
+            _template_data = templete_data;
+        }
+
+        public T? GetTemplateData<T>() where T : AMToolkits.Utility.ITableData
+        {
+            return (T?)this._template_data;
+        }
+
+    }
+
+
     [System.Serializable]
     public class BuyProductResult
     {
@@ -54,6 +95,22 @@ namespace Server
             //
             args.app?.MapPost("api/cashshop/buy", HandleCashShopBuyProduct);
 
+        }
+
+
+        /// <summary>
+        /// 统计列表花费
+        /// </summary>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        public double TotalCashItemsCost(List<UserCashShopItem> items)
+        {
+            double value = 0;
+            foreach (var v in items)
+            {
+                value += v.amount;
+            }
+            return System.Math.Abs(value);
         }
 
         /// <summary>
@@ -159,6 +216,52 @@ namespace Server
             result.Code = 1;
             return result;
         }
+
+
+        #region Server Internal
+        /// <summary>
+        /// 如果炸了，说明玩家消费超过1000条
+        /// 哈哈哈哈
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <returns></returns>
+        public async System.Threading.Tasks.Task<int> _GetUserCashItems(string user_uid,
+                            List<UserCashShopItem> items)
+        {
+            items.Clear();
+
+
+            // 商城物品必须有ProductId
+            var shop_template_data = AMToolkits.Utility.TableDataManager.GetTableData<Game.TShop>();
+            if (shop_template_data == null)
+            {
+                return -1;
+            }
+
+            List<UserCashShopItem> list = new List<UserCashShopItem>();
+            if (await this.DBGetUserCashItems(user_uid, list) < 0)
+            {
+                return -1;
+            }
+
+            foreach (var item in list)
+            {
+                // 物品必须是商城物品
+                var template_item = shop_template_data.First(v => v.ProductId == item.product_id);
+                if (template_item == null || template_item.ShopType != (int)AMToolkits.Game.ShopType.CashShop)
+                {
+                    continue;
+                }
+
+                item.InitTemplateData<Game.TShop>(template_item);
+
+                items.Add(item);
+            }
+
+            return list.Count;
+        }
+
+        #endregion
 
     }
 }

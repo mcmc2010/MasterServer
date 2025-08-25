@@ -112,8 +112,12 @@ try
     var proxy_service = Server.PlayFabService.NewInstance(args, config);
 
     // 6:
-    var internal_service =Server.InternalService.NewInstance(args, config);
+    var internal_service = Server.InternalService.NewInstance(args, config);
 
+    // 7:
+    var ranking_manager = Server.RankingManager.NewInstance(args, config);
+
+    
     // 
     var app = Server.ServerApplication.NewInstance(args, config);
 
