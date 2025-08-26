@@ -37,3 +37,8 @@ ADD COLUMN `played_win_count` INT NOT NULL DEFAULT '0' COMMENT '游戏次数或�
 ALTER TABLE `game`.`t_hol` 
 ADD COLUMN `cp_value` INT NOT NULL DEFAULT 100 COMMENT 'Combat Power' AFTER `value`;
 
+ALTER TABLE `game`.`t_hol` 
+ADD COLUMN `winning_streak_count` INT NOT NULL DEFAULT '0' COMMENT '连胜次数' AFTER `played_win_count`,
+ADD COLUMN `winning_streak_highest` INT NOT NULL DEFAULT '0' COMMENT '最高连胜次数' AFTER `winning_streak_count`;
+
+

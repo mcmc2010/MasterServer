@@ -45,6 +45,30 @@ namespace AMToolkits.Extensions
         }
 
         /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        public static async Task<string?> TextBodyAsync(this HttpRequest request)
+        {
+            try
+            {
+                var reader = new StreamReader(request.Body);
+                var body = await reader.ReadToEndAsync();
+                if (body.Length == 0)
+                {
+                    return "";
+                }
+                return body;
+            }
+            catch (Exception e)
+            {
+                System.Console.WriteLine($"{e.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
         /// 不可以使用同步函数，只能使用异步函数JsonBodyAsync
         /// </summary>
         /// <typeparam name="T"></typeparam>

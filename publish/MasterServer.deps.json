@@ -14,6 +14,8 @@
           "Microsoft.AspNetCore.Server.Kestrel.Core": "2.3.0",
           "Microsoft.Extensions.Hosting": "9.0.3",
           "Microsoft.Extensions.Hosting.Systemd": "9.0.3",
+          "Pipelines.Sockets.Unofficial": "2.2.8",
+          "System.IO.Pipelines": "9.0.3",
           "YamlDotNet": "16.3.0",
           "Google.Protobuf": "3.32.0.0",
           "MySql.Data": "8.4.0.0",
@@ -1812,6 +1814,17 @@
           }
         }
       },
+      "Pipelines.Sockets.Unofficial/2.2.8": {
+        "dependencies": {
+          "System.IO.Pipelines": "9.0.3"
+        },
+        "runtime": {
+          "lib/net5.0/Pipelines.Sockets.Unofficial.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "2.2.8.1080"
+          }
+        }
+      },
       "System.Buffers/4.6.0": {},
       "System.Diagnostics.DiagnosticSource/9.0.3": {
         "runtime": {
@@ -2338,6 +2351,13 @@
       "sha512": "sha512-rURwggB+QZYcSVbDr7HSdhw/FELvMlriW10OeOzjPT7pstefMo7IThhtNtDudxbXhW+lj0NfX72Ka5EDsG8x6w==",
       "path": "microsoft.openapi/1.4.3",
       "hashPath": "microsoft.openapi.1.4.3.nupkg.sha512"
+    },
+    "Pipelines.Sockets.Unofficial/2.2.8": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-zG2FApP5zxSx6OcdJQLbZDk2AVlN2BNQD6MorwIfV6gVj0RRxWPEp2LXAxqDGZqeNV1Zp0BNPcNaey/GXmTdvQ==",
+      "path": "pipelines.sockets.unofficial/2.2.8",
+      "hashPath": "pipelines.sockets.unofficial.2.2.8.nupkg.sha512"
     },
     "System.Buffers/4.6.0": {
       "type": "package",

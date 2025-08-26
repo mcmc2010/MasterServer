@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
 using AMToolkits.Extensions;
 using Logger;
+using Microsoft.VisualBasic;
 
 
 namespace Server
@@ -160,6 +161,24 @@ namespace Server
 
     #endregion
 
+    #region User Rank NProtocols
+    /// <summary>
+    /// 
+    /// </summary>
+    [System.Serializable]
+    public class NGetUserRankDataRequest
+    {
+    }
+
+    [System.Serializable]
+    public class NGetUserRankDataResponse
+    {
+        [JsonPropertyName("code")]
+        public int Code;
+        [JsonPropertyName("data")]
+        public UserRankDataExtend? Data = null;
+    }
+    #endregion
 
     /// <summary>
     /// 
@@ -461,5 +480,52 @@ namespace Server
             await context.ResponseResult(result);
         }
         #endregion
+
+        #region Rank
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        protected async Task HandleGetUserRank(HttpContext context)
+        {
+            SessionAuthData auth_data = new SessionAuthData();
+            if (await ServerApplication.Instance.AuthSessionAndResult(context, auth_data) <= 0)
+            {
+                return;
+            }
+
+            // 解析 JSON
+            var request = await context.Request.JsonBodyAsync<NGetUserRankDataRequest>();
+            if (request == null)
+            {
+                await context.ResponseError(HttpStatusCode.BadRequest, ErrorMessage.UNKNOW);
+                return;
+            }
+
+            //
+            var result = new NGetUserRankDataResponse
+            {
+                Code = 0,
+                Data = null
+            };
+
+            // 成功返回
+            UserRankDataExtend? extend = await this.GetUserRank(auth_data.id);
+            if (extend == null)
+            {
+                result.Code = -1;
+            }
+            else
+            {
+                result.Code = 1;
+                result.Data = extend;
+            }
+
+            //
+            await context.ResponseResult(result);
+        }
+        #endregion
+
     }
 }

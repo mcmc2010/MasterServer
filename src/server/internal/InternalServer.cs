@@ -36,6 +36,7 @@ namespace Server
             }
             _config = config;
             _logger = Logger.LoggerFactory.Instance;
+            
         }
 
         public void OnRegisterHandlers(object? sender, HandlerEventArgs args)

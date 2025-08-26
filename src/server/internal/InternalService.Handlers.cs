@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using AMToolkits.Extensions;
 using Logger;
 
+
 namespace Server
 {
 
@@ -23,7 +24,22 @@ namespace Server
         public bool IsVictory = false;
     }
 
-
+    /// <summary>
+    ///  {
+    ///     "roomType":1,
+    ///     "roomLv":0,
+    ///     "createTime":1756204275,
+    ///     "endTime":1756204293,
+    ///     "loser":{
+    ///         "ai":0,
+    ///         "id":"155592223876",
+    ///         "name":"155592223876",
+    ///         "head":"Player/Icons/1_01",
+    ///         "ballsPocketed":0,
+    ///         "foulsCommitted":0
+    ///     }
+    ///  }
+    /// </summary>
     [System.Serializable]
     public class NGamePVPCompletedRequest
     {
@@ -33,9 +49,12 @@ namespace Server
         public int RoomLevel = 0;
 
         [JsonPropertyName("createTime")]
-        public DateTime? CreateTime = null;
+        public object? create_time = null;
+
         [JsonPropertyName("endTime")]
-        public DateTime? EndTime = null;
+        public object? end_time = null;
+        public DateTime? AsCreateTime => create_time.AsDateTime();
+        public DateTime? AsEndTime => end_time.AsDateTime();
 
         [JsonPropertyName("winner")]
         public NGamePVPPlayerData? WinnerPlayer = null;
@@ -66,7 +85,6 @@ namespace Server
         /// <returns></returns>
         protected async Task HandleGamePVPCompleted(HttpContext context)
         {
-
             // 解析 JSON
             var request = await context.Request.JsonBodyAsync<NGamePVPCompletedRequest>();
             if (request == null)
@@ -86,10 +104,19 @@ namespace Server
 
             // 流水单
             var result_code = await this._UpdateGamePVPRecord(uid, request.RoomType, request.RoomLevel,
-                                request.CreateTime, request.EndTime,
+                                request.AsCreateTime, request.AsEndTime,
                                 request.WinnerPlayer, request.LoserPlayer);
-            if (result_code > 0)
+            if (result_code < 0)
             {
+                _logger?.LogError($"{TAGName} (GamePVPCompleted) : ({uid}) Room {request.RoomType} - {request.RoomLevel}," +
+                                  $"{request.WinnerPlayer?.UserID} vs {request.LoserPlayer?.UserID}" +
+                                  $", Result: {result_code}");
+            }
+            else
+            {
+                _logger?.Log($"{TAGName} (GamePVPCompleted) : ({uid}) Room {request.RoomType} - {request.RoomLevel}," +
+                             $"{request.WinnerPlayer?.UserID} vs {request.LoserPlayer?.UserID}" +
+                             $"");
             }
 
             //
