@@ -203,16 +203,16 @@ namespace Server
             var wallet = await this._GetWalletData(user_data.server_uid);
             if (wallet != null)
             {
-                // Ranking
+                // Leaderboard
                 // 钻石大于5000加入排行榜
-                if (wallet.integer_gems > GameSettingsInstance.Settings.Ranking.GemsLimitMin)
+                if (wallet.integer_gems > GameSettingsInstance.Settings.Leaderboard.GemsLimitMin)
                 {
-                    await DBUpdateRankingRecord(user_data.server_uid, user_data.name, AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS_SHORT, wallet.integer_gems);
+                    await LeaderboardManager.Instance._UpdateLeaderboardRecord(user_data.server_uid, user_data.name, AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS_SHORT, wallet.integer_gems);
                 }
                 // 金币大于100w加入排行榜
-                if (wallet.integer_gold > GameSettingsInstance.Settings.Ranking.GoldLimitMin)
+                if (wallet.integer_gold > GameSettingsInstance.Settings.Leaderboard.GoldLimitMin)
                 {
-                    await DBUpdateRankingRecord(user_data.server_uid, user_data.name, AMToolkits.Game.CurrencyUtils.CURRENCY_GOLD_SHORT, wallet.integer_gold);
+                    await LeaderboardManager.Instance._UpdateLeaderboardRecord(user_data.server_uid, user_data.name, AMToolkits.Game.CurrencyUtils.CURRENCY_GOLD_SHORT, wallet.integer_gold);
                 }
             }
 
@@ -220,9 +220,9 @@ namespace Server
             this.DBGetHOLData(user_data.server_uid, out hol_data);
             if (hol_data != null)
             {
-                if (hol_data.rank_level >= GameSettingsInstance.Settings.Ranking.GameRankMinLevel)
+                if (hol_data.rank_level >= GameSettingsInstance.Settings.Leaderboard.GameRankMinLevel)
                 {
-                    await DBUpdateRankingRecord(user_data.server_uid, user_data.name, hol_data.rank_level, hol_data.rank_value);
+                    await LeaderboardManager.Instance._UpdateLeaderboardRecord(user_data.server_uid, user_data.name, hol_data.rank_level, hol_data.rank_value);
                 }
             }
 
@@ -231,9 +231,9 @@ namespace Server
             if (await CashShopManager.Instance._GetUserCashItems(user_data.server_uid, cashshop_items) > 0)
             {
                 double cost = CashShopManager.Instance.TotalCashItemsCost(cashshop_items);
-                //if (cost >= GameSettingsInstance.Settings.Ranking.GemsLimitMinWeekly)
+                //if (cost >= GameSettingsInstance.Settings.Leaderboard.GemsLimitMinWeekly)
                 {
-                    await DBUpdateRankingRecord(user_data.server_uid, user_data.name, AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS_SHORT, cost);
+                    await LeaderboardManager.Instance._UpdateLeaderboardRecord(user_data.server_uid, user_data.name, AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS_SHORT, cost);
                 }
             }
 

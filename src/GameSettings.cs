@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 namespace Server
 {
     [System.Serializable]
-    public class GameSettings_Ranking
+    public class GameSettings_Leaderboard
     {
         [JsonPropertyName("gold_limit_min")]
         public int GoldLimitMin = 1000000; //金币最小上榜条件
@@ -29,8 +29,8 @@ namespace Server
     [System.Serializable]
     public class GameSettings
     {
-        [JsonPropertyName("ranking")]
-        public GameSettings_Ranking Ranking = new GameSettings_Ranking();
+        [JsonPropertyName("leaderboard")]
+        public GameSettings_Leaderboard Leaderboard = new GameSettings_Leaderboard();
     }
 
     public class GameSettingsInstance

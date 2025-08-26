@@ -115,7 +115,7 @@ try
     var internal_service = Server.InternalService.NewInstance(args, config);
 
     // 7:
-    var ranking_manager = Server.RankingManager.NewInstance(args, config);
+    var leaderboard_manager = Server.LeaderboardManager.NewInstance(args, config);
 
     
     // 
@@ -128,6 +128,8 @@ try
     
     app.RegisterHandlersListner += match_manager.OnRegisterHandlers;
     app.RegisterHandlersListner += internal_service.OnRegisterHandlers;
+
+    app.RegisterHandlersListner += leaderboard_manager.OnRegisterHandlers;
 
     app.CreateHTTPServer();
     app.CreateWSServer();
