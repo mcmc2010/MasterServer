@@ -133,6 +133,8 @@ namespace Server
             args.app?.Map("api/user/inventory/list", HandleGetUserInventoryItems);
             args.app?.MapPost("api/user/inventory/using", HandleUsingUserInventoryItem);
             args.app?.MapPost("api/user/inventory/upgrade", HandleUpgradeUserInventoryItem);
+            // Rank
+            args.app?.MapPost("api/user/rank/data", HandleGetUserRank);
             // Game Events
             args.app?.Map("api/user/game/events/list", HandleGetUserGameEvents);
         }

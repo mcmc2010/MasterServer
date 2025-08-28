@@ -282,9 +282,8 @@ namespace Server
 
             profile.Name = db_profile?.Name ?? "";
 
-            DBUserProfileExtend? db_profile_1 = null;
-            result_code = this.DBGetUserProfileExtend(user, profile, out db_profile_1);
-            if (result_code < 0)
+            DBUserProfileExtend? db_profile_1 = await this.DBGetUserProfileExtend(user, profile);
+            if (db_profile_1 == null)
             {
                 return -1;
             }

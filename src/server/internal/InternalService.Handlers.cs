@@ -109,13 +109,13 @@ namespace Server
             if (result_code < 0)
             {
                 _logger?.LogError($"{TAGName} (GamePVPCompleted) : ({uid}) Room {request.RoomType} - {request.RoomLevel}," +
-                                  $"{request.WinnerPlayer?.UserID} vs {request.LoserPlayer?.UserID}" +
+                                  $"{request.WinnerPlayer?.UserID} - {request.WinnerPlayer?.Name} vs {request.LoserPlayer?.UserID} - {request.LoserPlayer?.Name}" +
                                   $", Result: {result_code}");
             }
             else
             {
                 _logger?.Log($"{TAGName} (GamePVPCompleted) : ({uid}) Room {request.RoomType} - {request.RoomLevel}," +
-                             $"{request.WinnerPlayer?.UserID} vs {request.LoserPlayer?.UserID}" +
+                             $"{request.WinnerPlayer?.UserID} - {request.WinnerPlayer?.Name} vs {request.LoserPlayer?.UserID} - {request.LoserPlayer?.Name}" +
                              $"");
             }
 

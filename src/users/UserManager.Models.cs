@@ -265,7 +265,7 @@ namespace Server
                     $"SELECT  " +
                     $"  h.`uid`, h.`id`, u.`name`, " +
                     $"  h.`value`, " +
-                    $"  `cp_value`, `played_count`, `played_win_count`, " +
+                    $"  `cp_value`, `played_count`, `played_win_count`, `winning_streak_count`, `winning_streak_highest`, " +
                     $"  `season`, `season_time`, `challenger_reals`, " +
                     $"  `last_rank_level`, `last_rank_value`, `rank_level`, `rank_value`, " +
                     $"  h.`create_time`, h.`last_time`, " +
@@ -299,7 +299,11 @@ namespace Server
             return -1;
         }
 
+
+
         #endregion HOL
+
+        #region Profile
         /// <summary>
         /// 获取用户信息
         /// </summary>
@@ -357,9 +361,9 @@ namespace Server
         /// <param name="user_uid"></param>
         /// <param name="profile"></param>
         /// <returns></returns>
-        protected int DBGetUserProfileExtend(UserBase user, UserProfile user_profile, out DBUserProfileExtend? profile)
+        protected async Task<DBUserProfileExtend?> DBGetUserProfileExtend(UserBase user, UserProfile user_profile)
         {
-            profile = null;
+            DBUserProfileExtend? profile = null;
 
             var db = DatabaseManager.Instance.New();
             try
@@ -378,18 +382,18 @@ namespace Server
                 var result_code = db?.Query(sql, user_profile.UID);
                 if (result_code < 0)
                 {
-                    return -1;
+                    return null;
                 }
 
                 //
                 profile = db?.ResultItems.To<DBUserProfileExtend>();
                 if (profile == null)
                 {
-                    return -1;
+                    return null;
                 }
 
                 //
-                return 1;
+                return profile;
             }
             catch (Exception e)
             {
@@ -399,8 +403,9 @@ namespace Server
             {
                 DatabaseManager.Instance.Free(db);
             }
-            return -1;
+            return null;
         }
+        #endregion
 
 
         #region Inventory
@@ -1170,6 +1175,54 @@ namespace Server
         #endregion
         #endregion
 
+
+        #region Rank
+        protected async Task<UserRankDataExtend?> DBGetUserRank(string user_id)
+        {
+
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                // 
+                string sql =
+                    $"SELECT  " +
+                    $"  h.`uid`, h.`id`, u.`name`, " +
+                    $"  h.`value`, " +
+                    $"  `cp_value`, `played_count`, `played_win_count`, `winning_streak_count`, `winning_streak_highest`, " +
+                    $"  `season`, `season_time`, `challenger_reals`, " +
+                    $"  `last_rank_level`, `last_rank_value`, `rank_level`, `rank_value`, " +
+                    $"  h.`create_time`, h.`last_time`, " +
+                    $"  h.`status`  " +
+                    $"FROM `t_hol` AS h " +
+                    $"LEFT JOIN `t_user` AS u ON u.id = h.id  " +
+                    $"WHERE u.`id` = ? AND u.`status` > 0";
+                var result_code = db?.Query(sql, user_id);
+                if (result_code < 0)
+                {
+                    return null;
+                }
+
+                //
+                var data = db?.ResultItems.To<UserRankDataExtend>();
+                if (data == null)
+                {
+                    return null;
+                }
+
+                return data;
+            }
+            catch (Exception e)
+            {
+                _logger?.LogError("(User) Error :" + e.Message);
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return null;
+        }
+
+        #endregion
 
         #region Game Events
 

@@ -1,7 +1,7 @@
 
 namespace Server
 {
-        /// <summary>
+    /// <summary>
     /// 
     /// </summary>
     [System.Serializable]
@@ -17,6 +17,8 @@ namespace Server
         public int played_count = 0;
         // 对局获胜数量
         public int played_win_count = 0;
+        public int winning_streak_count = 0;
+        public int winning_streak_highest = 0;
         public DateTime? create_time = null;
         public DateTime? last_time = null;
 

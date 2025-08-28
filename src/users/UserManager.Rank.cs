@@ -1,7 +1,7 @@
 
 
 using System.Text.Json.Serialization;
-
+using AMToolkits.Extensions;
 using Logger;
 
 namespace Server
@@ -54,13 +54,28 @@ namespace Server
         [JsonPropertyName("season_time")]
         public DateTime? SeasonTime = null;
 
-
+        /// <summary>
+        /// 玩家综合实力值
+        /// </summary>
+        [JsonPropertyName("cp_value")]
+        public int CPValue = 100;
     }
 
+    /// <summary>
+    /// 包含游戏数据的扩展数据
+    /// </summary>
     [System.Serializable]
     public class UserRankDataExtend : UserRankData
     {
+        [JsonPropertyName("played_count")]
+        public int PlayedCount = 0;
+        [JsonPropertyName("played_win_count")]
+        public int PlayedWinCount = 0;
 
+        [JsonPropertyName("winning_streak_count")]
+        public int WinningStreakCount = 0;
+        [JsonPropertyName("winning_streak_highest")]
+        public int WinningStreakHighest = 0;
     }
 
 
@@ -76,7 +91,17 @@ namespace Server
         /// <returns></returns>
         protected async Task<UserRankDataExtend?> GetUserRank(string? user_uid)
         {
-            return null;
+            if (user_uid == null || user_uid.IsNullOrWhiteSpace())
+            {
+                return null;
+            }
+
+            var data = await DBGetUserRank(user_uid);
+            if (data == null)
+            {
+                return null;
+            }
+            return data;
         }
     }
 }
