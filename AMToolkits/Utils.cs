@@ -8,6 +8,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using AMToolkits.Extensions;
 
 #if USE_UNITY_BUILD
 using UnityEngine;
@@ -69,7 +70,7 @@ namespace AMToolkits
         /// <param name="A"></param>
         /// <param name="B"></param>
         /// <returns></returns>
-        public static float DiffTimestamp(long A,  long B)
+        public static float DiffTimestamp(long A, long B)
         {
             return (float)(B - A) * 0.001f;
         }
@@ -90,7 +91,7 @@ namespace AMToolkits
                 }
                 return ((DateTime)dt).ToString(format);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 return "";
             }
@@ -118,7 +119,7 @@ namespace AMToolkits
                 }
 
                 DateTime dt = DateTime.Now;
-                if(!DateTime.TryParseExact(date, format, null, System.Globalization.DateTimeStyles.None, out dt))
+                if (!DateTime.TryParseExact(date, format, null, System.Globalization.DateTimeStyles.None, out dt))
                 {
                     return (DateTime)defval;
                 }
@@ -167,7 +168,7 @@ namespace AMToolkits
             {
                 return null;
             }
-            
+
             int bytes_length = text.Length / 2;
             if (bytes_length > 0)
             {
@@ -182,6 +183,8 @@ namespace AMToolkits
         }
 
         #endregion
+
+        #region IDs
 
 #if !USE_UNITY_BUILD
         /// <summary>
@@ -234,5 +237,90 @@ namespace AMToolkits
             uid = digest.ToHexString();
             return uid;
         }
+
+        #endregion
+
+        #region Name
+
+        /// <summary>
+        /// 
+        /// </summary>
+        // 预留
+        private static readonly HashSet<string> ReservedNames = new HashSet<string>
+        {
+            "admin", "administrator", "moderator", "system", "support",
+            "null", "undefined", "test", "guest", "anonymous", "root", "sa",
+            "linux", "windows", "macos", "unix", "android", "iphone"
+        };
+        // 基础敏感词列表（实际应用中应从数据库或文件加载）
+        private static readonly HashSet<string> BannedWords = new HashSet<string>
+        {
+            "傻逼", "草泥马", "fuck", "shit", "asshole", "bitch",
+            "妈的", "狗日的", "混蛋", "王八蛋", "操", "日",
+            "nmsl", "cnm", "tmd", "sb", "nm", "tm",
+            
+        };
+        // 政治类敏感词
+        private static readonly HashSet<string> SensitiveWords = new HashSet<string>()
+        {
+            "人民", "人民币", "中国", "china",
+            "共产党", "国际", "国家", "中华", "民族"
+        };
+
+        public static bool IsReservedName(string name)
+        {
+            return ReservedNames.Contains(name.ToLowerInvariant());
+        }
+
+        public static bool IsBannedWords(string name)
+        {
+            return BannedWords.Contains(name.ToLowerInvariant()) || SensitiveWords.Contains(name.ToLowerInvariant());
+        }
+
+        public static int CheckNameIsValid(string name, int min = 6, int max = 16)
+        {
+            if (name.IsNullOrWhiteSpace() || name.Any(char.IsWhiteSpace))
+            {
+                return 0;
+            }
+
+            if (name.Length >= max || name.Length < min)
+            {
+                return 0;
+            }
+
+            if (IsReservedName(name))
+            {
+                return -1000;
+            }
+            if (IsBannedWords(name))
+            {
+                return -1001;
+            }
+
+            // 定义不允许的标点符号
+            string invalid_chars = ",.[]<>?/|~`!@#$%^&*(){}<>_+-=";
+            // 检查是否包含不允许的字符
+            if (name.Any(c => invalid_chars.Contains(c)))
+            {
+                return 0;
+            }
+
+            // 检查是否包含汉字
+            bool has_encode = name.Any(c =>
+                {
+                    // 中文编码
+                    return c >= 0x4E00 && c <= 0x9FFF;
+                });
+            if (!has_encode)
+            {
+                return 0;
+            }
+
+            // bool is_valid = System.Text.RegularExpressions.Regex.IsMatch(name,
+            //         @"^\s$");
+            return 1;
+        }
+        #endregion
     }
 }

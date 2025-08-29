@@ -1,0 +1,16 @@
+{
+    "user": 
+    {
+        // 改名必须消耗的物品，目前只有改名卡
+        "need_change_name_items": "5010,1"
+    },
+    "leaderboard":
+    {
+        "gold_limit_min": 1000000,
+        "gems_limit_min": 5000,
+        "gems_limit_min_weekly": 10000,
+        "gems_limit_min_monthly": 10000,
+        // 上榜最小段位
+        "game_rank_min_level": 1001
+    }
+}

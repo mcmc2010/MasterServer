@@ -39,7 +39,7 @@ namespace Server
 
 
     #region User Profile
-    
+
     [System.Serializable]
     public class UserProfile
     {
@@ -67,7 +67,15 @@ namespace Server
         [JsonPropertyName("avatar_url")]
         public string AvatarUrl = "";
 
+        public void InitFromDB(DBUserProfile? profile)
+        {
+            this.AvatarID = profile?.AvatarID ?? 0;
+            this.AvatarUrl = "";
+            this.Gender = profile?.Gender ?? (int)UserGender.Female;
+            this.Region = profile?.Region ?? "";
 
+            this.Name = profile?.Name ?? "";
+        }
     }
 
     [System.Serializable]
@@ -295,6 +303,102 @@ namespace Server
             profile.Season = db_profile_1?.Season ?? 1;
             profile.SeasonTime = db_profile_1?.SeasonTime ?? null;
             profile.ChallengerReals = db_profile_1?.ChallengerReals ?? 0;
+            return 1;
+        }
+
+        /// <summary>
+        /// 返回-1就是错误，1是成功，0是没有修改成功，可能的原因是重名或道具不足。
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="new_name"></param>
+        /// <param name="profile"></param>
+        /// <returns></returns>
+        protected async Task<int> ChangeUserName(string? user_uid, string to_name, UserProfile profile)
+        {
+            if (user_uid == null || user_uid.IsNullOrWhiteSpace())
+            {
+                return -1;
+            }
+
+            if (to_name.IsNullOrWhiteSpace())
+            {
+                return 0;
+            }
+            // 如果返回负数，改用户将不能再修改用户名
+            int result_code = 1;
+            if ((result_code = AMToolkits.Utils.CheckNameIsValid(to_name)) <= 0)
+            {
+                // 尝试非法字符
+                if (result_code <= -1000)
+                {
+
+                }
+                return -1;
+            }
+
+            // 获取用户
+            var user = UserManager.Instance.GetUserT<UserBase>(user_uid);
+            if (user == null)
+            {
+                return -1;
+            }
+
+            profile.UID = user_uid;
+            // 不是同一个，这里暂时使用同一个
+            DBUserProfile? db_profile = null;
+            result_code = this.DBGetUserProfile(user, profile.UID, out db_profile);
+            if (result_code < 0)
+            {
+                return -1;
+            }
+
+            profile.InitFromDB(db_profile);
+
+            // 扣除玩家道具
+            var list = new List<UserInventoryItem>();
+            var value = GameSettingsInstance.Settings.User.NeedChangeNameItems;
+            var items = AMToolkits.Game.ItemUtils.ParseGeneralItem(value);
+            if (items != null && !items.IsNullOrEmpty())
+            {
+                if (await DBGetUserInventoryItems(user.UID, items.ToArray(), list) < 0)
+                {
+                    return -1;
+                }
+
+                // 目前只处理第一个物品
+                foreach (var v in items)
+                {
+                    var ilist = list.Where(vi => vi.index == v.ID).ToList();
+                    int count = ilist.Sum(vi => vi.count);
+                    if (count < v.Count)
+                    {
+                        return 0;
+                    }
+                }
+            }
+
+            result_code = await this.DBChangeUserName(user, profile, to_name);
+            if (result_code < 0)
+            {
+                return 0;
+            }
+
+            // 扣除玩家道具
+            List<NUserInventoryItem> nlist = new List<NUserInventoryItem>();
+            if (items != null && items.Length > 0)
+            {
+                foreach (var v in items)
+                {
+                    var vlist = new List<NUserInventoryItem>();
+                    if (await this.ConsumableUserInventoryItem(user.UID, v.ID, v.Count, vlist, "changed_name") < 0)
+                    {
+                        _logger?.LogError($"{TAGName} (ChangeUserName) (User:{user_uid}) Change Name to ({to_name}) Failed" +
+                                    $", Item {v.ID} ({v.Count}) Error");
+                        return 0;
+                    }
+                    nlist.AddRange(vlist);
+                }
+            }
             return 1;
         }
 

@@ -405,6 +405,70 @@ namespace Server
             }
             return null;
         }
+
+        protected async Task<int> DBChangeUserName(UserBase user, UserProfile profile, string to_name)
+        {
+
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                db?.Transaction();
+                // 已经封了的用户是无法获取信息的
+                string sql =
+                    $"SELECT " +
+                    $"    `uid`as nid, " +
+                    $"    `id` as uid, " +
+                    $"    `name`,  " +
+                    $"    `create_time`, `last_time`, " +
+                    $"    `status` " +
+                    $"FROM `t_user` " +
+                    $"WHERE name = ?;";
+                var result_code = db?.Query(sql, to_name);
+                if (result_code < 0)
+                {
+                    db?.Rollback();
+                    return -1;
+                }
+
+                // 已经存在，无路是否删除
+                string? id = db?.ResultItems["id"]?.AsString("");
+                if (!id.IsNullOrWhiteSpace())
+                {
+                    db?.Rollback();
+                    return -3;
+                }
+
+                //
+                sql =
+                    $"UPDATE `t_user` " +
+                    $"SET " +
+                    $"    `name` = ?, `changed_time` = CURRENT_TIMESTAMP " +
+                    $"WHERE `id` = ? AND `status` > 0;";
+                result_code = db?.Query(sql,
+                    to_name,
+                    user.UID);
+                if (result_code <= 0)
+                {
+                    db?.Rollback();
+                    return -1;
+                }
+
+                db?.Commit();
+
+                //
+                return 1;
+            }
+            catch (Exception e)
+            {
+                db?.Rollback();
+                _logger?.LogError("(User) Error :" + e.Message);
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return -1;
+        }
         #endregion
 
 
@@ -443,12 +507,21 @@ namespace Server
         /// </summary>
         /// <param name="user_uid"></param>
         /// <param name="items"></param>
+        /// <param name="ids">物品ID列表(可选)，默认为NULL</param>
         /// <returns></returns>
         protected async Task<int> DBGetUserInventoryItems(DatabaseQuery? query, string user_uid,
-                            List<UserInventoryItem> items, int type = -1)
+                            List<UserInventoryItem> items, int type = -1, int[]? ids = null)
         {
             //
             List<DatabaseResultItemSet>? list = null;
+
+            // ids 条件
+            string condition_case_ids = "";
+            if (ids != null && ids.Length > 0)
+            {
+                condition_case_ids = $" AND (id IN ({string.Join(",", ids)})) ";
+            }
+
             // 
             string sql =
                 $"SELECT " +
@@ -456,10 +529,11 @@ namespace Server
                 $"    `user_id` AS `server_uid`, " +
                 $"    `name`, `create_time`, `expired_time`, `remaining_time`, `using_time`, " +
                 $"    `count`, `custom_data`, `status` " +
-                $"FROM game.t_inventory AS i " +
+                $"FROM `t_inventory` AS i " +
                 $"WHERE " +
-                $" ((? >= 0 AND `type` = ?) OR (? < 0 AND `type` >= 0)) AND " +
-                $" `user_id` = ? AND `status` > 0;";
+                $" ((? >= 0 AND `type` = ?) OR (? < 0 AND `type` >= 0)) " +
+                $" {condition_case_ids} " +
+                $" AND `user_id` = ? AND `status` > 0;";
             var result_code = query?.QueryWithList(sql, out list,
                 type, type, type,
                 user_uid);
@@ -472,6 +546,7 @@ namespace Server
             return items.Count;
         }
 
+       
         /// <summary>
         /// 目前更新包含
         ///    - 自定义属性
@@ -587,7 +662,38 @@ namespace Server
             return 1;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="items"></param>
+        /// <param name="list"></param>
+        /// <returns></returns>
+        protected async Task<int> DBGetUserInventoryItems(string user_uid, AMToolkits.Game.GeneralItemData[] items, List<UserInventoryItem> list)
+        {
+            //
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                var ids = items.Select(v => v.ID).ToArray();
+                int result_code = await DBGetUserInventoryItems(db, user_uid, list, -1, ids);
+                if (result_code < 0)
+                {
+                    return -1;
+                }
 
+            }
+            catch (Exception e)
+            {
+                _logger?.LogError($"{TAGName} (UpdateUserInventoryItems) Error :" + e.Message);
+                return -1;
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return 1;
+        }
 
         /// <summary>
         /// 使用物品

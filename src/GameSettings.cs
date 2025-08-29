@@ -5,6 +5,16 @@ using System.Text.Json.Serialization;
 namespace Server
 {
     [System.Serializable]
+    public class GameSettings_User
+    {
+        /// <summary>
+        /// 改名必须使用道具
+        /// </summary>
+        [JsonPropertyName("need_change_name_items")]
+        public string NeedChangeNameItems = ""; 
+    }
+
+    [System.Serializable]
     public class GameSettings_Leaderboard
     {
         [JsonPropertyName("gold_limit_min")]
@@ -23,12 +33,16 @@ namespace Server
         /// <summary>
         /// 上榜最小段位
         /// </summary>
+        [JsonPropertyName("game_rank_min_level")]
         public int GameRankMinLevel = 1001;
     }
 
     [System.Serializable]
     public class GameSettings
     {
+        [JsonPropertyName("user")]
+        public GameSettings_User User = new GameSettings_User();
+
         [JsonPropertyName("leaderboard")]
         public GameSettings_Leaderboard Leaderboard = new GameSettings_Leaderboard();
     }

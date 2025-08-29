@@ -76,6 +76,29 @@ namespace Server
         public UserProfileExtend? Profile = null;
     }
 
+    [System.Serializable]
+    public class NUserChangeNameRequest
+    {
+        [JsonPropertyName("name")]
+        public string Name = "";
+    }
+
+    [System.Serializable]
+    public class NUserChangeNameResponse
+    {
+        [JsonPropertyName("code")]
+        public int Code;
+
+        [JsonPropertyName("name")]
+        public string Name = "";
+
+        [JsonPropertyName("last_name")]
+        public string LastName = "";
+
+        [JsonPropertyName("data")]
+        public UserProfile? Profile = null;
+    }
+
     #endregion
 
     #region User Inventory NProtocols
@@ -296,6 +319,49 @@ namespace Server
             if (result_code > 0)
             {
                 result.Profile = profile;
+            }
+
+            result.Code = result_code;
+
+            await context.ResponseResult(result);
+        }
+
+        /// <summary>
+        /// 用户改名
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        protected async Task HandleUserChangeName(HttpContext context)
+        {
+            SessionAuthData auth_data = new SessionAuthData();
+            if (await ServerApplication.Instance.AuthSessionAndResult(context, auth_data) <= 0)
+            {
+                return;
+            }
+
+            // 解析 JSON
+            var request = await context.Request.JsonBodyAsync<NUserChangeNameRequest>();
+            if (request == null)
+            {
+                await context.ResponseError(HttpStatusCode.BadRequest, ErrorMessage.UNKNOW);
+                return;
+            }
+
+            //
+            var result = new NUserChangeNameResponse
+            {
+                Code = 0,
+                Name = request.Name,
+                LastName = ""
+            };
+
+            UserProfile profile = new UserProfile();
+            int result_code = await ChangeUserName(auth_data.id, request.Name, profile);
+            if (result_code > 0)
+            {
+                result.Profile = profile;
+                result.LastName = profile.Name;
+                result.Profile.Name = request.Name;
             }
 
             result.Code = result_code;

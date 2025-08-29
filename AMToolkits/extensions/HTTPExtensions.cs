@@ -44,6 +44,34 @@ namespace AMToolkits.Extensions
             return false;
         }
 
+
+        /// <summary>
+        /// 不可以使用同步函数，只能使用异步函数JsonBodyAsync
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [System.Obsolete("Not using")]
+        public static string? TextBody(this HttpRequest request)
+        {
+            try
+            {
+                var reader = new StreamReader(request.Body);
+                var body = reader.ReadToEnd();
+                request.Body.Position = 0;
+                if (body.Length == 0)
+                {
+                    return "";
+                }
+                return body;
+            }
+            catch (Exception e)
+            {
+                System.Console.WriteLine($"{e.Message}");
+                return null;
+            }
+        }
+
         /// <summary>
         /// 
         /// </summary>
