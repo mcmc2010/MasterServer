@@ -1535,7 +1535,7 @@ namespace Server
             string? values = null;
             if (items != null && items.Length > 0)
             {
-                values = string.Join("|", items.Select(v => $"{v.ID},{v.Count},{v.IID}").ToList());
+                values = string.Join(",", items.Select(v => $"{v.ID}|{v.Count}|{v.IID}").ToList());
             }
 
             // 
