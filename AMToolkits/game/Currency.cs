@@ -24,6 +24,11 @@ namespace AMToolkits.Game
     /// </summary>
     public class CurrencyUtils
     {
+        public const string CNY = "CNY";
+        public const string RMB = "CNY";
+        public const string USD = "USD";
+        public const string HKD = "HKD";
+        
         /// <summary>
         /// 
         /// </summary>

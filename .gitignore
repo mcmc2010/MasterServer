@@ -442,5 +442,6 @@ certs/redis*.*
 
 data/DataTables/*.txt
 data/DataTables/*.xlsx
+data/DataTables/*.json
 src/tables/*.cs
 

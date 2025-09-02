@@ -26,3 +26,18 @@ CREATE TABLE `t_transaction` (
   UNIQUE KEY `idx_id` (`id`),
   UNIQUE KEY `idex_order_id` (`order_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+
+ALTER TABLE `t_transaction` 
+ADD COLUMN `price` DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER `count`,
+CHANGE COLUMN `amount` `amount` DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '花费' ;
+
+ALTER TABLE `t_transaction` 
+CHANGE COLUMN `virtual_currency` `virtual_currency` VARCHAR(5) NULL DEFAULT 'GM' ;
+
+ALTER TABLE `t_transaction` 
+RENAME TO  `t_transactions` ;
+
+ALTER TABLE `t_transactions` 
+AUTO_INCREMENT = 10000 ,
+CHANGE COLUMN `uid` `uid` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'IID' ;

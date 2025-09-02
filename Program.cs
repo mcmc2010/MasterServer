@@ -109,12 +109,15 @@ try
     var match_manager = Server.GameMatchManager.NewInstance(args, config);
     logger.Log("Init GameMatchManager Completed");
 
+    // 6 - 1:
+    var payment_manageer = Server.PaymentManager.NewInstance(args, config);
+    // 6 - 2:
     var proxy_service = Server.PlayFabService.NewInstance(args, config);
 
-    // 6:
+    // 7:
     var internal_service = Server.InternalService.NewInstance(args, config);
 
-    // 7:
+    // 8:
     var leaderboard_manager = Server.LeaderboardManager.NewInstance(args, config);
 
     
@@ -131,6 +134,8 @@ try
 
     app.RegisterHandlersListner += leaderboard_manager.OnRegisterHandlers;
 
+    app.RegisterHandlersListner += payment_manageer.OnRegisterHandlers;
+    
     app.CreateHTTPServer();
     app.CreateWSServer();
 

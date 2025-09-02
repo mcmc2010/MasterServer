@@ -120,10 +120,16 @@ logging:
     file: "logs/room.log"
     is_file: true
     is_console: true
+  # 支付日志
+  - name: payment
+    level: Information
+    file: "logs/payment.log"
+    is_file: true
+    is_console: false
   # PlayFab 第三方代理服务
   - name: playfab
     level: Information
     file: "logs/playfab.log"
     is_file: true
-    is_console: true
+    is_console: false
     

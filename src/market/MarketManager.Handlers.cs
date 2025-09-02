@@ -7,6 +7,28 @@ using Logger;
 
 namespace Server
 {
+    /// <summary>
+    /// 
+    /// </summary>
+    [System.Serializable]
+    public class NMarketRefreshProductRequest
+    {
+        [JsonPropertyName("cost")]
+        public string Cost = "";
+    }
+
+    [System.Serializable]
+    public class NMarketRefreshProductResponse
+    {
+        [JsonPropertyName("code")]
+        public int Code;
+        [JsonPropertyName("items")]
+        public List<object?>? Items = null;
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
     [System.Serializable]
     public class NMarketBuyProductRequest
     {
@@ -32,6 +54,56 @@ namespace Server
     /// </summary>
     public partial class MarketManager
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        protected async Task HandleMarketRefreshProducts(HttpContext context)
+        {
+            SessionAuthData auth_data = new SessionAuthData();
+            if (await ServerApplication.Instance.AuthSessionAndResult(context, auth_data) <= 0)
+            {
+                return;
+            }
+
+            // 解析 JSON
+            var request = await context.Request.JsonBodyAsync<NMarketRefreshProductRequest>();
+            if (request == null)
+            {
+                await context.ResponseError(HttpStatusCode.BadRequest, ErrorMessage.UNKNOW);
+                return;
+            }
+
+            //
+            var result = new NMarketRefreshProductResponse
+            {
+                Code = 0,
+                Items = null
+            };
+
+            // 
+            var b_result = await this.RefreshProducts(auth_data.id, request.Cost);
+            if (b_result.Code > 0)
+            {
+                if (b_result.Items != null)
+                {
+                    result.Items = b_result.Items.Select(v => v).ToList<object?>();
+                }
+            }
+
+            //
+            result.Code = b_result.Code;
+
+            //
+            await context.ResponseResult(result);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
         protected async Task HandleMarketBuyProduct(HttpContext context)
         {
             SessionAuthData auth_data = new SessionAuthData();
@@ -62,14 +134,15 @@ namespace Server
             var b_result = await this.BuyProduct(auth_data.id, uid, request.Index);
             if (b_result.Code > 0)
             {
-                if (b_result.Items != null) {
+                if (b_result.Items != null)
+                {
                     result.Items = b_result.Items.Select(v => v).ToList<object?>();
                 }
             }
 
             //
             result.Code = b_result.Code;
-            
+
             //
             await context.ResponseResult(result);
         }

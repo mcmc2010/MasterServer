@@ -9,6 +9,13 @@ namespace Server
     namespace Market
     {
         [System.Serializable]
+        public class RefreshProductResult
+        {
+            public int Code = -1;
+            public List<AMToolkits.Game.GeneralItemData>? Items = null;
+        }
+
+        [System.Serializable]
         public class BuyProductResult
         {
             public int Code = -1;
@@ -53,8 +60,103 @@ namespace Server
             _logger?.Log($"{TAGName} Register Handlers");
 
             //
+            args.app?.MapPost("api/market/refresh", HandleMarketRefreshProducts);
             args.app?.MapPost("api/market/buy", HandleMarketBuyProduct);
 
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <returns></returns>
+        public async System.Threading.Tasks.Task<Server.Market.RefreshProductResult> RefreshProducts(string user_uid, string cost)
+        {
+            cost = cost.Trim();
+
+            Server.Market.RefreshProductResult b_result = new Market.RefreshProductResult()
+            {
+                Code = -1,
+            };
+
+            bool is_free = cost.Length == 0;
+
+            //
+            // var shop_item = AMToolkits.Utility.TableDataManager.GetTableData<Game.TShop>()?.Get(index);
+            // if (shop_item == null || shop_item.Id != index)
+            // {
+            //     return b_result;
+            // }
+            // else if (shop_item.ShopType != (int)AMToolkits.Game.ShopType.Market)
+            // {
+            //     return b_result; //错误的产品
+            // }
+
+            // 默认为int32，此处用浮点表示
+            float balance = 0.0f;
+            string currency = AMToolkits.Game.CurrencyUtils.CURRENCY_GOLD_SHORT;
+
+            float amount = 0.0f;
+
+            // 获取花费
+            if (!is_free)
+            {
+                var costs = AMToolkits.Game.ItemUtils.ParseGeneralItem(cost);
+                if (costs.IsNullOrEmpty())
+                {
+                    b_result.Code = 0;
+                    return b_result;
+                }
+
+                // 目前只支持单一扣除
+                var cost_item = AMToolkits.Game.ItemUtils.GetVirtualCurrency(costs, AMToolkits.Game.ItemConstants.ID_NONE);
+                // 必须有消耗
+                if (cost_item == null)
+                {
+                    b_result.Code = 0;
+                    return b_result;
+                }
+
+                // 当原价大于等于10折扣才会生效
+                amount = -cost_item.Count;
+
+                // 首先 : 扣除货币
+                Dictionary<string, object?>? result = null;
+                if (cost_item.ID == AMToolkits.Game.ItemConstants.ID_GM)
+                {
+                    result = await UserManager.Instance._UpdateVirtualCurrency(user_uid, amount, AMToolkits.Game.VirtualCurrency.GM);
+                }
+                else if (cost_item.ID == AMToolkits.Game.ItemConstants.ID_GD)
+                {
+                    result = await UserManager.Instance._UpdateVirtualCurrency(user_uid, amount, AMToolkits.Game.VirtualCurrency.GD);
+                }
+                else
+                {
+                    b_result.Code = 0;
+                    return b_result;
+                }
+
+                // 扣除货币失败
+                if (result == null)
+                {
+                    return b_result;
+                }
+
+                // 默认为int32，此处用浮点表示
+                balance = System.Convert.ToSingle(result.Get("balance") ?? 0.0f);
+                currency = System.Convert.ToString(result.Get("currency")) ?? AMToolkits.Game.CurrencyUtils.CURRENCY_GOLD_SHORT;
+            }
+            else
+            {
+                var wallet_data = await UserManager.Instance._GetWalletData(user_uid);
+                balance = wallet_data?.gold ?? 0.0f;
+            }
+
+            //
+            _logger?.Log($"{TAGName} (RefreshProduct) Balance {balance} ({currency}), Amount {amount} (FREE:{is_free})");
+
+            b_result.Code = 1;
+            return b_result;
         }
 
         /// <summary>
