@@ -268,6 +268,11 @@ namespace AMToolkits.Redis
                 _logger?.Log("Redis connection start");
 
                 _database = this.GetDatabase();
+                if (_database == null)
+                {
+                    _logger?.LogError($"Failed to connect to Redis : {string.Join(";", config.EndPoints)}");
+                    return -1;
+                }
 
                 //
                 this.Ping();
@@ -275,8 +280,7 @@ namespace AMToolkits.Redis
                 this.Performances();
 
                 //
-                var list = await GetNodeKeyValues(UserManager.KEY_SESSIONS, (v) => true, 1);
-                var lis_1 = await GetNodeKeyValues(UserManager.KEY_SESSIONS, (v) => true, 10);
+
             }
             catch (RedisConnectionException e)
             {

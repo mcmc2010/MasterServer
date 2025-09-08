@@ -1690,16 +1690,19 @@ namespace Server
                 $"  (`id`,`product_id`,`name`, `type`, `user_id`, `custom_id`, " +
                 $"  `create_time`, `custom_data`, " +
                 $"  `count`, `balance`, `amount`, " +
+                $"  `virtual_balance`, `virtual_currency`, " +
                 $"  `status`) " +
                 $"VALUES " +
                 $"(?, ?, ?, ?, ?, ?, " +
                 $"CURRENT_TIMESTAMP,NULL, " +
                 $"?, ?, ?, " +
+                $"?, ?, " +
                 $"1); ";
             int result_code = query.Query(sql,
                     data.NID, data.ProductID,
                     template_data.Name, 0, user_uid, data.PlayFabUID,
-                    1, data.Balance, data.Amount);
+                    1, data.Balance, data.Amount,
+                    data.CurrentBalance, data.CurrentVirtualCurrency);
             if (result_code < 0)
             {
                 return -1;
@@ -1737,10 +1740,6 @@ namespace Server
         public async Task<int> _DBAddCashshopItems(string user_uid,
                             PFNCashShopItemData data)
         {
-            if (data.ItemList == null || data.ItemList?.Length == 0)
-            {
-                return 0;
-            }
 
             //
             var template_data = AMToolkits.Utility.TableDataManager.GetTableData<TShop>();
@@ -1764,17 +1763,20 @@ namespace Server
                 }
 
                 int index = 0;
-                foreach (var item in data.ItemList)
+                if (data.ItemList != null)
                 {
-                    if (await DBUpdateCashshopItemData(db, user_uid, data.NID, data.ProductID,
-                            index, item) < 0)
+                    foreach (var item in data.ItemList)
                     {
-                        db?.Rollback();
-                        return -1;
+                        if (await DBUpdateCashshopItemData(db, user_uid, data.NID, data.ProductID,
+                                index, item) < 0)
+                        {
+                            db?.Rollback();
+                            return -1;
+                        }
+                        index++;
                     }
-                    index++;
                 }
-
+                
                 //
                 db?.Commit();
             }

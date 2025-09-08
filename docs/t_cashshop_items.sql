@@ -38,3 +38,7 @@ ALTER TABLE `game`.`t_cashshop_items`
 ADD COLUMN `item_0` VARCHAR(64) NULL DEFAULT NULL AFTER `balance`,
 ADD COLUMN `item_1` VARCHAR(64) NULL DEFAULT NULL AFTER `item_0`,
 ADD COLUMN `item_2` VARCHAR(64) NULL DEFAULT NULL AFTER `item_1`;
+
+ALTER TABLE `game`.`t_cashshop_items` 
+ADD COLUMN `virtual_balance` DECIMAL(10,0) NULL DEFAULT NULL COMMENT '可能是获得虚拟货币' AFTER `balance`,
+ADD COLUMN `virtual_currency` VARCHAR(5) NULL DEFAULT 'GM' AFTER `virtual_balance`;

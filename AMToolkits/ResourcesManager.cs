@@ -174,12 +174,17 @@ namespace AMToolkits.Utility
         {
             string ext = "";
             AssetType type = AssetType.None;
-            if(typeof(T) == typeof(TextAsset))
+            if (typeof(T) == typeof(TextAsset))
             {
                 type = AssetType.Text;
                 ext = System.IO.Path.GetExtension(filename);
-                if(ext.Length == 0) {
+                if (ext.Length == 0)
+                {
                     ext = ".txt";
+                }
+                else
+                {
+                    ext = "";
                 }
             }
 

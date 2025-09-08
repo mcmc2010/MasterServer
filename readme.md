@@ -31,6 +31,23 @@ openssl x509 -req -days 365 -in ./certs/db.csr -CA ./certs/ca.crt -CAkey ./certs
 openssl rsa -in ./certs/db_rsa_2048.pem -out ./certs/db_rsa_2048.pem.unsecure
 ```
 
+### 创建支付密钥
+```shell
+openssl genrsa -aes256 -passout pass:123456 -out ./certs/payment.pem 2048
+openssl rsa -in ./certs/payment.pem -pubout -out ./certs/payment_public.pem
+openssl pkcs8 -topk8 -in ./certs/payment.pem -out ./certs/payment_pkcs8.pem -nocrypt
+openssl rsa -in ./certs/payment.pem -out ./certs/payment.pem.unsecure
+
+openssl req -new -key ./certs/payment.pem -passin pass:123456 -out ./certs/payment.csr -subj "/C=CN/ST=SH/L=SH/O=COM/OU=AM/CN=Payments/emailAddress=admin@mcmcx.com"
+openssl x509 -req -days 365 -in ./certs/payment.csr -CA ./certs/ca.crt -CAkey ./certs/ca_rsa_2048.pem -passin pass:123456 -CAcreateserial -out ./certs/payment.crt 
+
+# sign test
+openssl dgst -sha256 -sign ./certs/payment.pem -out signature.bin sign_text.txt
+openssl base64 -in signature.bin -out signature_base64.txt
+openssl base64 -d -A -in signature_base64.txt -out signature.bin
+openssl dgst -sha256 -verify ./certs/payment_public.pem -signature signature.bin sign_text.txt
+```
+
 ```shell
 # build win64
 dotnet publish MasterServer.csproj -c Release --output ./publish --self-contained true -r win-x64

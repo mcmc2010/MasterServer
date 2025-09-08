@@ -31,19 +31,29 @@ namespace Server
                 return -1;
             }
 
-            var list = data.ItemList?.ToList();
-            if (list == null || list.Count == 0)
+            // 如果是游戏币
+            if (data.ItemList == null)
             {
-                _logger?.LogWarning($"{TAGName} (BuyProduct) (User:{user_uid}) {data.NID} - {data.ProductID} Amount: {data.Amount} {AMToolkits.Game.VirtualCurrency.GM} Not Items");
-                return 0;
+                
             }
+            // 如果包含物品，添加物品
+            else
+            {
+                var list = data.ItemList.ToList();
+                if (list == null || list.Count == 0)
+                {
+                    _logger?.LogWarning($"{TAGName} (BuyProduct) (User:{user_uid}) {data.NID} - {data.ProductID} Amount: {data.Amount} {AMToolkits.Game.VirtualCurrency.GM} Not Items");
+                    return 0;
+                }
 
-            // 增加物品
-            if (await _DBAddUserInventoryItems(user_uid, list) < 0)
-            {
-                return -1;
+                // 增加物品
+                if (await _DBAddUserInventoryItems(user_uid, list) < 0)
+                {
+                    return -1;
+                }
+                return list.Count;
             }
-            return 0;
+            return 1;
         }
         #endregion
     }

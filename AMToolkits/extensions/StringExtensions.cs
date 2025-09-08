@@ -21,6 +21,23 @@ namespace AMToolkits.Extensions
         /// </summary>
         /// <param name="bytes"></param>
         /// <returns></returns>
+        public static string Base64Encode(this byte[] bytes)
+        {
+            string b64 = System.Convert.ToBase64String(bytes);
+            return b64;
+        }
+
+        public static byte[] Base64Decode(this string text)
+        {
+            byte[] vb = System.Convert.FromBase64String(text);
+            return vb;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="bytes"></param>
+        /// <returns></returns>
         public static string Base64UrlEncode(this byte[] bytes)
         {
             string b64 = System.Convert.ToBase64String(bytes);

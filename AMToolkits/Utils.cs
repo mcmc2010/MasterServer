@@ -258,7 +258,7 @@ namespace AMToolkits
             "傻逼", "草泥马", "fuck", "shit", "asshole", "bitch",
             "妈的", "狗日的", "混蛋", "王八蛋", "操", "日",
             "nmsl", "cnm", "tmd", "sb", "nm", "tm",
-            
+
         };
         // 政治类敏感词
         private static readonly HashSet<string> SensitiveWords = new HashSet<string>()
@@ -322,5 +322,6 @@ namespace AMToolkits
             return 1;
         }
         #endregion
+
     }
 }

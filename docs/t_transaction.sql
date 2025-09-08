@@ -41,3 +41,8 @@ RENAME TO  `t_transactions` ;
 ALTER TABLE `t_transactions` 
 AUTO_INCREMENT = 10000 ,
 CHANGE COLUMN `uid` `uid` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'IID' ;
+
+ALTER TABLE `t_transactions` 
+ADD COLUMN `pending_time` DATETIME NULL DEFAULT NULL AFTER `complete_time`;
+
+

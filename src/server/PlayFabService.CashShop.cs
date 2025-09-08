@@ -29,6 +29,13 @@ namespace Server
         [JsonPropertyName("amount")]
         public float Amount = 0.0f;
 
+        /// <summary>
+        /// 
+        /// </summary>
+        [JsonPropertyName("current_currency")]
+        public string CurrentVirtualCurrency = AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS_SHORT;
+        [JsonPropertyName("current_balance")]
+        public float? CurrentBalance = null;
     }
 
     [System.Serializable]

@@ -135,8 +135,12 @@ namespace Server
             }
             // 物品必须是商城物品
             var shop_template_item = shop_template_data.First(v => v.ProductId == item_id);
-            if (shop_template_item == null || shop_template_item.ShopType != (int)AMToolkits.Game.ShopType.CashShop)
+            if (shop_template_item == null ||
+                ( shop_template_item.ShopType != (int)AMToolkits.Game.ShopType.CashShop &&
+                  shop_template_item.ShopType != (int)AMToolkits.Game.ShopType.Shop_2 )
+            )
             {
+                result.Code = 0;
                 return result;
             }
 
@@ -145,7 +149,6 @@ namespace Server
             var costs = AMToolkits.Game.ItemUtils.ParseGeneralItem(shop_template_item.Cost);
             if (costs.IsNullOrEmpty())
             {
-                result.Code = 0;
                 return result;
             }
 
@@ -210,6 +213,15 @@ namespace Server
                 //return result;
             }
 
+            if (r_result.Data?.ItemList != null)
+            {
+                result.Items = new List<AMToolkits.Game.GeneralItemData>();
+                foreach (var v in r_result.Data.ItemList)
+                {
+                    v.NID = -1;
+                    result.Items.Add(v);
+                }
+            }
 
             //
             _logger?.Log($"{TAGName} (BuyProduct) Balance {r_result.Data?.Balance} ({r_result.Data?.VirtualCurrency}), Amount {amount} ({shop_template_item.Discount})");

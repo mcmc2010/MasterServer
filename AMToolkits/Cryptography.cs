@@ -1,4 +1,7 @@
+
+
 using System.Security.Cryptography;
+
 
 namespace AMToolkits
 {
@@ -173,6 +176,104 @@ namespace AMToolkits
                 return null;
             }
             return Decrypt(input, key_buffer, padding);
+        }
+    }
+    #endregion
+
+    #region RSA
+    public class RSA
+    {
+
+        public static bool RSA2SignData(string text, string private_key,
+                                out byte[]? output_buffer)
+        {
+            var buffer = System.Text.Encoding.UTF8.GetBytes(text);
+
+            // 1. 加载私钥到 RSA 实例
+            System.Security.Cryptography.RSA rsa = System.Security.Cryptography.RSA.Create();
+            rsa.ImportFromPem(private_key.ToCharArray()); // .NET 6+ 直接支持 PEM 导入
+            return RSA2SignData(buffer, rsa, out output_buffer);
+        }
+
+        public static bool RSA2SignData(string text, System.Security.Cryptography.RSA? rsa,
+                                out byte[]? output_buffer)
+        {
+            var buffer = System.Text.Encoding.UTF8.GetBytes(text);
+            return RSA2SignData(buffer, rsa, out output_buffer);
+        }
+
+        public static bool RSA2SignData(byte[] buffer, System.Security.Cryptography.RSA? rsa,
+                                out byte[]? output_buffer)
+        {
+            output_buffer = null;
+            if (rsa == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                byte[] signature_data = rsa.SignData(
+                    buffer,
+                    System.Security.Cryptography.HashAlgorithmName.SHA256,
+                    System.Security.Cryptography.RSASignaturePadding.Pkcs1 // 支付宝要求 PKCS#1 填充
+                );
+
+                output_buffer = signature_data;
+                return true;
+            }
+            catch (Exception e)
+            {
+                output_buffer = null;
+                System.Console.WriteLine(e.Message);
+                return false;
+            }
+        }
+
+        public static bool RSA2VerifyData(string key, string text, byte[] sign_data)
+        {
+            var buffer = System.Text.Encoding.UTF8.GetBytes(text);
+            // 1. 加载私钥到 RSA 实例
+            System.Security.Cryptography.RSA rsa = System.Security.Cryptography.RSA.Create();
+            rsa.ImportFromPem(key.ToCharArray()); // .NET 6+ 直接支持 PEM 导入
+            return RSA2VerifyData(rsa, buffer, sign_data);
+        }
+
+
+        public static bool RSA2VerifyData(System.Security.Cryptography.RSA? rsa, string text, byte[] sign_data)
+        {
+            var buffer = System.Text.Encoding.UTF8.GetBytes(text);
+            return RSA2VerifyData(rsa, buffer, sign_data);
+        }
+
+        public static bool RSA2VerifyData(System.Security.Cryptography.RSA? rsa, byte[] data, byte[] sign_data)
+        {
+            if (rsa == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                // 计算数据的 SHA256 哈希值
+                System.Security.Cryptography.SHA256 sha256 = System.Security.Cryptography.SHA256.Create();
+                byte[] hash = sha256.ComputeHash(data);
+
+                sha256.Dispose();
+
+                // 使用公钥验证签名
+                return rsa.VerifyHash(
+                    hash,
+                    sign_data,
+                    System.Security.Cryptography.HashAlgorithmName.SHA256,
+                    System.Security.Cryptography.RSASignaturePadding.Pkcs1
+                );
+            }
+            catch (Exception e)
+            {
+                System.Console.WriteLine(e.Message);
+                return false;
+            }
         }
     }
     #endregion

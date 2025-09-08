@@ -1,0 +1,14 @@
+{
+    "ssl_certs": "certs/payment.crt",
+    "ssl_key": "certs/payment.pem.unsecure",
+    "alipay": {
+        "enabled": true,
+        "is_sandbox": true,
+        "sandbox_url": "https://openapi-sandbox.dl.alipaydev.com/gateway.do",
+        "url": "https://openapi.alipay.com/gateway.do",
+        "sandbox_app_id": "9021000152623602",
+        "app_id": "2021005187659435",
+        // 方法
+        "method": ""
+    }
+}
