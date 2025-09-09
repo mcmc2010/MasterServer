@@ -44,6 +44,11 @@ namespace Server
             _logger?.Log($"{TAGName} Register Handlers");
 
             //
+            args.app?.Map("api/internal/user/wallet/data", HandleUserWalletData);
+            args.app?.Map("api/internal/user/wallet/update", HandleUserWalletUpdate);
+
+            
+            //
             args.app?.Map("api/internal/game/pvp/completed", HandleGamePVPCompleted);
 
         }

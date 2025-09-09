@@ -204,6 +204,16 @@ namespace Server
                 _logger?.LogError($"{TAGName} (BuyProduct) (User:{user_uid}) {item_id} - {shop_template_item.Name} Amount: {amount} {AMToolkits.Game.VirtualCurrency.GM} Failed");
                 return result;
             }
+            if (r_result.Result != AMToolkits.ServiceConstants.VALUE_SUCCESS)
+            {
+                result.Code = -1;
+                if (r_result.Error == AMToolkits.ServiceConstants.VALUE_INSUFFICIENT)
+                {
+                    result.Code = -5; // 余额不足
+                }
+                _logger?.LogError($"{TAGName} (BuyProduct) (User:{user_uid}) {item_id} - {shop_template_item.Name} Amount: {amount} {AMToolkits.Game.VirtualCurrency.GM} Failed");
+                return result;
+            }
 
             // 添加数据库记录
             if (await UserManager.Instance._CashshopBuyProduct(r_user.ID, r_user.CustomID, r_result.Data) <= 0)

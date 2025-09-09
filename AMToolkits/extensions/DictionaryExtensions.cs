@@ -1,4 +1,6 @@
 
+using System.Text.Json;
+
 namespace AMToolkits.Extensions
 {
     /// <summary>
@@ -43,6 +45,60 @@ namespace AMToolkits.Extensions
                 return def;
             }
             return val;
+        }
+
+        public static TRet? Get<TRet>(this IDictionary<string, object?>? dict, string key, TRet? def = default(TRet))
+                            where TRet : class, new()
+        {
+            if (dict.IsNullOrEmpty()) { return def; }
+            if (!dict.ContainsKey(key)) { return def; }
+            if (!dict.TryGetValue(key, out object? val) || val == null)
+            {
+                return def;
+            }
+
+            // 尝试直接转换
+            if (val is TRet rval)
+            {
+                return rval;
+            }
+
+            // 如果val是数组，但是TRet是list，就转换为list
+            // 处理数组转List的情况
+            if (val is Array array &&
+                typeof(TRet).IsGenericType &&
+                typeof(TRet).GetGenericTypeDefinition() == typeof(List<>))
+            {
+                // 获取目标列表的元素类型
+                var element_type = typeof(TRet).GetGenericArguments()[0];
+                // 创建泛型列表
+                var list_type = typeof(List<>).MakeGenericType(element_type);
+                var list = Activator.CreateInstance(list_type) as System.Collections.IList;
+                foreach (var item in array)
+                {
+                    list.Add(item);
+                }
+                return list as TRet;
+            }
+            // Json Array
+            else if (val is System.Text.Json.JsonElement elem && elem.ValueKind == System.Text.Json.JsonValueKind.Array &&
+                typeof(TRet).IsGenericType &&
+                typeof(TRet).GetGenericTypeDefinition() == typeof(List<>))
+            {
+                // 获取目标列表的元素类型
+                var element_type = typeof(TRet).GetGenericArguments()[0];
+                // 创建泛型列表
+                var list_type = typeof(List<>).MakeGenericType(element_type);
+                var list = Activator.CreateInstance(list_type) as System.Collections.IList;
+
+                foreach (var item in elem.EnumerateArray())
+                {
+                    list.Add(item.Deserialize(element_type));
+                }
+
+                return list as TRet;
+            }
+            return val as TRet;
         }
 
         /// <summary>
@@ -90,24 +146,24 @@ namespace AMToolkits.Extensions
         public static Dictionary<TKey, object?>? ToDictionaryObject<TKey>(this IDictionary<TKey, object?>? dict)
                             where TKey : notnull
         {
-            if(dict == null) { return null; }
+            if (dict == null) { return null; }
 
             var list = new Dictionary<TKey, object?>();
             foreach (var v in dict)
             {
-                if(v.Value is System.Text.Json.JsonElement elem)
-                list[v.Key] = elem.ValueKind switch
-                {
-                    System.Text.Json.JsonValueKind.String => elem.GetString(),
-                    System.Text.Json.JsonValueKind.Number => elem.GetDouble(),
-                    System.Text.Json.JsonValueKind.True => true,
-                    System.Text.Json.JsonValueKind.False => false,
-                    System.Text.Json.JsonValueKind.Null => null,
-                    System.Text.Json.JsonValueKind.Undefined => null,
-                    System.Text.Json.JsonValueKind.Object => elem,
-                    System.Text.Json.JsonValueKind.Array => elem,
-                    _ => elem
-                };
+                if (v.Value is System.Text.Json.JsonElement elem)
+                    list[v.Key] = elem.ValueKind switch
+                    {
+                        System.Text.Json.JsonValueKind.String => elem.GetString(),
+                        System.Text.Json.JsonValueKind.Number => elem.GetDouble(),
+                        System.Text.Json.JsonValueKind.True => true,
+                        System.Text.Json.JsonValueKind.False => false,
+                        System.Text.Json.JsonValueKind.Null => null,
+                        System.Text.Json.JsonValueKind.Undefined => null,
+                        System.Text.Json.JsonValueKind.Object => elem,
+                        System.Text.Json.JsonValueKind.Array => elem,
+                        _ => elem
+                    };
             }
             return list;
         }
@@ -138,6 +194,35 @@ namespace AMToolkits.Extensions
             {
                 System.Console.WriteLine($"{e.Message}");
                 return null;
+            }
+        }
+        
+        public static TRet? ToObjectFromDictionary<TRet>(this IDictionary<string, object?>? dict)
+        {
+            try
+            {
+                var json = System.Text.Json.JsonSerializer.Serialize(dict);
+                if (json == null || json.Trim().Length == 0)
+                {
+                    return default(TRet);
+                }
+
+                var o = System.Text.Json.JsonSerializer.Deserialize<TRet>(json,
+                            new System.Text.Json.JsonSerializerOptions
+                            {
+                                IgnoreReadOnlyFields = true,
+                                IncludeFields = true,
+                                // PropertyNameCaseInsensitive = true,    // 启用不区分大小写的属性匹配
+                                ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip,  // 自动跳过注释
+                                // PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase, // 不使用驼峰命名
+                                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower
+                            });
+                return o;
+            }
+            catch (Exception e)
+            {
+                System.Console.WriteLine($"{e.Message}");
+                return default(TRet);
             }
         }
 

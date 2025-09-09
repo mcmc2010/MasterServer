@@ -101,7 +101,7 @@ namespace Server
             if (response.Data?.Result != AMToolkits.ServiceConstants.VALUE_SUCCESS)
             {
                 _logger?.LogError($"{TAGName} (User:{user_uid}) PFCashShopBuyProduct Failed: ({playfab_uid}) [{response.Data?.Result}:{response.Data?.Error}]");
-                return null;
+                return response.Data;
             }
 
             return response.Data;

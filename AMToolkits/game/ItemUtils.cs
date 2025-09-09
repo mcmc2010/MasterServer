@@ -1,5 +1,6 @@
 
 
+
 namespace AMToolkits.Game
 {
 
@@ -176,6 +177,16 @@ namespace AMToolkits.Game
         }
 
         /// <summary>
+        /// 是否为虚拟货币物品
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public static bool HasVirtualCurrency(int id = ItemConstants.ID_NONE)
+        {
+            return (id > ItemConstants.ID_NONE) && (id >= ItemConstants.ID_N0 && id <= ItemConstants.ID_NN);
+        }
+
+        /// <summary>
         /// 获取物品列表中是否设置了特殊道具转换为货币
         /// 仅仅是列表中的第一个其它会忽略
         /// </summary>
@@ -249,6 +260,23 @@ namespace AMToolkits.Game
                 discount_price = System.Math.Round((decimal)price, 2);
             }
             return (float)discount_price;
+        }
+
+        /// <summary>
+        /// 优惠价
+        /// </summary>
+        /// <param name="price"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public static float GetReductionsPrice(float price, float value)
+        {
+            float amount = price - value;
+            if (amount < 10.0f)
+            {
+                return price;
+            }
+
+            return amount;
         }
 
     }

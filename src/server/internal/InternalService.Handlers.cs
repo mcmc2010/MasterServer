@@ -3,11 +3,85 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
 using AMToolkits.Extensions;
 using Logger;
+using AMToolkits.Game;
 
 
 namespace Server
 {
+    #region User
 
+    /// <summary>
+    /// 获取钱包
+    /// Endpoint: api/internal/user/wallet/data
+    /// </summary>
+    [System.Serializable]
+    public class NUserWalletDataRequest
+    {
+        /// <summary>
+        /// 玩家账号
+        /// </summary>
+        [JsonPropertyName("user_uid")]
+        public string UserID = "";
+
+        /// <summary>
+        /// 目前是PlayfabID
+        /// </summary>
+        [JsonPropertyName("custom_uid")]
+        public string CustomID = "";
+    }
+
+    [System.Serializable]
+    public class NUserWalletDataResponse
+    {
+        [JsonPropertyName("code")]
+        public int Code;
+
+        [JsonPropertyName("data")]
+        public WalletData? Data = null;
+    }
+
+    /// <summary>
+    /// 更新虚拟货币
+    /// Endpoint: api/internal/user/wallet/update
+    /// </summary>
+    [System.Serializable]
+    public class NUserWalletUpdateRequest
+    {
+        /// <summary>
+        /// 玩家账号
+        /// </summary>
+        [JsonPropertyName("user_uid")]
+        public string UserID = "";
+
+        /// <summary>
+        /// 目前是PlayfabID
+        /// </summary>
+        [JsonPropertyName("custom_uid")]
+        public string CustomID = "";
+
+        [JsonPropertyName("amount")]
+        public float Amount = 0.0f;
+
+        /// <summary>
+        /// 0:金币，1:钻石
+        /// </summary>
+        [JsonPropertyName("currency")]
+        public int VirtualCurrency = (int)AMToolkits.Game.VirtualCurrency.GD;
+    }
+
+    [System.Serializable]
+    public class NUserWalletUpdateResponse
+    {
+        [JsonPropertyName("code")]
+        public int Code;
+
+        [JsonPropertyName("data")]
+        public Dictionary<string, object?>? Data = null;
+    }
+
+    #endregion
+
+    #region Game PVP
     [System.Serializable]
     public class NGamePVPPlayerData
     {
@@ -72,12 +146,95 @@ namespace Server
         public string ID = ""; //流程编号
     }
 
+    #endregion
+
     /// <summary>
     /// 
     /// </summary>
 
     public partial class InternalService
     {
+        /// <summary>
+        /// 获取钱包数据
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        protected async Task HandleUserWalletData(HttpContext context)
+        {
+            // 解析 JSON
+            var request = await context.Request.JsonBodyAsync<NUserWalletDataRequest>();
+            if (request == null)
+            {
+                await context.ResponseError(HttpStatusCode.BadRequest, ErrorMessage.UNKNOW);
+                return;
+            }
+
+
+            //
+            var result = new NUserWalletDataResponse
+            {
+                Code = 0,
+            };
+
+            
+            // 
+            var result_data = await this._GetWalletData(request.UserID, request.CustomID);
+            if (result_data == null) {
+                result.Code = -1;
+            }
+            else
+            {
+                //
+                result.Code = 1;
+                result.Data = result_data;
+            }
+
+            //
+            await context.ResponseResult(result);
+        }
+
+        /// <summary>
+        /// 更新钱包
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        protected async Task HandleUserWalletUpdate(HttpContext context)
+        {
+            // 解析 JSON
+            var request = await context.Request.JsonBodyAsync<NUserWalletUpdateRequest>();
+            if (request == null)
+            {
+                await context.ResponseError(HttpStatusCode.BadRequest, ErrorMessage.UNKNOW);
+                return;
+            }
+
+
+            //
+            var result = new NUserWalletUpdateResponse
+            {
+                Code = 0,
+            };
+
+
+            // 
+            var result_data = await this._UpdateVirtualCurrency(request.UserID, request.CustomID, request.Amount,
+                                (AMToolkits.Game.VirtualCurrency)request.VirtualCurrency);
+            if (result_data == null)
+            {
+                result.Code = -1;
+            }
+            else
+            {
+                //
+                result.Code = 1;
+                result.Data = result_data;
+            }
+
+            //
+            await context.ResponseResult(result);
+        }
+
+
         /// <summary>
         /// 
         /// </summary>
@@ -125,5 +282,8 @@ namespace Server
             //
             await context.ResponseResult(result);
         }
+
+
+
     }
 }
