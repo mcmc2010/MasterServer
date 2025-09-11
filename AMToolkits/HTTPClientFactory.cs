@@ -50,20 +50,22 @@ namespace AMToolkits.Net
             base.Initialize();
         }
 
-        public void APICreate(string url, float timeout = 5.0f)
+        public HTTPClientProxy? APICreate(string url, float timeout = 5.0f)
         {
             url = url.Trim();
             if (url.Length == 0)
             {
-                return;
+                return null;
             }
 
             _url = url;
             if (_client == null || _client.IsRunning)
             {
                 //
-                _client = this.Create(url);
+                _client = this.Create(url, timeout);
             }
+
+            return _client;
         }
 
         public async Task<T?> GetAsync<T>(string endpoint,

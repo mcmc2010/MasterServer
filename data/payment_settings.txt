@@ -1,6 +1,8 @@
 {
     "ssl_certs": "certs/payment.crt",
     "ssl_key": "certs/payment.pem.unsecure",
+    // 订单超时时间，一分钟内未完成支付，按超时处理。
+    "transaction_timeout": 300,
     "alipay": {
         "enabled": true,
         "is_sandbox": true,
@@ -9,6 +11,6 @@
         "sandbox_app_id": "9021000152623602",
         "app_id": "2021005187659435",
         // 方法
-        "method": ""
+        "method": "alipay.trade.query"
     }
 }

@@ -106,7 +106,7 @@ namespace Server
             DateTime? completed_time = null;
             if (reason == "error" || reason == "completed")
             {
-                completed_time = DateTime.UtcNow;
+                completed_time = DateTime.Now;
             }
 
             //
@@ -140,13 +140,17 @@ namespace Server
             return 1;
         }
 
-        protected async System.Threading.Tasks.Task<int> DBPendingTransaction(DatabaseQuery? query, string user_uid,
-                            TransactionItem transaction)
+        protected async System.Threading.Tasks.Task<int> DBReviewTransaction(DatabaseQuery? query, string user_uid,
+                            TransactionItem transaction, string reason)
         {
             if (query == null)
             {
                 return -1;
             }
+
+            reason = reason.Trim().ToLower();
+
+            string placeholders = "'error', 'review', 'approved', 'rejected'";
 
             //
             List<DatabaseResultItemSet>? list = null;
@@ -158,9 +162,9 @@ namespace Server
             $"    `update_time` = CURRENT_TIMESTAMP, `pending_time` = CURRENT_TIMESTAMP " +
             $"WHERE  " +
             $"    `status` > 0 AND `user_id` = ? AND" +
-            $"    `id` = ? AND `order_id` = ?";
+            $"    `id` = ? AND `order_id` = ? AND `code` NOT IN ({placeholders})";
             var result_code = query.QueryWithList(sql, out list,
-                "pending",
+                reason,
                 user_uid,
                 transaction.id, transaction.order_id);
             if (result_code < 0)
@@ -169,7 +173,7 @@ namespace Server
             }
 
             transaction.update_time = DateTime.UtcNow;
-            transaction.result_code = "pending";
+            transaction.result_code = reason;
 
             return 1;
         }
@@ -319,7 +323,8 @@ namespace Server
         /// <param name="user_uid"></param>
         /// <param name="transaction"></param>
         /// <returns></returns>
-        public async Task<int> DBPendingTransaction(string user_uid, TransactionItem transaction)
+        public async Task<int> DBReviewTransaction(string user_uid, TransactionItem transaction,
+                                    string reason = "pending")
         {
 
             var db = DatabaseManager.Instance.New();
@@ -327,7 +332,7 @@ namespace Server
             {
                 db?.Transaction();
 
-                if (await DBPendingTransaction(db, user_uid, transaction) < 0)
+                if (await DBReviewTransaction(db, user_uid, transaction, reason) < 0)
                 {
                     db?.Rollback();
                     return -1;
@@ -338,7 +343,7 @@ namespace Server
             }
             catch (Exception e)
             {
-                _logger?.LogError($"{TAGName} (PendingTransaction) Error :" + e.Message);
+                _logger?.LogError($"{TAGName} (ReviewTransaction) Error :" + e.Message);
                 return -1;
             }
             finally

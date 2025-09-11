@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using AMToolkits.Extensions;
 
 ////
 namespace AMToolkits.Net
@@ -59,6 +60,7 @@ namespace AMToolkits.Net
 
         private string _base_url = "";
         private string _url = "";
+        private string _full_url = "";
 
         private int _timeout_limit = 5 * 1000;
         private float _request_duration = 0.0f;
@@ -231,7 +233,7 @@ namespace AMToolkits.Net
         /// </summary>
         /// <param name="args"></param>
         /// <returns></returns>
-        private static string ParseArguments(string url, Dictionary<string, object>? args = null)
+        public static string ParseArguments(string url, Dictionary<string, object>? args = null)
         {
             if (args == null)
             {
@@ -246,7 +248,7 @@ namespace AMToolkits.Net
                 {
                     if (first)
                     {
-                        text += "?";
+                        text += url.IsNullOrWhiteSpace() ? "" : "?";
                         first = false;
                     }
                     else
@@ -267,6 +269,16 @@ namespace AMToolkits.Net
             @"^\s*(\{[\s\S]*\}|\[[\s\S]*\])\s*$",
             System.Text.RegularExpressions.RegexOptions.Compiled
         );
+
+        private static bool IsJsonBody(string content)
+        {
+            if (!JsonPattern.IsMatch(content))
+            {
+                return false;
+            }
+            return true;
+        }
+
         private static T? ParseJsonBody<T>(string content) where T : IHTTPResponseResult
         {
             try
@@ -404,15 +416,17 @@ namespace AMToolkits.Net
             client._status_error = null;
 
             long timestamp = HTTPClientProxy.LongTimestamp;
-            if (client._is_output_log)
-            {
-                client.Log("[HTTP] (Request) Start:", client._url);
-            }
 
             //
             if (arguments != null)
             {
                 url = url + HTTPClientProxy.ParseArguments(url, arguments);
+            }
+
+            client._full_url = url;
+            if (client._is_output_log)
+            {
+                client.Log("[HTTP] (Request) Start:", client._url);
             }
 
             HttpRequestMessage request;
@@ -502,7 +516,9 @@ namespace AMToolkits.Net
                 {
                     var buffer = await response.Content.ReadAsByteArrayAsync();
                     content = System.Text.Encoding.UTF8.GetString(buffer);
-                    if (content.Length > 0 && content_type.Contains("application/json", StringComparison.OrdinalIgnoreCase))
+                    if (content.Length > 0 &&
+                        (content_type.Contains("application/json", StringComparison.OrdinalIgnoreCase) ||
+                        HTTPClientProxy.IsJsonBody(content)))
                     {
                         body = HTTPClientProxy.ParseJsonBody<T>(content);
                     }

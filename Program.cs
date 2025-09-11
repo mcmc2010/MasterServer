@@ -148,6 +148,8 @@ try
 
     //
     proxy_service.StartWorking();
+    // 
+    payment_manageer.StartWorking();
 
     //
     int result = await app.StartWorking();

@@ -2,10 +2,11 @@
 using Microsoft.AspNetCore.Builder;
 using Logger;
 using AMToolkits.Extensions;
-using System.Transactions;
-using System.Security.Cryptography.X509Certificates;
+using AMToolkits.Net;
+
+
 using System.Text.Json.Serialization;
-using System.Configuration;
+using System.Threading.Tasks;
 
 
 namespace Server
@@ -24,7 +25,7 @@ namespace Server
     public class PaymentSettingItem_Ailpay
     {
         [JsonPropertyName("enabled")]
-        public bool enabled = false;
+        public bool Enabled = false;
 
         [JsonPropertyName("is_sandbox")]
         public bool IsSandbox = false;
@@ -56,6 +57,13 @@ namespace Server
         public string SSLCertificates { get; set; } = "";
         [JsonPropertyName("ssl_key")]
         public string SSLKey { get; set; } = "";
+
+        /// <summary>
+        /// 订单超时设置
+        /// </summary>
+        [JsonPropertyName("transaction_timeout")]
+        public float TransactionTimeout = 30.0f;
+
 
         /// <summary>
         /// 
@@ -101,6 +109,10 @@ namespace Server
         public string? result_code = "";
 
         public int status = 0;
+
+        // 这个是审核时间，默认不需要序列化
+        public DateTime? ReviewTime = null;
+        public int ReviewCount = 0;
 
         /// <summary>
         /// 将item同步到类对象
@@ -156,10 +168,14 @@ namespace Server
         public readonly string[] REASONS = new string[]
         {
             "none",
-            "pending",
             "timeout",
             "error",
-            "completed"
+            "completed",
+            "pending",
+            "notfound", // 订单不存在
+            "review",   //自动审核
+            "approved", //客服审核通过
+            "rejected", //客服审核拒绝
         };
 
         [AMToolkits.AutoInitInstance]
@@ -179,7 +195,10 @@ namespace Server
 
         private System.Security.Cryptography.X509Certificates.X509Certificate2? _certificate = null;
 
+        private HTTPClientFactory? _client_factory = null;
 
+        //
+        private List<TransactionItem> _transactions_queue = new List<TransactionItem>();
 
         public PaymentManager()
         {
@@ -207,6 +226,26 @@ namespace Server
             //
             this.LoadCertificate(_settings.SSLCertificates, _settings.SSLKey);
 
+            //
+            _client_factory = HTTPClientFactory.CreateFactory<HTTPClientFactory>();
+            if (_settings.Alipay.Enabled)
+            {
+                string base_url = _settings.Alipay.URL;
+                if (_settings.Alipay.IsSandbox)
+                {
+                    base_url = _settings.Alipay.SandBoxURL;
+                }
+                var client = _client_factory.APICreate(base_url, 1.0f);
+                if (client != null)
+                {
+                    client.OnLogOutput = (message) =>
+                    {
+                        _logger?.Log($"{TAGName} (OpenAPI) : {message}");
+                    };
+                }
+            }
+
+            //
         }
 
         private void InitLogger(string name)
@@ -322,227 +361,93 @@ namespace Server
             args.app?.MapPost("api/payment/v1/transaction/check", HandleCheckTransactionV1);
         }
 
-        /// <summary>
-        /// 开始支付 - 创建订单
-        /// </summary>
-        /// <param name="user_uid"></param>
-        /// <returns></returns>
-        public async System.Threading.Tasks.Task<int> StartTransaction_V1(string user_uid, TransactionItem transaction)
+
+#pragma warning disable CS4014
+        public int StartWorking()
         {
-            // 商城物品必须有ProductId
-            var shop_template_data = AMToolkits.Utility.TableDataManager.GetTableData<Game.TShop>();
-            if (shop_template_data == null)
-            {
-                return -1;
-            }
-            // 物品必须是商城物品
-            var shop_template_item = shop_template_data.First(v => v.ProductId == transaction.product_id);
-            if (shop_template_item == null || shop_template_item.ShopType != (int)AMToolkits.Game.ShopType.Shop_1)
-            {
-                return -1;
-            }
-
-            transaction.name = shop_template_item.Name;
-
-            var r_user = UserManager.Instance.GetUserT<UserBase>(user_uid);
-            if (r_user == null || r_user.ID != transaction.user_id)
-            {
-                return -2;
-            }
-
-            transaction.custom_id = r_user.CustomID;
-
-            /// 支付方法：需要设置
-            transaction.result_code = null;
-            if (transaction.payment_method == "none" ||
-               (!_settings.Alipay.enabled && transaction.payment_method?.Contains("alipay") == true))
-            {
-                transaction.result_code = "none";
-            }
-
-            var r_result = await DBCreateTransaction(r_user.ID, transaction);
-            if (r_result <= 0)
-            {
-                return -1;
-            }
-
-
-            _logger?.Log($"{TAGName} (StartTransaction) : {transaction.id} - {transaction.name} " +
-                    $"(User:{transaction.user_id}) {transaction.order_id} Amount: {transaction.amount} {transaction.currency} ");
-
-            if (transaction.result_code == "none")
-            {
-                return -5;
-            }
-            return 1;
-        }
-
-        /// <summary>
-        /// 开始支付 - 检测订单
-        /// </summary>
-        /// <param name="user_uid"></param>
-        /// <returns></returns>
-        public async System.Threading.Tasks.Task<string?> CheckTransaction_V1(string user_uid, TransactionItem transaction,
-                            string? data)
-        {
-            if (data.IsNullOrWhiteSpace())
-            {
-                return null;
-            }
-
-            var r_user = UserManager.Instance.GetUserT<UserBase>(user_uid);
-            if (r_user == null || r_user.ID != transaction.user_id)
-            {
-                return null;
-            }
-
-            transaction.custom_id = r_user.CustomID;
-
-            // 对数据签名
-            var buffer = data?.Base64UrlDecode();
-            if (_certificate == null || buffer == null)
-            {
-                return "";
-            }
-
-            byte[]? sign_data = null;
-            if (!AMToolkits.RSA.RSA2SignData(buffer, _certificate.GetRSAPrivateKey(), out sign_data) || sign_data == null)
-            {
-                return null;
-            }
-
-            var sign_b64 = sign_data.Base64UrlEncode();
-            return sign_b64;
-        }
-
-
-        /// <summary>
-        /// 开始支付 - 完成订单
-        /// </summary>
-        /// <param name="user_uid"></param>
-        /// <returns></returns>
-        public async System.Threading.Tasks.Task<int> FinalTransaction_V1(string user_uid, TransactionItem transaction,
-                            string reason = "completed")
-        {
-            var r_user = UserManager.Instance.GetUserT<UserBase>(user_uid);
-            if (r_user == null || r_user.ID != transaction.user_id)
-            {
-                return -2;
-            }
-
-            // 原因必须在指定的选项中
-            reason = reason.Trim().ToLower();
-            if (!REASONS.Any(v => v == reason))
-            {
-                return -1;
-            }
-
-            transaction.custom_id = r_user.CustomID;
-
-            /// 支付方法：需要设置
-            if (transaction.payment_method == "none" ||
-               (!_settings.Alipay.enabled && transaction.payment_method?.Contains("alipay") == true))
-            {
-                return -5;
-            }
+            _transactions_queue.Clear();
 
             //
-            List<TransactionItem> transactions = new List<TransactionItem>();
-            var r_result = await DBGetTransactions(r_user.ID, transactions, transaction.id, transaction.order_id);
-            if (r_result < 0)
+            this.ProcessWorking();
+            return 0;
+        }
+#pragma warning restore CS4014
+
+        private async Task<int> ProcessWorking()
+        {
+            float delay = 5.0f;
+            //
+            while (!ServerApplication.Instance.HasQuiting)
             {
-                return -1;
+                if (_transactions_queue.Count > 0)
+                {
+                    var transaction = _transactions_queue.ElementAt(0);
+                    if (await _UpdateTransactionItem(transaction) >= 0)
+                    {
+                        _transactions_queue.RemoveAt(0);
+                    }
+                }
+                await Task.Delay((int)(delay * 1000));
             }
-            // 订单或流水号不存在
-            var ti = transactions.FirstOrDefault();
-            if (transactions.Count == 0 || ti == null)
+
+            return 0;
+        }
+
+        private async Task<int> _UpdateTransactionItem(TransactionItem? transaction)
+        {
+            if (transaction == null)
             {
                 return 0;
             }
-            transaction.Clone(ti);
 
-            // 商城物品必须有ProductId
-            var shop_template_data = AMToolkits.Utility.TableDataManager.GetTableData<Game.TShop>();
-            if (shop_template_data == null)
+            if (transaction.ReviewTime == null)
             {
-                return -1;
-            }
-            // 物品必须是商城物品
-            var shop_template_item = shop_template_data.First(v => v.ProductId == transaction.product_id);
-            if (shop_template_item == null || shop_template_item.ShopType != (int)AMToolkits.Game.ShopType.Shop_1)
-            {
-                return -1;
+                return 0;
             }
 
-            // 获取道具
-            var items = AMToolkits.Game.ItemUtils.ParseGeneralItem(shop_template_item.Items);
-            if (items.IsNullOrEmpty())
+            // 小于5秒的订单，暂时不审核
+            TimeSpan? timespan = (DateTime.UtcNow - transaction.ReviewTime);
+            if (transaction.ReviewCount == 1 && timespan?.TotalSeconds < 5.0f)
             {
-                return -1;
+                return -2;
             }
-            var item_list = UserManager.Instance.InitGeneralItemData(items);
-            if (item_list == null)
+            else if (transaction.ReviewCount == 2 && timespan?.TotalSeconds < 60.0f)
             {
+                return -2;
+            }
+            else if (transaction.ReviewCount == 3 && timespan?.TotalSeconds < _settings.TransactionTimeout)
+            {
+                return -2;
+            }
+
+            transaction.ReviewCount++;
+            var result = await AlipayGetTransactionData(transaction.user_id, transaction);
+            if (result == null) {
                 return -1;
             }
 
-            // 只处理第一个配置物品
-            var item = item_list.FirstOrDefault();
-            if (item?.ID == AMToolkits.Game.ItemConstants.ID_GM)
+            if (result.Status == RESULT_REASON_TRADE_NOT_EXIST)
             {
-                transaction.virtual_currency = AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS_SHORT;
-                transaction.virtual_amount = item.Count;
+                // 暂时不处理，等待下次审核
+                if (transaction.ReviewCount < 4)
+                {
+                    return -3;
+                }
+
+                await DBReviewTransaction(transaction.user_id, transaction, "timeout");
+                return 0;
             }
-            // 不支持 R 兑换游戏币（金币）
-            else if (item?.ID == AMToolkits.Game.ItemConstants.ID_GD)
+            else if (result.Status == RESULT_REASON_SUCCESS)
             {
-                //transaction.virtual_currency = AMToolkits.Game.CurrencyUtils.CURRENCY_GOLD_SHORT;
-                //transaction.virtual_amount = item.Count;
+                await DBReviewTransaction(transaction.user_id, transaction, "review");
+                _logger?.Log($"{TAGName} (UpdateTransactionItem) [{_transactions_queue.Count}]: ({transaction.user_id}) {transaction.order_id} ({result.Status}) Final [Review]");
+
+                // 
+                await ExtractTransaction_V1(transaction.user_id, transaction);
             }
             else
             {
-            }
-
-            r_result = await DBFinalTransaction(r_user.ID, transaction, reason);
-            if (r_result <= 0)
-            {
-                return -1;
-            }
-
-            //
-            _logger?.Log($"{TAGName} (FinalTransaction) : {transaction.id} - {transaction.name} " +
-                    $"(User:{transaction.user_id}) {transaction.order_id} Amount: {transaction.amount} {transaction.currency} ");
-            return 1;
-        }
-
-
-        /// <summary>
-        /// 修改订单 - 待审核
-        /// </summary>
-        /// <param name="user_uid"></param>
-        /// <param name="transaction"></param>
-        /// <returns></returns>
-        public async System.Threading.Tasks.Task<int> _PendingTransaction(string user_uid, TransactionItem transaction)
-        {
-            //
-            List<TransactionItem> transactions = new List<TransactionItem>();
-            var r_result = await DBGetTransactions(user_uid, transactions, transaction.id, transaction.order_id);
-            if (r_result < 0)
-            {
-                return -1;
-            }
-
-            // 订单或流水号不存在
-            var ti = transactions.FirstOrDefault();
-            if (transactions.Count == 0 || ti == null)
-            {
-                return 0;
-            }
-            transaction.Clone(ti);
-
-            r_result = await DBPendingTransaction(user_uid, transaction);
-            if (r_result <= 0)
-            {
+                _logger?.LogError($"{TAGName} (UpdateTransactionItem) : ({transaction.user_id}) {transaction.order_id} ({result.Status})");
                 return -1;
             }
 
