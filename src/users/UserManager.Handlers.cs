@@ -56,6 +56,15 @@ namespace Server
         public string UID = "";
     }
 
+
+    [System.Serializable]
+    public class NUserUpdateProfileRequest
+    {
+        [JsonPropertyName("avatar_url")]
+        public string AvatarUrl = "";
+    }
+
+
     [System.Serializable]
     public class NUserProfileResponse
     {
@@ -75,6 +84,7 @@ namespace Server
         [JsonPropertyName("data")]
         public UserProfileExtend? Profile = null;
     }
+
 
     [System.Serializable]
     public class NUserChangeNameRequest
@@ -316,6 +326,46 @@ namespace Server
 
             UserProfileExtend profile = new UserProfileExtend();
             int result_code = await this.GetUserProfile(auth_data.id, request.UID.Trim(), profile);
+            if (result_code > 0)
+            {
+                result.Profile = profile;
+            }
+
+            result.Code = result_code;
+
+            await context.ResponseResult(result);
+        }
+
+        /// <summary>
+        /// 用户属性修改
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        protected async Task HandleUserUpdateProfile(HttpContext context)
+        {
+            SessionAuthData auth_data = new SessionAuthData();
+            if (await ServerApplication.Instance.AuthSessionAndResult(context, auth_data) <= 0)
+            {
+                return;
+            }
+
+            // 解析 JSON
+            var request = await context.Request.JsonBodyAsync<NUserUpdateProfileRequest>();
+            if (request == null)
+            {
+                await context.ResponseError(HttpStatusCode.BadRequest, ErrorMessage.UNKNOW);
+                return;
+            }
+
+            //
+            var result = new NUserProfileResponse
+            {
+                Code = 0,
+            };
+
+            UserProfile profile = new UserProfile();
+            profile.AvatarUrl = request.AvatarUrl;
+            int result_code = await UpdateUserProfile(auth_data.id, profile);
             if (result_code > 0)
             {
                 result.Profile = profile;

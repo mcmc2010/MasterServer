@@ -1,8 +1,19 @@
 {
     "user": 
     {
+        // 头像id
+        "user_icons": [
+            "icon:1000", "icon:1001", "icon:1002", "icon:1003", "icon:1004", 
+            "icon:1005", "icon:1006", "icon:1007", "icon:1008", "icon:1009", 
+            "icon:1010"
+        ],
+
+        //
         // 改名必须消耗的物品，目前只有改名卡
-        "need_change_name_items": "5010,1"
+        "need_change_name_items": "5010|1",
+        // 7天才能修改 604800秒
+        "need_change_name_time": 604800,
+
     },
     "leaderboard":
     {

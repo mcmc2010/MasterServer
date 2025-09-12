@@ -57,20 +57,14 @@ namespace Server
         public string Region = "";
 
         /// <summary>
-        /// 目前头像只能选择已有图像
-        /// </summary>
-        [JsonPropertyName("avatar_id")]
-        public int AvatarID = 0;
-        /// <summary>
-        /// 未使用
+        /// 
         /// </summary>
         [JsonPropertyName("avatar_url")]
         public string AvatarUrl = "";
 
         public void InitFromDB(DBUserProfile? profile)
         {
-            this.AvatarID = profile?.AvatarID ?? 0;
-            this.AvatarUrl = "";
+            this.AvatarUrl = profile?.AvatarUrl ?? "";
             this.Gender = profile?.Gender ?? (int)UserGender.Female;
             this.Region = profile?.Region ?? "";
 
@@ -283,8 +277,7 @@ namespace Server
                 return -1;
             }
 
-            profile.AvatarID = db_profile?.AvatarID ?? 0;
-            profile.AvatarUrl = "";
+            profile.AvatarUrl = db_profile?.AvatarUrl ?? "";
             profile.Gender = db_profile?.Gender ?? (int)UserGender.Female;
             profile.Region = db_profile?.Region ?? "";
 
@@ -303,6 +296,56 @@ namespace Server
             profile.Season = db_profile_1?.Season ?? 1;
             profile.SeasonTime = db_profile_1?.SeasonTime ?? null;
             profile.ChallengerReals = db_profile_1?.ChallengerReals ?? 0;
+            return 1;
+        }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="to_name"></param>
+        /// <param name="profile"></param>
+        /// <returns></returns>
+        protected async Task<int> UpdateUserProfile(string? user_uid, UserProfile profile)
+        {
+            if (user_uid == null || user_uid.IsNullOrWhiteSpace())
+            {
+                return -1;
+            }
+
+            // 获取用户
+            var user = UserManager.Instance.GetUserT<UserBase>(user_uid);
+            if (user == null)
+            {
+                return -1;
+            }
+
+            profile.UID = user_uid;
+
+            // 是否在有效头像范围
+            profile.AvatarUrl = profile.AvatarUrl.Trim().ToLower();
+            if (!profile.AvatarUrl.IsNullOrWhiteSpace() &&
+                (profile.AvatarUrl.StartsWith("icon:") && !GameSettingsInstance.Settings.User.UserIcons.Any(v => v == profile.AvatarUrl)))
+            {
+                return -1;
+            }
+
+            // 不是同一个，这里暂时使用同一个
+            DBUserProfile? db_profile = null;
+            var result_code = this.DBGetUserProfile(user, profile.UID, out db_profile);
+            if (result_code < 0)
+            {
+                return -1;
+            }
+
+            result_code = await this.DBUpdateUserProfile(user, db_profile, profile);
+            if (result_code < 0)
+            {
+                return -1;
+            }
+
+            profile.InitFromDB(db_profile);
             return 1;
         }
 
@@ -354,6 +397,24 @@ namespace Server
 
             profile.InitFromDB(db_profile);
 
+            // 同一个名字无需再修改
+            if (profile.Name == to_name)
+            {
+                return 0;
+            }
+
+            // 检测时间是否限制
+            if (db_profile?.ChangedTime != null && GameSettingsInstance.Settings.User.NeedChangeNameTime > 0)
+            {
+                var changed_time = db_profile.ChangedTime?.AddSeconds(GameSettingsInstance.Settings.User.NeedChangeNameTime);
+                var timespan = changed_time - DateTime.Now;
+                if (timespan?.TotalSeconds > 0)
+                {
+                    return -101;
+                }
+            }
+
+
             // 扣除玩家道具
             var list = new List<UserInventoryItem>();
             var value = GameSettingsInstance.Settings.User.NeedChangeNameItems;
@@ -390,10 +451,12 @@ namespace Server
                 foreach (var v in items)
                 {
                     var vlist = new List<NUserInventoryItem>();
+
+                    // 扣除物品失败是否要回退?
                     if (await this.ConsumableUserInventoryItem(user.UID, v.ID, v.Count, vlist, "changed_name") < 0)
                     {
-                        _logger?.LogError($"{TAGName} (ChangeUserName) (User:{user_uid}) Change Name to ({to_name}) Failed" +
-                                    $", Item {v.ID} ({v.Count}) Error");
+                        _logger?.LogError($"{TAGName} (ChangeUserName) (User:{user_uid}) Change Name to ({to_name})," +
+                                    $", ConsumableItem {v.ID}[{v.Count}], Failed");
                         return 0;
                     }
                     nlist.AddRange(vlist);

@@ -94,7 +94,14 @@ namespace Server
             _client_factory = HTTPClientFactory.CreateFactory<HTTPClientFactory>();
             if (!_config.PlayFab.OpenAPIUrl.IsNullOrWhiteSpace())
             {
-                _client_factory.APICreate(_config.PlayFab.OpenAPIUrl, 1.0f);
+                var client = _client_factory.APICreate(_config.PlayFab.OpenAPIUrl, 5.0f);
+                if (client != null)
+                {
+                    client.OnLogOutput = (message) =>
+                    {
+                        _logger?.Log($"{TAGName} {message}");
+                    };
+                }
                 _status = AMToolkits.ServiceStatus.Initialized;
             }
         }

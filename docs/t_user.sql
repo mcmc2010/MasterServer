@@ -17,3 +17,6 @@ ADD INDEX `name_INDEX` (`name` ASC) VISIBLE;
 ALTER TABLE `game`.`t_user` 
 ADD COLUMN `changed_time` DATETIME NULL DEFAULT NULL AFTER `last_time`;
 
+ALTER TABLE `game`.`t_user` 
+ADD COLUMN `updated_time` DATETIME NULL DEFAULT NULL AFTER `changed_time`;
+

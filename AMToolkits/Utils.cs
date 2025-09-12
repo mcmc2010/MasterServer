@@ -309,16 +309,16 @@ namespace AMToolkits
             // 检查是否包含汉字
             bool has_encode = name.Any(c =>
                 {
-                    // 中文编码
-                    return c >= 0x4E00 && c <= 0x9FFF;
+                    return (c >= 0x4E00 && c <= 0x9FFF) ||   // 汉字
+                        (c >= 'A' && c <= 'Z') ||          // 大写字母（使用字符常量更清晰）
+                        (c >= 'a' && c <= 'z') ||          // 小写字母
+                        (c >= '0' && c <= '9');            // 数字
                 });
             if (!has_encode)
             {
                 return 0;
             }
 
-            // bool is_valid = System.Text.RegularExpressions.Regex.IsMatch(name,
-            //         @"^\s$");
             return 1;
         }
         #endregion

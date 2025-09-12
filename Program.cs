@@ -40,17 +40,18 @@ try
         return;
     }
 
-    var settings = Server.GameSettingsInstance.LoadFromFile("data/game_settings.txt");
-
     // 0:
     var logger = Logger.LoggerFactory.CreateLogger(cfg.Name);
     logger.SetOutputFileName(cfg.File);
     logger.Log("Init Logger Completed");
     logger.Log($"Server Index - {config.ServerIndex}");
 
-    // 0 - 1:
+    // 1 - 0:
     AMToolkits.Utility.ResourcesManager.NewInstance(args);
-    // 0 - 2:
+
+    // 1 - 1:
+    var settings = Server.GameSettingsInstance.LoadFromFile("game_settings.txt");
+    // 1 - 2:
     AMToolkits.Utility.TableDataManager.NewInstance(args);
     AMToolkits.Utility.TableDataManager.GetTableData<Game.TItems>();
     AMToolkits.Utility.TableDataManager.GetTableData<Game.TAIPlayers>();

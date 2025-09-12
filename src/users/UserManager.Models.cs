@@ -30,17 +30,13 @@ namespace Server
         public string Region = "";
 
         /// <summary>
-        /// 目前头像只能选择已有图像
-        /// </summary>
-        [JsonPropertyName("avatar_id")]
-        public int AvatarID = 0;
-        /// <summary>
         /// 未使用
         /// </summary>
         [JsonPropertyName("avatar_url")]
         public string AvatarUrl = "";
 
-
+        [JsonPropertyName("changed_time")]
+        public DateTime? ChangedTime = null;
     }
 
 
@@ -323,8 +319,8 @@ namespace Server
                     $"    `uid`as nid, " +
                     $"    `id` as uid, " +
                     $"    `name`,`gender`,`region`, " +
-                    $"    `avatar` as avatar_id, " +
-                    $"    `create_time`, `last_time`, " +
+                    $"    `avatar` as avatar_url, " +
+                    $"    `create_time`, `last_time`, `changed_time`, " +
                     $"    `status` " +
                     $"FROM `t_user` " +
                     $"WHERE id = ? AND status > 0;";
@@ -406,6 +402,54 @@ namespace Server
             return null;
         }
 
+        protected async Task<int> DBUpdateUserProfile(UserBase user, DBUserProfile? profile, UserProfile to_profile)
+        {
+            if (profile == null)
+            {
+                return -1;
+            }
+
+            //
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                db?.Transaction();
+
+                //
+                string sql =
+                    $"UPDATE `t_user` " +
+                    $"SET " +
+                    $"    `avatar` = ?, `updated_time` = CURRENT_TIMESTAMP " +
+                    $"WHERE `id` = ? AND `status` > 0;";
+                var result_code = db?.Query(sql,
+                    to_profile.AvatarUrl,
+                    user.UID);
+                if (result_code < 0)
+                {
+                    db?.Rollback();
+                    return -1;
+                }
+
+                db?.Commit();
+
+                //
+                profile.AvatarUrl = to_profile.AvatarUrl;
+
+                //
+                return 1;
+            }
+            catch (Exception e)
+            {
+                db?.Rollback();
+                _logger?.LogError("(User) Error :" + e.Message);
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return -1;
+        }
+
         protected async Task<int> DBChangeUserName(UserBase user, UserProfile profile, string to_name)
         {
 
@@ -447,7 +491,7 @@ namespace Server
                 result_code = db?.Query(sql,
                     to_name,
                     user.UID);
-                if (result_code <= 0)
+                if (result_code < 0)
                 {
                     db?.Rollback();
                     return -1;
@@ -519,7 +563,7 @@ namespace Server
             string condition_case_ids = "";
             if (ids != null && ids.Length > 0)
             {
-                condition_case_ids = $" AND (id IN ({string.Join(",", ids)})) ";
+                condition_case_ids = $" AND (tid IN ({string.Join(",", ids)})) ";
             }
 
             // 

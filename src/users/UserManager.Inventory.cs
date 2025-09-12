@@ -525,6 +525,11 @@ namespace Server
                 return -1;
             }
 
+            foreach (var item in consumable_items)
+            {
+                items.Add(item.ToNItem());
+            }
+
             return result_code;
 
         }

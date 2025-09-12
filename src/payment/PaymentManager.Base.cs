@@ -31,13 +31,13 @@ namespace Server
                     "payment");
             if (result == null)
             {
-                _logger?.LogError($"{TAGName} (UpdateTransactionItem) [{_transactions_queue.Count}]: ({user_uid}) {transaction.order_id} " +
+                _logger?.LogError($"{TAGName} (UpdateTransactionItem) : ({user_uid}) {transaction.order_id} " +
                                 $"Amount : {transaction.amount} {transaction.currency}, " +
                                 $"Update : {transaction.virtual_amount} {transaction.virtual_currency} Failed");
                 return -1;
             }
 
-            _logger?.Log($"{TAGName} (UpdateTransactionItem) [{_transactions_queue.Count}]: ({user_uid}) {transaction.order_id} " +
+            _logger?.Log($"{TAGName} (UpdateTransactionItem) : ({user_uid}) {transaction.order_id} " +
                                 $"Amount : {transaction.amount} {transaction.currency}, " +
                                 $"Update : {transaction.virtual_amount} {transaction.virtual_currency} Success");
             return 1;
@@ -269,7 +269,13 @@ namespace Server
 
             transaction.ReviewTime = DateTime.UtcNow;
             transaction.ReviewCount = 0;
-            _transactions_queue.Add(transaction);
+
+            lock (_transactions_queue_locked)
+            {
+                _transactions_queue.Add(transaction);
+            }
+
+            //
             _logger?.Log($"{TAGName} (PendingTransaction) : ({user_uid}) {transaction.id} - {transaction.order_id} ");
             return 1;
         }

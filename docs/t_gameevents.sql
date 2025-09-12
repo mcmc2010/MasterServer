@@ -13,3 +13,11 @@ CREATE TABLE `t_gameevents` (
   PRIMARY KEY (`uid`),
   KEY `index2` (`user_id`,`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+
+ALTER TABLE `t_gameevents` 
+ADD COLUMN `sub_type` INT NOT NULL DEFAULT 0 AFTER `type`,
+ADD COLUMN `value` VARCHAR(32) NULL DEFAULT NULL AFTER `sub_type`;
+
+ALTER TABLE `t_gameevents` 
+ADD COLUMN `group` INT NOT NULL DEFAULT 0 AFTER `sub_type`;

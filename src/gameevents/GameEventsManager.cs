@@ -6,6 +6,22 @@ using AMToolkits.Extensions;
 
 namespace Server
 {
+    /// <summary>
+    /// 
+    /// </summary>
+    public enum GameEventType
+    {
+        None = 0,
+        Normal = 1,
+        Economy = 7,
+        Payment = 10,
+    }
+
+    public enum GameEventGroup
+    {
+        None = 0,
+        Daily = 1, //每日
+    }
 
     /// <summary>
     /// 
@@ -164,46 +180,17 @@ namespace Server
                 return result;
             }
 
-            // 1 : 结算道具
-            // 获取道具 (是否有物品发放)
-            var items = AMToolkits.Game.ItemUtils.ParseGeneralItem(template_item.Items);
-            if (items != null && items.Length > 0)
+            switch (template_item.EventType)
             {
-                var item_list = UserManager.Instance.InitGeneralItemData(items);
-                if (item_list == null)
-                {
-                    result.Code = 0;
-                    _logger?.LogError($"{TAGName} (GameEventFinal) (User:{user_uid}) {id} - {template_item.Name} Add Items Failed");
-                    return result;
-                }
-
-                // 需要对齐
-                int index = 1000;
-                foreach (var v in item_list)
-                {
-                    v.NID = ++index;
-                }
-
-                // 发放物品 :
-                result_code = await UserManager.Instance._AddUserInventoryItems(user_uid, item_list);
-                if (result_code < 0)
-                {
-                    result.Code = 0;
-                    _logger?.LogError($"{TAGName} (GameEventFinal) (User:{user_uid}) {id} - {template_item.Name} Add Items Failed");
-                    return result;
-                }
-                
-                result.Items = new List<AMToolkits.Game.GeneralItemData>(item_list);
-
-                // 添加数据库记录
-                if (await UserManager.Instance._UpdateGameEventItemData(r_user.ID, r_user.CustomID, event_data, result.Items) <= 0)
-                {
-                    result.Code = 0;
-                    _logger?.LogWarning($"{TAGName} (GameEventFinal) (User:{user_uid}) {id} - {template_item.Name} Add Items Failed");
-                    return result;
-                }
+                // 1 : 结算道具
+                case (int)GameEventType.Normal:
+                    {
+                        await GameEventFinal_Normal(r_user, id, template_item, event_data, result);
+                        break;
+                    }
             }
 
+            
             //
             _logger?.Log($"{TAGName} (GameEventFinal) (User:{user_uid}) {id} - {template_item.Name} Completed");
             result.Code = 1;

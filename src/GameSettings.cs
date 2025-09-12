@@ -7,11 +7,19 @@ namespace Server
     [System.Serializable]
     public class GameSettings_User
     {
+        [JsonPropertyName("user_icons")]
+        public string[] UserIcons = new string[]{ };
+
         /// <summary>
         /// 改名必须使用道具
         /// </summary>
         [JsonPropertyName("need_change_name_items")]
-        public string NeedChangeNameItems = ""; 
+        public string NeedChangeNameItems = "";
+        /// <summary>
+        /// 单位秒
+        /// </summary>
+        [JsonPropertyName("need_change_name_time")]
+        public int NeedChangeNameTime = 0;
     }
 
     [System.Serializable]
@@ -61,12 +69,14 @@ namespace Server
         {
             try
             {
-                // 读取 JSON 文件内容
-                string json = "";
-                if (File.Exists(filename))
+                var asset = AMToolkits.Utility.ResourcesManager.Load<AMToolkits.Utility.TextAsset>(filename);
+                if (asset == null)
                 {
-                    json = File.ReadAllText(filename, System.Text.Encoding.UTF8);
+                    return _settings;
                 }
+
+                // 读取 JSON 文件内容
+                string json = asset.text;
                 if (json.Length == 0)
                 {
                     return _settings;
@@ -88,11 +98,11 @@ namespace Server
                     return _settings;
                 }
                 return _settings = o;
-                
+
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"加载配置文件失败: {ex.Message}");
+                Console.WriteLine($"Loading GameSetting : {ex.Message}");
             }
             return _settings;
         }

@@ -198,6 +198,8 @@ namespace Server
         private HTTPClientFactory? _client_factory = null;
 
         //
+        private object _transactions_queue_locked = new object();
+
         private List<TransactionItem> _transactions_queue = new List<TransactionItem>();
 
         public PaymentManager()
@@ -379,12 +381,26 @@ namespace Server
             //
             while (!ServerApplication.Instance.HasQuiting)
             {
-                if (_transactions_queue.Count > 0)
+                int count = 0;
+                lock (_transactions_queue_locked)
                 {
-                    var transaction = _transactions_queue.ElementAt(0);
+                    count = _transactions_queue.Count;
+                }
+
+                if (count > 0)
+                {
+                    TransactionItem? transaction = null;
+                    lock (_transactions_queue_locked)
+                    {
+                        transaction = _transactions_queue.ElementAt(0);
+                    }
+                    
                     if (await _UpdateTransactionItem(transaction) >= 0)
                     {
-                        _transactions_queue.RemoveAt(0);
+                        lock (_transactions_queue_locked)
+                        {
+                            _transactions_queue.Remove(transaction);
+                        }
                     }
                 }
                 await Task.Delay((int)(delay * 1000));
