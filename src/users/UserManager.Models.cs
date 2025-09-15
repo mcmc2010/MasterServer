@@ -1734,19 +1734,19 @@ namespace Server
                 $"  (`id`,`product_id`,`name`, `type`, `user_id`, `custom_id`, " +
                 $"  `create_time`, `custom_data`, " +
                 $"  `count`, `balance`, `amount`, " +
-                $"  `virtual_balance`, `virtual_currency`, " +
+                $"  `virtual_balance`, `virtual_currency`, `virtual_amount`, " +
                 $"  `status`) " +
                 $"VALUES " +
                 $"(?, ?, ?, ?, ?, ?, " +
                 $"CURRENT_TIMESTAMP,NULL, " +
                 $"?, ?, ?, " +
-                $"?, ?, " +
+                $"?, ?, ?, " +
                 $"1); ";
             int result_code = query.Query(sql,
                     data.NID, data.ProductID,
                     template_data.Name, 0, user_uid, data.PlayFabUID,
                     1, data.Balance, data.Amount,
-                    data.CurrentBalance, data.CurrentVirtualCurrency);
+                    data.CurrentBalance, data.CurrentVirtualCurrency, data.CurrentAmount);
             if (result_code < 0)
             {
                 return -1;

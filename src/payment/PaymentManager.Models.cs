@@ -158,13 +158,13 @@ namespace Server
             // 
             string sql =
             $"UPDATE `t_transactions` SET " +
-            $"	  `code` = ?,  " +
+            $"	  `code` = ?,  `virtual_amount` = ?, `virtual_currency` = ?, " +
             $"    `update_time` = CURRENT_TIMESTAMP, `pending_time` = CURRENT_TIMESTAMP " +
             $"WHERE  " +
             $"    `status` > 0 AND `user_id` = ? AND" +
             $"    `id` = ? AND `order_id` = ? AND `code` NOT IN ({placeholders})";
             var result_code = query.QueryWithList(sql, out list,
-                reason,
+                reason, transaction.virtual_amount, transaction.virtual_currency,
                 user_uid,
                 transaction.id, transaction.order_id);
             if (result_code < 0)

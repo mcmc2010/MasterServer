@@ -36,6 +36,11 @@ namespace Server
         public string CurrentVirtualCurrency = AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS_SHORT;
         [JsonPropertyName("current_balance")]
         public float? CurrentBalance = null;
+        /// <summary>
+        /// 这个实际发放金币，不一定和配置表相同
+        /// </summary>
+        [JsonPropertyName("current_amount")]
+        public float? CurrentAmount = null;
     }
 
     [System.Serializable]
@@ -46,6 +51,12 @@ namespace Server
 
     [System.Serializable]
     public class PFCashShopBuyProductResponse : AMToolkits.Net.HTTPResponseResult
+    {
+        public PFCashShopResultItemData? Data = null;
+    }
+
+    [System.Serializable]
+    public class PFPaymentFinalResponse : AMToolkits.Net.HTTPResponseResult
     {
         public PFCashShopResultItemData? Data = null;
     }
@@ -102,6 +113,51 @@ namespace Server
             {
                 _logger?.LogError($"{TAGName} (User:{user_uid}) PFCashShopBuyProduct Failed: ({playfab_uid}) [{response.Data?.Result}:{response.Data?.Error}]");
                 return response.Data;
+            }
+
+            return response.Data;
+        }
+
+        /// <summary>
+        /// 充值：交易
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <returns></returns>
+        public async Task<PFCashShopResultItemData?> PFPaymentFinal(string user_uid, string playfab_uid,
+                                    string nid, //流水单号
+                                    TransactionItem transaction,
+                                    string reason = "payment")
+        {
+            if (_status != AMToolkits.ServiceStatus.Ready)
+            {
+                return null;
+            }
+
+            // 只有pending,review,approved,rejected
+            var response = await this.APICall<PFPaymentFinalResponse>("/internal/services/payment/final",
+                    new Dictionary<string, object>()
+                    {
+                        { "user_uid", user_uid },
+                        { "playfab_uid", playfab_uid },
+                        { "nid", nid },
+                        { "product_id", transaction.product_id },
+                        { "currency", transaction.currency },
+                        { "amount", transaction.amount },
+                        { "virtual_amount", transaction.virtual_amount },
+                        { "virtual_currency", transaction.virtual_currency },
+                        { "transaction_code", transaction.result_code ?? "pending" }, 
+                        { "reason", reason }
+                    });
+            if (response == null)
+            {
+                _logger?.LogError($"{TAGName} (User:{user_uid}) PFPaymentFinal Failed: ({playfab_uid}) {_client_factory?.LastError?.Message}");
+                return null;
+            }
+
+            if (response.Data?.Result != AMToolkits.ServiceConstants.VALUE_SUCCESS)
+            {
+                _logger?.LogError($"{TAGName} (User:{user_uid}) PFPaymentFinal Failed: ({playfab_uid}) [{response.Data?.Result}:{response.Data?.Error}]");
+                return null;
             }
 
             return response.Data;

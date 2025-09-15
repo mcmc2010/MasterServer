@@ -16,26 +16,29 @@ namespace Server
         /// <param name="user_uid"></param>
         /// <param name="transaction"></param>
         /// <returns></returns>
-        public async System.Threading.Tasks.Task<int> ExtractTransaction_V1(string user_uid, TransactionItem transaction)
+        public async System.Threading.Tasks.Task<int> ExtractTransaction_V1(string user_uid, TransactionItem transaction,
+                                string reason = "review")
         {
             if (transaction.virtual_amount == 0.0f)
             {
                 return 0;
             }
-            
-            //
-            var result = await PlayFabService.Instance.PFUpdateVirtualCurrency(user_uid,
-                    transaction.custom_id,
-                    (float)transaction.virtual_amount,
-                    transaction.virtual_currency == AMToolkits.Game.CurrencyUtils.CURRENCY_GOLD_SHORT ? AMToolkits.Game.VirtualCurrency.GD : AMToolkits.Game.VirtualCurrency.GM,
-                    "payment");
-            if (result == null)
+
+            transaction.result_code = reason;
+
+            var r_result = await PlayFabService.Instance.PFPaymentFinal(transaction.user_id, transaction.custom_id, transaction.id,
+                            transaction, "payment");
+            if (r_result == null)
             {
                 _logger?.LogError($"{TAGName} (UpdateTransactionItem) : ({user_uid}) {transaction.order_id} " +
                                 $"Amount : {transaction.amount} {transaction.currency}, " +
                                 $"Update : {transaction.virtual_amount} {transaction.virtual_currency} Failed");
                 return -1;
             }
+
+            transaction.virtual_amount = r_result.Data?.CurrentAmount ?? transaction.virtual_amount;
+            transaction.virtual_currency = r_result.Data?.CurrentVirtualCurrency ?? transaction.virtual_currency;
+
 
             _logger?.Log($"{TAGName} (UpdateTransactionItem) : ({user_uid}) {transaction.order_id} " +
                                 $"Amount : {transaction.amount} {transaction.currency}, " +
@@ -222,6 +225,14 @@ namespace Server
             }
             else
             {
+            }
+
+            var r_result_payment = await PlayFabService.Instance.PFPaymentFinal(transaction.user_id, transaction.custom_id, transaction.id,
+                            transaction, "payment");
+            if (r_result_payment != null && r_result_payment.Data != null)
+            {
+                transaction.virtual_amount = r_result_payment.Data.CurrentAmount ?? transaction.virtual_amount;
+                transaction.virtual_currency = r_result_payment.Data.CurrentVirtualCurrency;
             }
 
             r_result = await DBFinalTransaction(r_user.ID, transaction, reason);
