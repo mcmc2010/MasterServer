@@ -233,7 +233,7 @@ namespace Server
             if (await CashShopManager.Instance._GetUserCashItems(user_data.server_uid, cashshop_items) > 0)
             {
                 double cost = CashShopManager.Instance.TotalCashItemsCost(cashshop_items);
-                //if (cost >= GameSettingsInstance.Settings.Leaderboard.GemsLimitMinWeekly)
+                if (cost >= GameSettingsInstance.Settings.Leaderboard.GemsLimitMinWeekly)
                 {
                     await LeaderboardManager.Instance._UpdateLeaderboardRecord(user_data.server_uid, user_data.name, AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS_SHORT, cost);
                 }

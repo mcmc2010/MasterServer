@@ -24,4 +24,8 @@ ADD COLUMN `cost` DECIMAL(15,2) NOT NULL DEFAULT '0' AFTER `balance`;
 ALTER TABLE `game`.`t_rankings` 
 RENAME TO  `game`.`t_leaderboard` ;
 
+-- 增加物品纪录
+ALTER TABLE `game`.`t_leaderboard` 
+ADD COLUMN `items` VARCHAR(64) NULL DEFAULT NULL AFTER `rank`;
+
 

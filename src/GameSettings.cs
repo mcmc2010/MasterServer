@@ -10,6 +10,10 @@ namespace Server
         [JsonPropertyName("user_icons")]
         public string[] UserIcons = new string[]{ };
 
+
+        [JsonPropertyName("item_default_equipment")]
+        public int ItemDefaultEquipmentIndex = AMToolkits.Game.ItemConstants.ID_NONE;
+
         /// <summary>
         /// 改名必须使用道具
         /// </summary>

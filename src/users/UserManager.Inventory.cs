@@ -135,6 +135,42 @@ namespace Server
         #region Server Internal
 
         /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        public async Task<int> _GetUserInventoryItems(string? user_uid, List<UserInventoryItem> items,
+                                    AMToolkits.Game.ItemType type = AMToolkits.Game.ItemType.None,
+                                    bool has_using_item = false)
+        {
+            if (user_uid == null || user_uid.IsNullOrWhiteSpace())
+            {
+                return -1;
+            }
+            user_uid = user_uid.Trim();
+
+            if (await DBGetUserInventoryItems(user_uid, items, (int)type) < 0)
+            {
+                return -1;
+            }
+
+            if (has_using_item)
+            {
+                items.RemoveAll(v => v.using_time != null);
+                if (items.Count == 0)
+                {
+                    var list = items.Where(v => v.index == GameSettingsInstance.Settings.User.ItemDefaultEquipmentIndex).ToList();
+                    items.AddRange(list);
+                }
+            }
+
+            //
+            return items.Count;
+        }
+
+
+        /// <summary>
         /// 物品增加
         /// </summary>
         public async Task<int> _AddUserInventoryItems(string? user_uid,
@@ -163,7 +199,7 @@ namespace Server
             {
                 v.NID = ++index;
             }
-            
+
             string print = "";
             print = string.Join(";", items.Select(v => $"[{v.NID}] {v.ID} - {v.GetTemplateData<Game.TItems>()?.Name} ({v.Count})"));
             _logger?.Log($"{TAGName} (AddUserInventoryItems) (User:{user_uid}) {print} ");
@@ -366,8 +402,9 @@ namespace Server
             }
             user_uid = user_uid.Trim();
 
+            //
             List<UserInventoryItem> list = new List<UserInventoryItem>();
-            if (await DBGetUserInventoryItems(user_uid, list) < 0)
+            if (await _GetUserInventoryItems(user_uid, list, ItemType.None) < 0)
             {
                 _logger?.LogError($"{TAGName} (GetUserInventoryItems) (User:{user_uid}) Failed");
                 return -1;
@@ -394,7 +431,7 @@ namespace Server
             // 物品必要检测
             if (current == null)
             {
-                current = list.FirstOrDefault(v => v.index == 101);
+                current = list.FirstOrDefault(v => v.index == GameSettingsInstance.Settings.User.ItemDefaultEquipmentIndex);
                 var item_template_data = template_data?.Get(current?.index ?? AMToolkits.Game.ItemConstants.ID_NONE);
                 if (current == null || item_template_data == null)
                 {

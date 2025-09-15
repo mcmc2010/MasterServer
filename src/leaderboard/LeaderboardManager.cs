@@ -47,6 +47,9 @@ namespace Server
         public double cost = 0; // 消费累计
         public string currency = "";
         public string rank = "";
+
+        public string items = "";
+
         public int type = 0;
 
         public DateTime? create_time = null;
@@ -61,6 +64,7 @@ namespace Server
         /// <returns></returns>
         public NLeaderboardItem ToNItem()
         {
+            var items = AMToolkits.Game.ItemUtils.ParseGeneralItem(this.items);
             return new NLeaderboardItem()
             {
                 id = this.id,
@@ -71,6 +75,7 @@ namespace Server
                 create_time = this.create_time,
                 last_time = this.last_time,
                 rank = this.rank,
+                items = items,
                 type = this.type,
             };
         }
@@ -86,6 +91,8 @@ namespace Server
         public double cost = 0;
         public string currency = "";
         public string rank = "";
+
+        public AMToolkits.Game.GeneralItemData[]? items = null;
         public int type = 0;
 
         public DateTime? create_time = null;
@@ -197,6 +204,8 @@ namespace Server
             {
                 return -1;
             }
+
+            await _UpdateLeaderboardUserInventoryItems(user_uid);
             return result_code;
         }
 
@@ -209,6 +218,9 @@ namespace Server
             {
                 return -1;
             }
+
+
+            await _UpdateLeaderboardUserInventoryItems(user_uid);
             return result_code;
         }
 
@@ -220,7 +232,25 @@ namespace Server
             {
                 return -1;
             }
+
+            await _UpdateLeaderboardUserInventoryItems(user_uid);
             return result_code;
+        }
+
+        public async Task _UpdateLeaderboardUserInventoryItems(string user_uid)
+        {
+            List<UserInventoryItem> list = new List<UserInventoryItem>();
+            if (await UserManager.Instance._GetUserInventoryItems(user_uid, list, AMToolkits.Game.ItemType.Equipment, true) < 0)
+            {
+
+            }
+
+            // 目前只有装备，以后可能有皮肤，套装
+            var using_item = list.FirstOrDefault();
+            if (using_item != null)
+            {
+                await DBUpdateLeaderboardRecord(user_uid, using_item.ToNItem());
+            }
         }
 
     }

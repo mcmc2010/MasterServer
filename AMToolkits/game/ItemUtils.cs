@@ -66,6 +66,24 @@ namespace AMToolkits.Game
     public static class ItemUtils
     {
         /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="item"></param>
+        /// <returns></returns>
+        public static string? ToItemValue(GeneralItemData? item, string separator = "|")
+        {
+            if (item == null) { return null; }
+            return $"{item.ID}{separator}{item.Count}{separator}IID{item.IID}";
+        }
+
+        public static string[]? ToItemValues(GeneralItemData[]? items, string separator = ",")
+        {
+            if (items == null) { return null; }
+            var values = items.Select(v => ToItemValue(v) ?? "").ToArray();
+            return values;
+        }
+
+        /// <summary>
         /// 解析物品列表
         /// </summary>
         /// <param name="value"></param>
@@ -110,6 +128,13 @@ namespace AMToolkits.Game
                 if (!int.TryParse(values[0], out data.ID))
                 {
                     continue;
+                }
+
+                var iid = values.FirstOrDefault(v => v.StartsWith("IID"));
+                if (iid != null)
+                {
+                    data.IID = iid.Substring(3);
+                    values = values.Where(v => iid != v).ToArray();
                 }
 
                 // 没有设置，按默认值处理

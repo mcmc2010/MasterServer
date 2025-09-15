@@ -386,6 +386,40 @@ namespace Server
             return 1;
         }
 
+        public async Task<int> DBUpdateLeaderboardRecord(string user_uid, NUserInventoryItem item)
+        {
+
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                string value = $"{item.index}|{item.count}|IID{item.iid}";
+
+                // 
+                string sql =
+                $"UPDATE `t_leaderboard` " +
+                $"SET " +
+                $" `items` = ? " +
+                $"WHERE `id` = ? AND `status` > 0 ";
+                var result_code = db?.Query(sql,
+                        value, 
+                        user_uid);
+                if (result_code < 0)
+                {
+                    return -1;
+                }
+            }
+            catch (Exception e)
+            {
+                _logger?.LogError($"{TAGName} (UpdateLeaderboardRecord) Error :" + e.Message);
+                return -1;
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return 1;
+        }
+
         /// <summary>
         /// 每日排行榜是昨天
         /// </summary>
@@ -432,6 +466,7 @@ namespace Server
                 $"SELECT " +
                 $"	  `uid`, `id`, `name`, `type`, " +
                 $"    `balance`, `cost`, `currency`, `rank`, " +
+                $"    `items`, " +
                 $"    `create_time`, `last_time` " +
                 $"FROM `t_leaderboard` " +
                 $"WHERE " +
@@ -511,6 +546,7 @@ namespace Server
                 $"SELECT " +
                 $"	  `uid`, `id`, `name`, `type`, " +
                 $"    `balance`, `cost`, `currency`, `rank`, " +
+                $"    `items`, " +
                 $"    `create_time`, `last_time` " +
                 $"FROM `t_leaderboard` " +
                 $"WHERE " +
