@@ -41,6 +41,11 @@ namespace Server
         public string UserID = "";
         [JsonPropertyName("type")]
         public int EventType = 0;
+        [JsonPropertyName("sub_type")]
+        public int EventSubType = 0;
+        [JsonPropertyName("group_index")]
+        public int GroupIndex = 0;
+
         [JsonPropertyName("count")]
         public int Count = 0;
 
@@ -180,14 +185,35 @@ namespace Server
                 return result;
             }
 
+            List<GameEventItem> result_events = new List<GameEventItem>();
             switch (template_item.EventType)
             {
-                // 1 : 结算道具
+                // 1  : 结算道具
                 case (int)GameEventType.Normal:
                     {
-                        await GameEventFinal_Normal(r_user, id, template_item, event_data, result);
+                        result_code = await GameEventFinal_Normal(r_user, id, template_item, result_events);
+                        if (result_code > 0)
+                        {
+                            result_code = await GameEventFinal_Result(r_user, id, template_item, result_events, result);
+                        }
                         break;
                     }
+                // 10 : 付费或充值
+                case (int)GameEventType.Payment:
+                    {
+                        result_code = await GameEventFinal_Payment(r_user, id, template_item, result_events);
+                        if (result_code > 0)
+                        {
+                            result_code = await GameEventFinal_Result(r_user, id, template_item, result_events, result);
+                        }
+                        break;
+                    }
+            }
+
+            if (result_code <= 0)
+            {
+                result.Code = result_code;
+                return result;
             }
 
             

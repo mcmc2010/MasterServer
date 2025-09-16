@@ -43,7 +43,8 @@ namespace Server
         /// <returns></returns>
         protected async System.Threading.Tasks.Task<int> DBGetTransactions(DatabaseQuery? query, string user_uid,
                             List<TransactionItem> items,
-                            string? id = null, string? order_id = null)
+                            string? id = null, string? order_id = null,
+                            string? code = "pending")
         {
             if (query == null)
             {
@@ -62,6 +63,31 @@ namespace Server
                 order_id = null;
             }
 
+            // id 条件
+            string condition_case_id = "";
+            if (id != null && id.Length > 0)
+            {
+                condition_case_id = $" AND (t.`id` = '{id}') ";
+            }
+            // 
+            string condition_case_order_id = "";
+            if (order_id != null && order_id.Length > 0)
+            {
+                condition_case_order_id = $" AND (t.`order_id` = '{order_id}') ";
+            }
+            
+            // 
+            string condition_case_code = "";
+            if (code != null && code.Length > 0)
+            {
+                condition_case_code = $" AND (t.`code` = '{code}') ";
+                if (code == "review")
+                {
+                    condition_case_code = $" AND (t.`code` IN ('{code}', 'approved')) ";
+                }
+            }
+
+
             //
             List<DatabaseResultItemSet>? list = null;
 
@@ -78,11 +104,12 @@ namespace Server
             $"    t.`code` AS result_code, t.`custom_data`, t.`status`  " +
             $"FROM `t_transactions` t  " +
             $"WHERE  " +
-            $"    t.`status` > 0 AND t.`user_id` = ? AND" +
-            $"    (? IS NOT NULL AND t.`id` = ?) OR (? IS NOT NULL AND t.`order_id` = ? )";
+            $"    t.`status` > 0 AND t.`user_id` = ? " +
+            $"    {condition_case_code} " +
+            $"    {condition_case_order_id} " +
+            $"    {condition_case_id} ;";
             var result_code = query.QueryWithList(sql, out list,
-                user_uid,
-                id, id, order_id, order_id);
+                user_uid);
             if (result_code < 0)
             {
                 return -1;
@@ -186,7 +213,8 @@ namespace Server
         /// <returns></returns>
         public async System.Threading.Tasks.Task<int> DBGetTransactions(string user_uid,
                             List<TransactionItem> items,
-                            string? id = null, string? order_id = null)
+                            string? id = null, string? order_id = null,
+                            string? code = "pending")
         {
 
             var db = DatabaseManager.Instance.New();
@@ -194,7 +222,7 @@ namespace Server
             {
                 items.Clear();
 
-                var result_code = await DBGetTransactions(db, user_uid, items, id, order_id);
+                var result_code = await DBGetTransactions(db, user_uid, items, id, order_id, code);
                 if (result_code < 0)
                 {
                     return -1;

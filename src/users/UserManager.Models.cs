@@ -1411,14 +1411,16 @@ namespace Server
         /// <param name="user_uid"></param>
         /// <param name="items"></param>
         /// <returns></returns>
-        public async Task<int> DBGetGameEvents(string user_uid, List<GameEventItem> items, int type = -1)
+        public async Task<int> DBGetGameEvents(string user_uid, List<GameEventItem> items,
+                                    int type = -1,
+                                    int group_index = -1)
         {
 
             //
             var db = DatabaseManager.Instance.New();
             try
             {
-                int result_code = await DBGetGameEvents(db, user_uid, items, type);
+                int result_code = await DBGetGameEvents(db, user_uid, items, type, group_index);
                 if (result_code < 0)
                 {
                     return -1;
@@ -1446,23 +1448,42 @@ namespace Server
         /// <param name="type"></param>
         /// <returns></returns>
         protected async Task<int> DBGetGameEvents(DatabaseQuery? query, string user_uid,
-                            List<GameEventItem> items, int type = -1)
+                            List<GameEventItem> items,
+                            int type = -1, int group_index = -1)
         {
+            
+            // type 条件
+            string condition_case_type = "";
+            if (type >= 0)
+            {
+                condition_case_type = $" AND (e.`type` = {type}) ";
+            }
+
+            string condition_case_group_index = "";
+            if (group_index >= 0)
+            {
+                condition_case_group_index = $" AND (e.`group` = {group_index}) ";
+            }
+
+
             //
             List<DatabaseResultItemSet>? list = null;
+
             // 
             string sql =
                 $"SELECT " +
-                $"    `uid`, id AS `id`, `name`, `type` as `event_type`, " +
+                $"    `uid`, id AS `id`, `name`, `value`, " +
+                $"    `type` as `event_type`, `sub_type` as `event_sub_type`, `group` as `group_index`, " +
                 $"    `user_id` AS `server_uid`, " +
                 $"    `create_time`, `last_time`, `completed_time`, " +
                 $"    `count`, `items`, `status` " +
-                $"FROM `t_gameevents` " +
+                $"FROM `t_gameevents` e " +
                 $"WHERE " +
-                $" ((? >= 0 AND `type` = ?) OR (? < 0 AND `type` >= 0)) AND " +
-                $" `user_id` = ? AND `status` > 0;";
+                $" `user_id` = ? AND `status` > 0 " +
+                $" {condition_case_type} " +
+                $" {condition_case_group_index} " +
+                $" ;";
             var result_code = query?.QueryWithList(sql, out list,
-                type, type, type,
                 user_uid);
             if (result_code < 0 || list == null)
             {
@@ -1490,19 +1511,20 @@ namespace Server
             // 
             string sql =
                 $"INSERT INTO `t_gameevents` " +
-                $"  (`id`,`name`, `type`, `user_id`, " +
+                $"  (`id`,`name`, `type`, `user_id`, `group`, " +
                 $"  `create_time`, `last_time`, `completed_time`, " +
                 $"  `items`, " +
                 $"  `status`) " +
                 $"VALUES " +
-                $"(?, ?, ?, ?, " +
+                $"(?, ?, ?, ?, ?, " +
                 $"CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,NULL, " +
                 $"NULL,1); ";
             int result_code = query.Query(sql,
                     item.id,
                     item.GetTemplateData<TGameEvents>()?.Name ?? "",
                     item.GetTemplateData<TGameEvents>()?.EventType ?? 0,
-                    user_uid);
+                    user_uid,
+                    item.GetTemplateData<TGameEvents>()?.Group ?? (int)GameEventGroup.None);
             if (result_code < 0)
             {
                 return -1;
@@ -1520,38 +1542,44 @@ namespace Server
         /// <param name="items"></param>
         /// <returns></returns>
         protected async Task<int> DBUpdateGameEvent(DatabaseQuery? query, string user_uid,
-                            GameEventItem item, NGameEventData data)
+                            Game.TGameEvents template_data,
+                            NGameEventData data)
+        {
+            // 
+            string sql =
+            $"UPDATE `t_gameevents` " +
+            $"SET " +
+            $" `name` = ?,`count` = ?, `group` = ?, " +
+            $" `completed_time` = NULL , `last_time` = CURRENT_TIMESTAMP " +
+            $"WHERE `id` = ? AND `user_id` = ? ";
+            var result_code = query?.Query(sql,
+                template_data?.Name ?? data.Name, data.Count,
+                template_data?.Group ?? (int)GameEventGroup.None,
+                data.ID, user_uid);
+            if (result_code < 0)
+            {
+                return -1;
+            }
+            return 1;
+        }
+
+        protected async Task<int> DBUpdateGameEvent(DatabaseQuery? query, string user_uid,
+                            GameEventItem item)
         {
             var template_data = item.GetTemplateData<Game.TGameEvents>();
-
-            DateTime? completed_time = null;
-
-            item.count = item.count + data.Count;
-            if (template_data != null)
-            {
-                // 计算更新数量
-                if (template_data.RequireCount > 0 && item.count >= template_data.RequireCount)
-                {
-                    item.count = template_data.RequireCount;
-                }
-
-                if (template_data.RequireCount == item.count)
-                {
-                    completed_time = DateTime.Now;
-                }
-            }
 
             // 
             string sql =
             $"UPDATE `t_gameevents` " +
             $"SET " +
-            $" `name` = ?,`count` = ?, " +
+            $" `name` = ?,`count` = ?, `group` = ?, `value` = ?, " +
             $" `completed_time` = ? , `last_time` = CURRENT_TIMESTAMP " +
             $"WHERE `id` = ? AND `user_id` = ? ";
             var result_code = query?.Query(sql,
-                template_data?.Name ?? data.Name, item.count,
-                completed_time,
-                data.ID, user_uid);
+                template_data?.Name ?? item.name, item.count,
+                template_data?.Group ?? 0, item.value,
+                item.completed_time,
+                item.id, user_uid);
             if (result_code < 0)
             {
                 return -1;
@@ -1579,7 +1607,7 @@ namespace Server
             string? values = null;
             if (items != null && items.Length > 0)
             {
-                values = string.Join(",", items.Select(v => $"{v.ID}|{v.Count}|{v.IID}").ToList());
+                values = string.Join(",", items.Select(v => $"{v.ID}|{v.Count}|IID{v.IID}").ToList());
             }
 
             // 
@@ -1599,6 +1627,94 @@ namespace Server
             return 1;
         }
 
+        public async Task<int> _DBUpdateGameEventItem(string user_uid,
+                            GameEventItem item)
+        {
+            //
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                db?.Transaction();
+
+
+                List<GameEventItem> list = new List<GameEventItem>();
+                if (await DBGetGameEvents(db, user_uid, list, item.event_type, item.group_index) < 0)
+                {
+                    db?.Rollback();
+                    return -1;
+                }
+
+                var result = list.FirstOrDefault(v => v.id == item.id);
+                if (result == null)
+                {
+                    if (await DBAddGameEvent(db, user_uid, item) < 0)
+                    {
+                        db?.Rollback();
+                        return -1;
+                    }
+                }
+                else
+                {
+                    item.count = item.count + result.count;
+                    // 计算更新数量
+                    if (item.GetTemplateData<Game.TGameEvents>()?.RequireCount > 0
+                        && item.count >= item.GetTemplateData<Game.TGameEvents>()?.RequireCount)
+                    {
+                        item.count = item.GetTemplateData<Game.TGameEvents>()?.RequireCount ?? item.count;
+                    }
+                }
+
+                if (await DBUpdateGameEvent(db, user_uid, item) < 0)
+                {
+                    db?.Rollback();
+                    return -1;
+                }
+
+                //
+                db?.Commit();
+            }
+            catch (Exception e)
+            {
+                db?.Rollback();
+                _logger?.LogError($"{TAGName} (DBUpdateGameEventItem) Error :" + e.Message);
+                return -1;
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return 1;
+        }
+
+        public async Task<int> _DBUpdateGameEventItemData(string user_uid,
+                            GameEventItem item, List<AMToolkits.Game.GeneralItemData> items)
+        {
+            //
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                db?.Transaction();
+
+                if (await DBUpdateGameEventItemData(db, user_uid, item.id, items.ToArray()) < 0)
+                {
+                    db?.Rollback();
+                    return -1;
+                }
+
+                db?.Commit();
+
+            }
+            catch (Exception e)
+            {
+                _logger?.LogError($"{TAGName} (DBUpdateGameEventItemData) Error :" + e.Message);
+                return -1;
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return 1;
+        }
 
         public async Task<int> _DBUpdateGameEventData(string user_uid,
                             NGameEventData data)
@@ -1657,14 +1773,14 @@ namespace Server
                     item.InitTemplateData<Game.TGameEvents>(template_item);
 
                     // 已经完成，不再处理
-                    if (item.count >= template_item.RequireCount || item.completed_time != null)
+                    if (item.IsCompleted)
                     {
                         db?.Rollback();
                         return 0;
                     }
                 }
 
-                if (await DBUpdateGameEvent(db, user_uid, item, data) < 0)
+                if (await DBUpdateGameEvent(db, user_uid, template_item, data) < 0)
                 {
                     db?.Rollback();
                     return -1;
@@ -1677,36 +1793,6 @@ namespace Server
             {
                 db?.Rollback();
                 _logger?.LogError($"{TAGName} (UpdateGameEventData) Error :" + e.Message);
-                return -1;
-            }
-            finally
-            {
-                DatabaseManager.Instance.Free(db);
-            }
-            return 1;
-        }
-
-        public async Task<int> _DBUpdateGameEventItemData(string user_uid,
-                            NGameEventData data, List<AMToolkits.Game.GeneralItemData> items)
-        {
-            //
-            var db = DatabaseManager.Instance.New();
-            try
-            {
-                db?.Transaction();
-
-                if (await DBUpdateGameEventItemData(db, user_uid, data.ID, items.ToArray()) < 0)
-                {
-                    db?.Rollback();
-                    return -1;
-                }
-
-                db?.Commit();
-
-            }
-            catch (Exception e)
-            {
-                _logger?.LogError($"{TAGName} (DBUpdateGameEventItemData) Error :" + e.Message);
                 return -1;
             }
             finally

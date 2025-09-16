@@ -10,6 +10,26 @@ namespace Server
     /// </summary>
     public partial class PaymentManager
     {
+
+        /// <summary>
+        /// 修改订单 - 待审核
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="transaction"></param>
+        /// <returns></returns>
+        public async System.Threading.Tasks.Task<int> _GetTransactions(string user_uid, List<TransactionItem> transactions,
+                                                        string? code = "pending")
+        {
+            //
+            var r_result = await DBGetTransactions(user_uid, transactions, null, null, code);
+            if (r_result < 0)
+            {
+                return -1;
+            }
+
+            return 1;
+        }
+
         /// <summary>
         /// 
         /// </summary>

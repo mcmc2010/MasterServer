@@ -69,7 +69,7 @@ namespace Server
         /// </summary>
         /// <param name="filename"></param>
         /// <returns></returns>
-        public static GameSettings LoadFromFile(string filename)
+        public static GameSettings? LoadFromFile(string filename)
         {
             try
             {
@@ -107,8 +107,8 @@ namespace Server
             catch (Exception ex)
             {
                 Console.WriteLine($"Loading GameSetting : {ex.Message}");
+                return null;
             }
-            return _settings;
         }
     }
 }

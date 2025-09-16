@@ -50,7 +50,14 @@ try
     AMToolkits.Utility.ResourcesManager.NewInstance(args);
 
     // 1 - 1:
+    // 读取设置文件错误，不再继续
     var settings = Server.GameSettingsInstance.LoadFromFile("game_settings.txt");
+    if (settings == null)
+    {
+        System.Console.WriteLine("(1 - 1) Loading GameSettings Error.");
+        return;
+    }
+
     // 1 - 2:
     AMToolkits.Utility.TableDataManager.NewInstance(args);
     AMToolkits.Utility.TableDataManager.GetTableData<Game.TItems>();

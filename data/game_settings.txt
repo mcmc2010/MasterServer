@@ -15,7 +15,7 @@
         // 改名必须消耗的物品，目前只有改名卡
         "need_change_name_items": "5010|1",
         // 7天才能修改 604800秒
-        "need_change_name_time": 604800,
+        "need_change_name_time": 604800
 
     },
     "leaderboard":
