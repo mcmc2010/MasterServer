@@ -9,5 +9,5 @@ CREATE TABLE `t_admin` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
-ALTER TABLE `game`.`t_admin` 
+ALTER TABLE `t_admin` 
 ADD COLUMN `privilege_level` INT NULL DEFAULT 7 COMMENT '7是gm' AFTER `last_time`;

@@ -13,19 +13,19 @@ CREATE TABLE `t_rankings` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 
-ALTER TABLE `game`.`t_rankings` 
+ALTER TABLE `t_rankings` 
 ADD COLUMN `rank` VARCHAR(16) NOT NULL AFTER `currency`;
 
-ALTER TABLE `game`.`t_rankings` 
+ALTER TABLE `t_rankings` 
 ADD COLUMN `cost` DECIMAL(15,2) NOT NULL DEFAULT '0' AFTER `balance`;
 
 
 -- 重要：为了防止混淆，排行榜更名
-ALTER TABLE `game`.`t_rankings` 
-RENAME TO  `game`.`t_leaderboard` ;
+ALTER TABLE `t_rankings` 
+RENAME TO  `t_leaderboard` ;
 
 -- 增加物品纪录
-ALTER TABLE `game`.`t_leaderboard` 
+ALTER TABLE `t_leaderboard` 
 ADD COLUMN `items` VARCHAR(64) NULL DEFAULT NULL AFTER `rank`;
 
 

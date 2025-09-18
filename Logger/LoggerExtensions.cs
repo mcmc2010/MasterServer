@@ -159,8 +159,9 @@ namespace Logger.Extensions {
             string filename = Path.GetFileNameWithoutExtension(_filename);
             filename = $"{filename}_{DateTime.Now:yyyy-MM-dd}{Path.GetExtension(_filename)}";
             filename = Path.Join(_pathname, filename);
-            
-            File.AppendAllText(filename, content);
+
+            //File.AppendAllText(filename, content);
+            AMToolkits.FileAsync.AppendAllText(filename, content);
         }
     }
 

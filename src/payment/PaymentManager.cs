@@ -237,14 +237,11 @@ namespace Server
                 {
                     base_url = _settings.Alipay.SandBoxURL;
                 }
-                var client = _client_factory.APICreate(base_url, 1.0f);
-                if (client != null)
+                _client_factory.APICreate(base_url, 1.0f);
+                _client_factory.OnLogOutput = (client, message) =>
                 {
-                    client.OnLogOutput = (message) =>
-                    {
-                        _logger?.Log($"{TAGName} (OpenAPI) : {message}");
-                    };
-                }
+                    _logger?.Log($"{TAGName} (OpenAPI) [{client?.Index}]: {message}");
+                };
             }
 
             //

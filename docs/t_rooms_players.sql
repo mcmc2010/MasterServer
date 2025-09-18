@@ -1,4 +1,4 @@
-CREATE TABLE `game`.`t_rooms_players` (
+CREATE TABLE `t_rooms_players` (
   `uid` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `rid` INT NOT NULL DEFAULT '-1' COMMENT '12位数字ID',
   `id` VARCHAR(16) NOT NULL COMMENT '房主玩家ID',

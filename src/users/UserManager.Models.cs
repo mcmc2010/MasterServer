@@ -337,6 +337,12 @@ namespace Server
                     return -1;
                 }
 
+                // 早期库默认设置
+                if (profile.AvatarUrl.Trim() == "0" || profile.AvatarUrl.Trim() == "null")
+                {
+                    profile.AvatarUrl = "";
+                }
+
                 //
                 return 1;
             }

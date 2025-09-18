@@ -118,7 +118,7 @@ try
     logger.Log("Init GameMatchManager Completed");
 
     // 6 - 1:
-    var payment_manageer = Server.PaymentManager.NewInstance(args, config);
+    var payment_manager = Server.PaymentManager.NewInstance(args, config);
     // 6 - 2:
     var proxy_service = Server.PlayFabService.NewInstance(args, config);
 
@@ -142,7 +142,7 @@ try
 
     app.RegisterHandlersListner += leaderboard_manager.OnRegisterHandlers;
 
-    app.RegisterHandlersListner += payment_manageer.OnRegisterHandlers;
+    app.RegisterHandlersListner += payment_manager.OnRegisterHandlers;
     
     app.CreateHTTPServer();
     app.CreateWSServer();
@@ -157,7 +157,7 @@ try
     //
     proxy_service.StartWorking();
     // 
-    payment_manageer.StartWorking();
+    payment_manager.StartWorking();
 
     //
     int result = await app.StartWorking();

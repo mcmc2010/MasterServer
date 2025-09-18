@@ -17,31 +17,31 @@ CREATE TABLE `t_cashshop_items` (
 SELECT * FROM game.t_cashshop_items;
 
 
-ALTER TABLE `game`.`t_cashshop_items` 
+ALTER TABLE `t_cashshop_items` 
 CHANGE COLUMN `id` `id` VARCHAR(16) NOT NULL COMMENT '流水单号' ,
 CHANGE COLUMN `tid` `product_id` INT NOT NULL DEFAULT '0' COMMENT '产品ID' ;
 
-ALTER TABLE `game`.`t_cashshop_items` 
+ALTER TABLE `t_cashshop_items` 
 CHANGE COLUMN `id` `id` VARCHAR(32) NOT NULL COMMENT '流水单号' ;
 
-ALTER TABLE `game`.`t_cashshop_items` 
+ALTER TABLE `t_cashshop_items` 
 CHANGE COLUMN `product_id` `product_id` VARCHAR(32) NOT NULL DEFAULT '0' COMMENT '产品ID' ;
 CHANGE COLUMN `name` `name` VARCHAR(64) DEFAULT NULL COMMENT '物品名称' ;
 
 
-ALTER TABLE `game`.`t_cashshop_items` 
+ALTER TABLE `t_cashshop_items` 
 ADD COLUMN `custom_id` VARCHAR(16) NOT NULL COMMENT '第三方ID，此处为playfab' AFTER `user_id`,
 DROP PRIMARY KEY,
 ADD PRIMARY KEY (`uid`, `id`, `user_id`, `custom_id`);
 
-ALTER TABLE `game`.`t_cashshop_items` 
+ALTER TABLE `t_cashshop_items` 
 ADD COLUMN `item_0` VARCHAR(64) NULL DEFAULT NULL AFTER `balance`,
 ADD COLUMN `item_1` VARCHAR(64) NULL DEFAULT NULL AFTER `item_0`,
 ADD COLUMN `item_2` VARCHAR(64) NULL DEFAULT NULL AFTER `item_1`;
 
-ALTER TABLE `game`.`t_cashshop_items` 
+ALTER TABLE `t_cashshop_items` 
 ADD COLUMN `virtual_balance` DECIMAL(10,0) NULL DEFAULT NULL COMMENT '可能是获得虚拟货币' AFTER `balance`,
 ADD COLUMN `virtual_currency` VARCHAR(5) NULL DEFAULT 'GM' AFTER `virtual_balance`;
 
-ALTER TABLE `game`.`t_cashshop_items` 
+ALTER TABLE `t_cashshop_items` 
 ADD COLUMN `virtual_amount` DECIMAL(10,0) NULL DEFAULT NULL COMMENT '可能是获得虚拟货币' AFTER `balance`;

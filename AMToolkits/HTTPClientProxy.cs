@@ -87,7 +87,7 @@ namespace AMToolkits.Net
 
         private bool _has_compress = false;
         private bool _is_output_log = true;
-        public System.Action<string>? OnLogOutput = null;
+        public System.Action<object?, string>? OnLogOutput = null;
 
         private HttpClient? _http_client;
         private System.Threading.CancellationTokenSource? _cts;
@@ -174,10 +174,9 @@ namespace AMToolkits.Net
                 if (v is string) { return (string)v; }
                 else { return v.ToString(); }
             }));
-            System.Console.WriteLine(log);
 
             //
-            this.OnLogOutput?.Invoke(log);
+            this.OnLogOutput?.Invoke(this, log);
         }
 
 
@@ -189,18 +188,20 @@ namespace AMToolkits.Net
         /// <returns></returns>
         public async Task<T?> GetAsync<T>(string url,
             Dictionary<string, object>? arguments = null,
-            Dictionary<string, object>? headers = null)
+            Dictionary<string, object>? headers = null,
+            System.Action<HTTPClientProxy, object?>? callback = null)
             where T : IHTTPResponseResult
         {
-            return await HTTPClientProxy.ProcessRequestAsync<T>(this, HTTPMethod.Get, url, null, headers, arguments);
+            return await HTTPClientProxy.ProcessRequestAsync<T>(this, HTTPMethod.Get, url, null, headers, arguments, callback);
         }
 
         public async Task<T?> PostAsync<T>(string url, object? payload,
                 Dictionary<string, object>? headers = null,
-                Dictionary<string, object>? arguments = null)
+                Dictionary<string, object>? arguments = null,
+                System.Action<HTTPClientProxy, object?>? callback = null)
                 where T : IHTTPResponseResult
         {
-            return await HTTPClientProxy.ProcessRequestAsync<T>(this, HTTPMethod.Post, url, payload, headers, arguments);
+            return await HTTPClientProxy.ProcessRequestAsync<T>(this, HTTPMethod.Post, url, payload, headers, arguments, callback);
         }
 
 
@@ -372,7 +373,8 @@ namespace AMToolkits.Net
         /// <returns></returns>
         protected static async Task<T?> ProcessRequestAsync<T>(HTTPClientProxy client, HTTPMethod method, string url, object? payload = null,
                                     Dictionary<string, object>? headers = null,
-                                    Dictionary<string, object>? arguments = null)
+                                    Dictionary<string, object>? arguments = null,
+                                    System.Action<HTTPClientProxy, object?>? callback = null)
                                     where T : IHTTPResponseResult
         {
             url = url.Trim();
@@ -386,6 +388,7 @@ namespace AMToolkits.Net
             //
             if (client._http_client == null || status == FactoryObjectStatus.Running)
             {
+                callback?.Invoke(client, null);
                 return default(T);
             }
 
@@ -397,17 +400,17 @@ namespace AMToolkits.Net
             status = FactoryObjectStatus.Running;
 
             // 修正url
-                if (client._base_url.Length > 0)
+            if (client._base_url.Length > 0)
+            {
+                if (!url.StartsWith("/") && url.Length > 0)
                 {
-                    if (!url.StartsWith("/") && url.Length > 0)
-                    {
-                        url = $"{client._base_url}/{url}";
-                    }
-                    else
-                    {
-                        url = $"{client._base_url}{url}";
-                    }
+                    url = $"{client._base_url}/{url}";
                 }
+                else
+                {
+                    url = $"{client._base_url}{url}";
+                }
+            }
 
             //
             client._url = url;
@@ -566,6 +569,8 @@ namespace AMToolkits.Net
                 {
                     client._status = FactoryObjectStatus.Completed;
                 }
+
+                callback?.Invoke(client, null);
             }
         }
     }
