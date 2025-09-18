@@ -48,6 +48,18 @@ namespace Server
 
         [JsonPropertyName("uid")]
         public string UID = "";
+
+        /// <summary>
+        /// 用户等级（不是账号等级）
+        /// </summary>
+        [JsonPropertyName("level")]
+        public int Level = 0;
+        /// <summary>
+        /// 用户经验
+        /// </summary>
+        [JsonPropertyName("experience")]
+        public int Experience = 0;
+
         /// <summary>
         /// 当前赛季 段位
         /// </summary>
@@ -260,6 +272,7 @@ namespace Server
                 string sql =
                     $"SELECT  " +
                     $"  h.`uid`, h.`id`, u.`name`, " +
+                    $"  h.`level`, h.`experience`, " +
                     $"  h.`value`, " +
                     $"  `cp_value`, `played_count`, `played_win_count`, `winning_streak_count`, `winning_streak_highest`, " +
                     $"  `season`, `season_time`, `challenger_reals`, " +
@@ -375,6 +388,7 @@ namespace Server
                     $"SELECT " +
                     $"    `uid`as nid, " +
                     $"    `id` as uid, " +
+                    $"    `level`, `experience`, " +
                     $"    `last_rank_level`, `last_rank_value`, `rank_level`, `rank_value`,  " +
                     $"    `challenger_reals`, `season`, `season_time`, " +
                     $"    `create_time`, `last_time`, " +

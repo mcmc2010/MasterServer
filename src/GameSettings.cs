@@ -9,8 +9,12 @@ namespace Server
     {
         [JsonPropertyName("user_icons")]
         public string[] UserIcons = new string[]{ };
+        [JsonPropertyName("user_level_experiences")]
+        public long[] UserLevelExperiences = new long[]{ 0, 100 };
 
-
+        /// <summary>
+        /// 
+        /// </summary>
         [JsonPropertyName("item_default_equipment")]
         public int ItemDefaultEquipmentIndex = AMToolkits.Game.ItemConstants.ID_NONE;
 

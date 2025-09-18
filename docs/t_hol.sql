@@ -46,3 +46,8 @@ ADD COLUMN `winning_streak_highest` INT NOT NULL DEFAULT '0' COMMENT '最高连�
 ALTER TABLE `t_hol` 
 ADD UNIQUE KEY `id_season` (`id`,`season`) USING BTREE;
 
+--
+ALTER TABLE `t_hol` 
+ADD COLUMN `level` INT NULL DEFAULT 0 AFTER `id`,
+ADD COLUMN `experience` INT UNSIGNED NULL DEFAULT 0 AFTER `level`;
+

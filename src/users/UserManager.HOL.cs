@@ -10,6 +10,8 @@ namespace Server
         public int uid = 0;
         public string id = "";
         public string name = ""; //t_user表中的
+        public int level = 0;
+        public long experience = 0;
         public int value = 0; // 隐藏评估
         //
         public int cp_value = 0; // 综合能力

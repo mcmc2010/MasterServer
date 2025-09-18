@@ -76,6 +76,19 @@ namespace Server
     public class UserProfileExtend : UserProfile
     {
         /// <summary>
+        /// 用户等级（不是账号等级）
+        /// </summary>
+        [JsonPropertyName("level")]
+        public int Level = 0;
+        /// <summary>
+        /// 用户经验
+        /// </summary>
+        [JsonPropertyName("experience")]
+        public long Experience = 0;
+        [JsonPropertyName("experience_max")]
+        public long ExperienceMax = 0;
+
+        /// <summary>
         /// 当前赛季 段位
         /// </summary>
         [JsonPropertyName("rank_level")]
@@ -288,6 +301,17 @@ namespace Server
             {
                 return -1;
             }
+
+            int level_max = GameSettingsInstance.Settings.User.UserLevelExperiences.Length - 1;
+            profile.Level = db_profile_1?.Level ?? 0;
+            profile.Experience = db_profile_1?.Experience ?? 0;
+
+            profile.ExperienceMax = GameSettingsInstance.Settings.User.UserLevelExperiences[level_max];
+            if (profile.Level + 1 < level_max)
+            {
+                profile.ExperienceMax = GameSettingsInstance.Settings.User.UserLevelExperiences[profile.Level + 1];
+            }
+            
 
             profile.LastRankLevel = db_profile_1?.LastRankLevel ?? 1000;
             profile.LastRankValue = db_profile_1?.LastRankValue ?? 0;
