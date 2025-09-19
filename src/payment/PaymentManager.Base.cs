@@ -192,7 +192,7 @@ namespace Server
 
             //
             List<TransactionItem> transactions = new List<TransactionItem>();
-            var r_result = await DBGetTransactions(r_user.ID, transactions, transaction.id, transaction.order_id);
+            var r_result = await DBGetTransactions(r_user.ID, transactions, transaction.id, transaction.order_id, null);
             if (r_result < 0)
             {
                 return -1;
@@ -278,7 +278,7 @@ namespace Server
         {
             //
             List<TransactionItem> transactions = new List<TransactionItem>();
-            var r_result = await DBGetTransactions(user_uid, transactions, transaction.id, transaction.order_id);
+            var r_result = await DBGetTransactions(user_uid, transactions, transaction.id, transaction.order_id, "completed");
             if (r_result < 0)
             {
                 return -1;
