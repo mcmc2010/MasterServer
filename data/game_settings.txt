@@ -25,6 +25,13 @@
         "need_change_name_time": 604800
 
     },
+
+    "season":
+    {
+        "index": 1,
+        "code": 1001
+    },
+
     "leaderboard":
     {
         "gold_limit_min": 1000000,

@@ -28,3 +28,6 @@ CHANGE COLUMN `type` `type` INT NOT NULL DEFAULT '0' COMMENT '物品类型' AFTE
 
 ALTER TABLE `t_inventory` 
 ADD UNIQUE INDEX `id_UNIQUE` (`id` ASC) VISIBLE;
+
+ALTER TABLE `t_inventory` 
+ADD COLUMN `reason` VARCHAR(16) NULL DEFAULT NULL AFTER `custom_data`;

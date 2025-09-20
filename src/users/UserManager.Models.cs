@@ -223,9 +223,11 @@ namespace Server
             {
                 // 
                 string sql =
-                    $"SELECT uid, id AS server_id, value, last_time, status " +
-                    $"FROM t_hol WHERE id = ? AND status >= 0;";
-                var result_code = db?.Query(sql, user_data.server_uid);
+                    $"SELECT `uid`, id AS server_id, `value`, `last_time`, `status` " +
+                    $"FROM t_hol " +
+                    $"WHERE `id` = ? AND `season` = ? AND `status` >= 0;";
+                var result_code = db?.Query(sql, user_data.server_uid,
+                    GameSettingsInstance.Settings.Season.Code);
                 if (result_code < 0)
                 {
                     return -1;
@@ -237,10 +239,11 @@ namespace Server
                 {
                     sql =
                         $"INSERT INTO `t_hol` " +
-                        $"(`id`,`value`)" +
-                        $"VALUES(?, ?);";
+                        $"(`id`,`value`, `season`)" +
+                        $"VALUES(?, ?, ?);";
                     result_code = db?.Query(sql,
-                        user_data.server_uid, 100);
+                        user_data.server_uid, 100,
+                        GameSettingsInstance.Settings.Season.Code);
                     if (result_code < 0)
                     {
                         return -1;
@@ -280,9 +283,10 @@ namespace Server
                     $"  h.`create_time`, h.`last_time`, " +
                     $"  h.`status`  " +
                     $"FROM `t_hol` AS h " +
-                    $"LEFT JOIN `t_user` AS u ON u.id = h.id  " +
-                    $"WHERE u.`id` = ? AND u.`status` > 0";
-                var result_code = db?.Query(sql, user_id);
+                    $"LEFT JOIN `t_user` AS u ON u.`id` = h.`id` AND u.`status` > 0 " +
+                    $"WHERE h.`id` = ? AND h.`season` = ? AND h.`status` > 0";
+                var result_code = db?.Query(sql, user_id,
+                    GameSettingsInstance.Settings.Season.Code);
                 if (result_code < 0)
                 {
                     return -1;
@@ -394,8 +398,9 @@ namespace Server
                     $"    `create_time`, `last_time`, " +
                     $"    `status` " +
                     $"FROM `t_hol` " +
-                    $"WHERE id = ? AND status > 0;";
-                var result_code = db?.Query(sql, user_profile.UID);
+                    $"WHERE `id` = ? AND `season` = ? AND `status` > 0;";
+                var result_code = db?.Query(sql, user_profile.UID,
+                        GameSettingsInstance.Settings.Season.Code);
                 if (result_code < 0)
                 {
                     return null;
@@ -644,12 +649,20 @@ namespace Server
 
 
         protected async Task<int> DBUsingUserInventoryItem(DatabaseQuery? query, string user_uid,
-                            UserInventoryItem item, bool is_using = true)
+                            UserInventoryItem item, bool is_using = true, int count = 0)
         {
+            // ids 条件
+            string condition_update_count = "";
+            if (count > 0)
+            {
+                condition_update_count = $" `count` = `count` - {count}, ";
+            }
+
             // 
             string sql =
                 $"UPDATE `t_inventory` " +
                 $"SET " +
+                $"  { condition_update_count } " +
                 $"  `using_time` = ?, `last_time` = CURRENT_TIMESTAMP " +
                 $"WHERE `id` = ? AND `tid` = ? AND `user_id` = ? ";
             var result_code = query?.Query(sql,
@@ -760,21 +773,16 @@ namespace Server
         }
 
         /// <summary>
-        /// 使用物品
+        /// 使用装备
         /// </summary>
         /// <param name="user_uid"></param>
         /// <param name="items"></param>
         /// <returns></returns>
         public async Task<int> DBUsingUserInventoryItem(string user_uid, string item_iid,
-                            Game.TItems item_template_data,
+                            Game.TItems template_data,
                             List<UserInventoryItem>? items)
         {
-            if (items == null)
-            {
-                items = new List<UserInventoryItem>();
-            }
-
-            items.Clear();
+            items?.Clear();
 
             //
             var db = DatabaseManager.Instance.New();
@@ -784,14 +792,15 @@ namespace Server
 
                 // 获取该类所有物品
                 List<UserInventoryItem> list = new List<UserInventoryItem>();
-                int result_code = await DBGetUserInventoryItems(db, user_uid, list, item_template_data.Type);
+                int result_code = await DBGetUserInventoryItems(db, user_uid, list, template_data.Type,
+                        new int[] { template_data.Id });
                 if (result_code < 0)
                 {
                     db?.Rollback();
                     return -1;
                 }
 
-                var using_item = list.FirstOrDefault(v => v.iid == item_iid && v.index == item_template_data.Id);
+                var using_item = list.FirstOrDefault(v => v.iid == item_iid && v.index == template_data.Id);
                 if (list.Count == 0 || using_item == null)
                 {
                     db?.Rollback();
@@ -804,10 +813,10 @@ namespace Server
                     db?.Rollback();
                     return 1;
                 }
-                items.Add(using_item);
+                items?.Add(using_item);
 
                 // 更新使用物品
-                if (await DBUsingUserInventoryItem(db, user_uid, using_item) < 0)
+                if (await DBUsingUserInventoryItem(db, user_uid, using_item, true) < 0)
                 {
                     db?.Rollback();
                     return -1;
@@ -816,7 +825,7 @@ namespace Server
 
 
                 // 移除已经在使用的物品
-                var using_item_list = list.Where(v => v.index == item_template_data.Id && v.using_time != null).ToList();
+                var using_item_list = list.Where(v => v.index == template_data.Id && v.using_time != null).ToList();
                 using_item_list.Remove(using_item);
 
                 foreach (var v in using_item_list)
@@ -830,8 +839,96 @@ namespace Server
                     }
                     v.using_time = null;
 
-                    items.Add(v);
+                    items?.Add(v);
                 }
+
+                db?.Commit();
+
+            }
+            catch (Exception e)
+            {
+                db?.Rollback();
+                _logger?.LogError($"{TAGName} (UpdateUserInventoryItems) Error :" + e.Message);
+                return -1;
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return 7;
+        }
+
+        /// <summary>
+        /// 使用消耗品
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="item_iid"></param>
+        /// <param name="template_data"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        public async Task<int> DBUsingUserInventoryItem(string user_uid, string item_iid,
+                            Game.TItems template_data,
+                            List<UserInventoryItem>? items,
+                            int Count)
+        {
+            items?.Clear();
+
+            //
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                db?.Transaction();
+
+                // 获取该类所有物品
+                List<UserInventoryItem> list = new List<UserInventoryItem>();
+                int result_code = await DBGetUserInventoryItems(db, user_uid, list, template_data.Type,
+                        new int[] { template_data.Id });
+                if (result_code < 0)
+                {
+                    db?.Rollback();
+                    return -1;
+                }
+
+                var using_item = list.FirstOrDefault(v => v.iid == item_iid && v.index == template_data.Id);
+                if (list.Count == 0 || using_item == null)
+                {
+                    db?.Rollback();
+                    return 0;
+                }
+                // 物品数量不够使用
+                if (using_item.count - Count < 0)
+                {
+                    db?.Rollback();
+                    return 0;
+                }
+
+                // 物品已经在使用中，无需重复使用
+                if (using_item.using_time != null)
+                {
+                    db?.Rollback();
+                    return 1;
+                }
+
+                items?.Add(using_item);
+
+                // 已经有其他同类型的物品再使用
+                var exist_item = list.FirstOrDefault(v => v.index == template_data.Id && v.using_time != null);
+                if (exist_item != null)
+                {
+                    items?.Add(exist_item);
+                    db?.Rollback();
+                    return 1;
+                }
+
+
+                // 更新使用物品
+                if (await DBUsingUserInventoryItem(db, user_uid, using_item, true, Count) < 0)
+                {
+                    db?.Rollback();
+                    return -1;
+                }
+                using_item.using_time = DateTime.Now;
+                using_item.count = System.Math.Max(using_item.count - Count, 0);
 
                 db?.Commit();
 
@@ -1068,9 +1165,10 @@ namespace Server
                 // 
                 string sql =
                     $"UPDATE `t_inventory` " +
-                    $"SET `status` = 0 " +
+                    $"SET `reason` = ?, `status` = 0 " +
                     $"WHERE `id` = ? AND `tid` = ? AND `user_id` = ? ";
                 int result_code = query.Query(sql,
+                        reason,
                         item.iid, item.index, user_uid);
                 if (result_code < 0)
                 {
@@ -1097,9 +1195,10 @@ namespace Server
                 // 
                 string sql =
                     $"UPDATE `t_inventory` " +
-                    $"SET `status` = 0 " +
+                    $"SET `reason` = ?, `status` = 0 " +
                     $"WHERE `id` = ? AND `tid` = ? AND `user_id` = ? ";
                 int result_code = query.Query(sql,
+                        reason,
                         item.IID, item.ID, user_uid);
                 if (result_code < 0)
                 {
@@ -1364,9 +1463,10 @@ namespace Server
                     $"  h.`create_time`, h.`last_time`, " +
                     $"  h.`status`  " +
                     $"FROM `t_hol` AS h " +
-                    $"LEFT JOIN `t_user` AS u ON u.id = h.id  " +
-                    $"WHERE u.`id` = ? AND u.`status` > 0";
-                var result_code = db?.Query(sql, user_id);
+                    $"LEFT JOIN `t_user` AS u ON u.`id` = h.`id` AND u.`status` > 0  " +
+                    $"WHERE h.`id` = ? AND h.`season` = ? AND h.`status` > 0";
+                var result_code = db?.Query(sql, user_id,
+                        GameSettingsInstance.Settings.Season.Code);
                 if (result_code < 0)
                 {
                     return null;

@@ -31,6 +31,16 @@ namespace Server
     }
 
     [System.Serializable]
+    public class GameSettings_Season
+    {
+        [JsonPropertyName("index")]
+        public int Index = 1; //赛季序号，s1 = 1
+
+        [JsonPropertyName("code")]
+        public int Code = 0; //赛季代码，通常是4位数
+    }
+
+    [System.Serializable]
     public class GameSettings_Leaderboard
     {
         [JsonPropertyName("gold_limit_min")]
@@ -58,6 +68,9 @@ namespace Server
     {
         [JsonPropertyName("user")]
         public GameSettings_User User = new GameSettings_User();
+
+        [JsonPropertyName("season")]
+        public GameSettings_Season Season = new GameSettings_Season();
 
         [JsonPropertyName("leaderboard")]
         public GameSettings_Leaderboard Leaderboard = new GameSettings_Leaderboard();

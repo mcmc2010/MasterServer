@@ -300,8 +300,9 @@ namespace Server
                     $"  u.client_id " +
                     $"FROM t_hol AS h " +
                     $"RIGHT JOIN t_user AS u ON h.id = u.id AND u.status > 0 " +
-                    $"WHERE h.id = ?; ";
-                var result_code = db?.Query(sql, auth_data.id);
+                    $"WHERE h.id = ? AND `season` = ? ; ";
+                var result_code = db?.Query(sql, auth_data.id,
+                    GameSettingsInstance.Settings.Season.Code);
                 if(result_code < 0) {
                     return -1;
                 }
@@ -350,8 +351,9 @@ namespace Server
                     $"FROM t_hol AS h " +
                     $"RIGHT JOIN t_user AS u ON h.id = u.id AND u.status > 0 " +
                     $"RIGHT JOIN t_matches AS m ON h.id = m.id AND m.sn = ? AND m.status > 0 " +
-                    $"WHERE h.id = ?; ";
-                var result_code = db?.Query(sql, id, auth_data.id);
+                    $"WHERE h.id = ? AND `season` = ?; ";
+                var result_code = db?.Query(sql, id, auth_data.id,
+                        GameSettingsInstance.Settings.Season.Code);
                 if(result_code < 0) {
                     return -1;
                 }
@@ -417,8 +419,9 @@ namespace Server
                     $"FROM t_hol AS h " +
                     $"RIGHT JOIN t_user AS u ON h.id = u.id AND u.status > 0 " +
                     $"RIGHT JOIN t_matches AS m ON h.id = m.id AND m.sn = ? AND m.status > 0 " +
-                    $"WHERE h.id = ?; ";
-                var result_code = db?.Query(sql, id, auth_data.id);
+                    $"WHERE h.id = ? AND `season` = ? ; ";
+                var result_code = db?.Query(sql, id, auth_data.id,
+                        GameSettingsInstance.Settings.Season.Code);
                 if(result_code < 0) {
                     return -1;
                 }

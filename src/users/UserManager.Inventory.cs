@@ -265,7 +265,8 @@ namespace Server
         /// </summary>
         public async Task<int> _ConsumableUserInventoryItems(string? user_uid,
                         List<UserInventoryItem>? items,
-                        string reason = "")
+                        string reason = "",
+                        bool db_force_update = true)
         {
             if (user_uid == null || user_uid.IsNullOrWhiteSpace())
             {
@@ -315,15 +316,20 @@ namespace Server
                     item.Count = v.Count;
                     item.NID = -1;
                 }
+
+                var r_item = items?.FirstOrDefault(i => i.iid == v.IID);
+                if (r_item != null)
+                {
+                    r_item.count = v.Count;
+                }
             }
 
             // 从数据库中消耗
-            if ((await _DBConsumableUserInventoryItem(user_uid, consumable_items)) < 0)
+            if (db_force_update && (await _DBConsumableUserInventoryItem(user_uid, consumable_items)) < 0)
             {
                 _logger?.LogError($"{TAGName} (ConsumableUserInventoryItems) (User:{user_uid}) {print} Failed");
                 return -1;
             }
-
             return 1;
         }
         #endregion
@@ -591,24 +597,48 @@ namespace Server
 
             //
             var template_data = AMToolkits.Utility.TableDataManager.GetTableData<Game.TItems>();
-            var item_template_data = template_data?.Get(item_index);
-            if (item_template_data == null)
+            var template_item = template_data?.Get(item_index);
+            if (template_item == null)
             {
                 return -1;
             }
 
             // 该物品不允许使用
-            if (!item_template_data.Useable)
+            if (!template_item.Useable)
             {
                 return -10;
             }
 
             int result_code = 0;
             List<UserInventoryItem> list = new List<UserInventoryItem>();
-            if ((result_code = await DBUsingUserInventoryItem(user_uid, item_iid, item_template_data, list)) < 0)
+            if (template_item.Type == (int)AMToolkits.Game.ItemType.Equipment)
             {
-                _logger?.LogError($"{TAGName} (UsingUserInventoryItems) (User:{user_uid}) Failed");
-                return -1;
+                if ((result_code = await DBUsingUserInventoryItem(user_uid, item_iid, template_item, list)) < 0)
+                {
+                    _logger?.LogError($"{TAGName} (UsingUserInventoryItems) (User:{user_uid}) Failed");
+                    return -1;
+                }
+            }
+            // 物品
+            else if (template_item.Type == (int)AMToolkits.Game.ItemType.Item || template_item.Type == (int)AMToolkits.Game.ItemType.Item_1)
+            {
+                if ((result_code = await DBUsingUserInventoryItem(user_uid, item_iid, template_item, list, 1)) < 0)
+                {
+                    _logger?.LogError($"{TAGName} (UsingUserInventoryItems) (User:{user_uid}) Failed");
+                    return -1;
+                }
+
+                var using_item = list.FirstOrDefault();
+                if (result_code == 7 && using_item != null)
+                {
+                    using_item.count = 1;
+                    List<UserInventoryItem> consumable_items = new List<UserInventoryItem>();
+                    consumable_items.Add(using_item);
+                    if (await this._ConsumableUserInventoryItems(user_uid, consumable_items, "using", true) < 0)
+                    {
+
+                    }
+                }
             }
 
             // 物品不存在
@@ -617,19 +647,19 @@ namespace Server
                 return 0;
             }
 
+            // 转换为可通用的物品类
+            foreach (var v in list)
+            {
+                template_item = template_data?.Get(v.index);
+                items.Add(v.ToNItem());
+            }
+
             // 物品已经在使用
             if (result_code == 1)
             {
                 return 1;
             }
-
-            // 转换为可通用的物品类
-            foreach (var v in list)
-            {
-                item_template_data = template_data?.Get(v.index);
-                items.Add(v.ToNItem());
-            }
-
+            
             return result_code;
 
         }

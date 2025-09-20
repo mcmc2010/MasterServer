@@ -43,10 +43,11 @@ namespace Server
                 string sql =
                     $"SELECT " +
                     $"	`played_count`, `played_win_count`, `winning_streak_count`, `winning_streak_highest`, " +
-                    $"    `create_time`, `last_time` " +
+                    $"  `create_time`, `last_time` " +
                     $"FROM `t_hol` " +
-                    $"WHERE id = ? AND status > 0;";
-                var result_code = db?.Query(sql, data.UserID);
+                    $"WHERE id = ? AND `season` = ? AND status > 0;";
+                var result_code = db?.Query(sql, data.UserID,
+                        GameSettingsInstance.Settings.Season.Code);
                 if (result_code < 0)
                 {
                     return -1;
@@ -76,10 +77,11 @@ namespace Server
                     $"    `winning_streak_count` =  ?, " +
                     $"    `winning_streak_highest` =  ?, " +
                     $"    `last_time` = CURRENT_TIMESTAMP " +
-                    $"WHERE id = ? AND status > 0;";
+                    $"WHERE `id` = ? AND `season` = ? AND `status` > 0;";
                 result_code = db?.Query(sql,
                     added_count,
-                    data.UserID);
+                    data.UserID,
+                    GameSettingsInstance.Settings.Season.Code);
                 if (result_code < 0)
                 {
                     return -1;
