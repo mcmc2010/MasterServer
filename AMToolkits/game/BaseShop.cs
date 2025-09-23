@@ -7,5 +7,6 @@ namespace AMToolkits.Game
         Shop_2 = 2,   //商城：金币充值
         CashShop = 7,   //
         Market = 10,    //市场
+        CashShop_1 = 100, // 是商店物品：不在商店中显示
     }
 }

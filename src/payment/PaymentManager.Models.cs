@@ -167,8 +167,19 @@ namespace Server
             return 1;
         }
 
+        /// <summary>
+        /// 通常不需要人工复核订单
+        /// 对超时，异常的订单需要人工复核
+        /// </summary>
+        /// <param name="query"></param>
+        /// <param name="user_uid"></param>
+        /// <param name="transaction"></param>
+        /// <param name="reason"></param>
+        /// <param name="manual"></param>
+        /// <returns></returns>
         protected async System.Threading.Tasks.Task<int> DBReviewTransaction(DatabaseQuery? query, string user_uid,
-                            TransactionItem transaction, string reason)
+                            TransactionItem transaction, string reason,
+                            string? manual = null)
         {
             if (query == null)
             {
@@ -185,13 +196,14 @@ namespace Server
             // 
             string sql =
             $"UPDATE `t_transactions` SET " +
-            $"	  `code` = ?,  `virtual_amount` = ?, `virtual_currency` = ?, " +
+            $"	  `code` = ?, `manual` = ?, `virtual_amount` = ?, `virtual_currency` = ?, " +
             $"    `update_time` = CURRENT_TIMESTAMP, `pending_time` = CURRENT_TIMESTAMP " +
             $"WHERE  " +
             $"    `status` > 0 AND `user_id` = ? AND" +
             $"    `id` = ? AND `order_id` = ? AND `code` NOT IN ({placeholders})";
             var result_code = query.QueryWithList(sql, out list,
-                reason, transaction.virtual_amount, transaction.virtual_currency,
+                reason, manual,
+                transaction.virtual_amount, transaction.virtual_currency,
                 user_uid,
                 transaction.id, transaction.order_id);
             if (result_code < 0)
@@ -352,7 +364,8 @@ namespace Server
         /// <param name="transaction"></param>
         /// <returns></returns>
         public async Task<int> DBReviewTransaction(string user_uid, TransactionItem transaction,
-                                    string reason = "pending")
+                                    string reason = "pending",
+                                    string? manual = null)
         {
 
             var db = DatabaseManager.Instance.New();
@@ -360,7 +373,7 @@ namespace Server
             {
                 db?.Transaction();
 
-                if (await DBReviewTransaction(db, user_uid, transaction, reason) < 0)
+                if (await DBReviewTransaction(db, user_uid, transaction, reason, manual) < 0)
                 {
                     db?.Rollback();
                     return -1;

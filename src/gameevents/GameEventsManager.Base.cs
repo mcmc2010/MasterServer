@@ -132,7 +132,7 @@ namespace Server
             event_item.InitTemplateData<Game.TGameEvents>(template_item);
 
             bool is_completed = false;
-            if (template_item.GroupType == (int)GameEventGroup.None)
+            if (template_item.GroupType == (int)AMToolkits.Game.GameGroupType.None)
             {
                 is_completed = true;
             }
@@ -200,7 +200,7 @@ namespace Server
 
             Game.TGameEvents? last_template_item = null;
             List<GameEventItem> list = new List<GameEventItem>();
-            if (template_item.GroupType == (int)GameEventGroup.Daily)
+            if (template_item.GroupType == (int)AMToolkits.Game.GameGroupType.Daily)
             {
                 last_template_item = template_data.Get(template_item.RequireLastId);
                 result_code = await UserManager.Instance._GetUserGameEvents(user.ID, list, (int)GameEventType.Payment, template_item.Group);
@@ -229,7 +229,7 @@ namespace Server
 
             // 是否可以完成
             bool is_completed = false;
-            if (template_item.GroupType == (int)GameEventGroup.Daily)
+            if (template_item.GroupType == (int)AMToolkits.Game.GameGroupType.Daily)
             {
                 // 
                 if (template_item.RequireLastId == 0)

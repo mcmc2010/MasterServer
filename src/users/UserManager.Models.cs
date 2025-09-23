@@ -922,13 +922,14 @@ namespace Server
 
 
                 // 更新使用物品
-                if (await DBUsingUserInventoryItem(db, user_uid, using_item, true, Count) < 0)
+                // 此处不再更新数量
+                if (await DBUsingUserInventoryItem(db, user_uid, using_item, true, 0) < 0)
                 {
                     db?.Rollback();
                     return -1;
                 }
                 using_item.using_time = DateTime.Now;
-                using_item.count = System.Math.Max(using_item.count - Count, 0);
+                //using_item.count = System.Math.Max(using_item.count - Count, 0);
 
                 db?.Commit();
 
@@ -1494,6 +1495,230 @@ namespace Server
 
         #endregion
 
+
+        #region Game Effects
+
+        /// <summary>
+        /// 数据库结果集转换为特效列表
+        /// </summary>
+        /// <param name="rows"></param>
+        /// <returns></returns>
+        protected List<GameEffectItem> ToGameEffects(List<DatabaseResultItemSet>? rows)
+        {
+            List<GameEffectItem> items = new List<GameEffectItem>();
+            if (rows != null)
+            {
+                foreach (var v in rows)
+                {
+                    GameEffectItem? effect_item = v.To<GameEffectItem>();
+                    if (effect_item == null) { continue; }
+
+                    DatabaseResultItem data;
+                    if (v.TryGetValue("effect_value", out data))
+                    {
+                        string text = data.AsString("");
+                    }
+                    items.Add(effect_item);
+                }
+            }
+            return items;
+        }
+        
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="query"></param>
+        /// <param name="user_uid"></param>
+        /// <param name="items"></param>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        protected async Task<int> DBGetGameEffects(DatabaseQuery? query, string user_uid,
+                            List<GameEffectItem> items,
+                            int type = -1, int group_index = -1)
+        {
+
+            // type 条件
+            string condition_case_type = "";
+            if (type >= 0)
+            {
+                condition_case_type = $" AND (e.`type` = {type}) ";
+            }
+
+            string condition_case_group_index = "";
+            if (group_index >= 0)
+            {
+                condition_case_group_index = $" AND (e.`group` = {group_index}) ";
+            }
+
+
+            //
+            List<DatabaseResultItemSet>? list = null;
+
+            // 
+            string sql =
+                $"SELECT " +
+                $"    `uid`, id AS `id`, `name`, `value`, " +
+                $"    `type` as `effect_type`, `sub_type` AS `effect_sub_type`, `group` AS `group_index`, " +
+                $"    `user_id` AS `server_uid`, " +
+                $"    `create_time`, `last_time`, `end_time`, " +
+                $"    `value` AS `effect_value`, `status` " +
+                $"FROM `t_gameeffects` e " +
+                $"WHERE " +
+                $" `user_id` = ? AND `status` > 0 " +
+                $" {condition_case_type} " +
+                $" {condition_case_group_index} " +
+                $" ;";
+            var result_code = query?.QueryWithList(sql, out list,
+                user_uid);
+            if (result_code < 0 || list == null)
+            {
+                return -1;
+            }
+
+            items.AddRange(this.ToGameEffects(list));
+            return items.Count;
+        }
+
+        /// <summary>
+        /// 添加，没有做数据查询回滚，这里设置为私有函数
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        protected async Task<int> DBAddGameEffect(DatabaseQuery? query, string user_uid,
+                            GameEffectItem item)
+        {
+            if (query == null)
+            {
+                return -1;
+            }
+
+            // 
+            string sql =
+                $"INSERT INTO `t_gameeffects` " +
+                $"  (`id`,`name`, `type`, `user_id`, `group`, " +
+                $"  `create_time`, `last_time`, `end_time`, " +
+                $"  `value`, " +
+                $"  `status`) " +
+                $"VALUES " +
+                $"(?, ?, ?, ?, ?, " +
+                $"CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,NULL, " +
+                $"NULL,1); ";
+            int result_code = query.Query(sql,
+                    item.id,
+                    item.GetTemplateData<TGameEffects>()?.Name ?? "",
+                    item.GetTemplateData<TGameEffects>()?.EffectType ?? 0,
+                    user_uid,
+                    item.GetTemplateData<TGameEffects>()?.Group ?? (int)AMToolkits.Game.GameGroupType.None);
+            if (result_code < 0)
+            {
+                return -1;
+            }
+
+            return 1;
+        }
+
+
+        /// <summary>
+        /// 获取特效列表
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        public async Task<int> DBGetGameEffects(string user_uid, List<GameEffectItem> items,
+                                    int type = -1,
+                                    int group_index = -1)
+        {
+
+            //
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                int result_code = await DBGetGameEffects(db, user_uid, items, type, group_index);
+                if (result_code < 0)
+                {
+                    return -1;
+                }
+
+            }
+            catch (Exception e)
+            {
+                _logger?.LogError($"{TAGName} (GetGameEffects) Error :" + e.Message);
+                return -1;
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return 1;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        public async Task<int> _DBAddGameEffectData(string user_uid,
+                            NGameEffectData data)
+        {
+            // 事件必须存在
+            var template_data = AMToolkits.Utility.TableDataManager.GetTableData<Game.TGameEffects>();
+            if (template_data == null)
+            {
+                return -1;
+            }
+            // 
+            var template_item = template_data.First(v => v.Id == data.ID);
+            if (template_item == null)
+            {
+                return -1;
+            }
+
+            //
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                db?.Transaction();
+
+                var item = new GameEffectItem()
+                {
+                    uid = -1,
+                    id = data.ID,
+                    name = data.Name,
+                    effect_type = template_item.EffectType,
+                    create_time = DateTime.Now,
+                    last_time = DateTime.Now,
+                    status = 1
+                };
+                item.InitTemplateData<Game.TGameEffects>(template_item);
+
+                if (await DBAddGameEffect(db, user_uid, item) < 0)
+                {
+                    db?.Rollback();
+                    return -1;
+                }
+
+                //
+                db?.Commit();
+            }
+            catch (Exception e)
+            {
+                db?.Rollback();
+                _logger?.LogError($"{TAGName} (UpdateGameEventData) Error :" + e.Message);
+                return -1;
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return 1;
+        }
+
+
+        #endregion
+
         #region Game Events
 
 
@@ -1644,7 +1869,7 @@ namespace Server
                     item.GetTemplateData<TGameEvents>()?.Name ?? "",
                     item.GetTemplateData<TGameEvents>()?.EventType ?? 0,
                     user_uid,
-                    item.GetTemplateData<TGameEvents>()?.Group ?? (int)GameEventGroup.None);
+                    item.GetTemplateData<TGameEvents>()?.Group ?? (int)AMToolkits.Game.GameGroupType.None);
             if (result_code < 0)
             {
                 return -1;
@@ -1674,7 +1899,7 @@ namespace Server
             $"WHERE `id` = ? AND `user_id` = ? ";
             var result_code = query?.Query(sql,
                 template_data?.Name ?? data.Name, data.Count,
-                template_data?.Group ?? (int)GameEventGroup.None,
+                template_data?.Group ?? (int)AMToolkits.Game.GameGroupType.None,
                 data.ID, user_uid);
             if (result_code < 0)
             {

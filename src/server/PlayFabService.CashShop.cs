@@ -41,6 +41,12 @@ namespace Server
         /// </summary>
         [JsonPropertyName("current_amount")]
         public float? CurrentAmount = null;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        [JsonPropertyName("effects")]
+        public string[]? EffectList = null;
     }
 
     [System.Serializable]
@@ -74,7 +80,8 @@ namespace Server
         public async Task<PFCashShopResultItemData?> PFCashShopBuyProduct(string user_uid, string playfab_uid,
                                     string nid, //流水单号
                                     string product_id,
-                                    List<AMToolkits.Game.GeneralItemData> list,
+                                    List<string> effect_list,
+                                    List<AMToolkits.Game.GeneralItemData> item_list,
                                     float amount,
                                     AMToolkits.Game.VirtualCurrency currency = AMToolkits.Game.VirtualCurrency.GM,
                                     string reason = "cashshop")
@@ -84,7 +91,7 @@ namespace Server
                 return null;
             }
 
-            if (list.Count == 0)
+            if (item_list.Count == 0 && effect_list.Count == 0)
             {
                 return null;
             }
@@ -100,7 +107,8 @@ namespace Server
                                     AMToolkits.Game.CurrencyUtils.CURRENCY_GOLD_SHORT:
                                     AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS_SHORT},
                         { "amount", amount },
-                        { "items", list },
+                        { "items", item_list },
+                        { "effects", effect_list },
                         { "reason", reason }
                     });
             if (response == null)

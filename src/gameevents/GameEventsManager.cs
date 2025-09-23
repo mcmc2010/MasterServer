@@ -17,12 +17,6 @@ namespace Server
         Payment = 10,
     }
 
-    public enum GameEventGroup
-    {
-        None = 0,
-        Daily = 1, //每日
-    }
-
     /// <summary>
     /// 
     /// </summary>

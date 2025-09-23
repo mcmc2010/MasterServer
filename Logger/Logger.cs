@@ -165,7 +165,8 @@ namespace Logger {
 
         private void _Log(LogEntry entry)
         {
-            string text = $"[{entry.Timestamp:HH:mm:ss.fff}] [{entry.Level}] {_name}: {entry.Message}" + System.Environment.NewLine;
+            DateTime time = entry.Timestamp.ToLocalTime();
+            string text = $"[{time:HH:mm:ss.fff}] [{entry.Level}] {_name}: {entry.Message}" + System.Environment.NewLine;
             
             if (entry.Exception != null)
             {

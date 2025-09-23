@@ -13,6 +13,22 @@ namespace AMToolkits.Game
         Item_1 = 1000,  // 物品道具
     }
 
+    public enum ItemSubType
+    {
+        Default = 0,    // 每次消耗物品
+        RemainingTime = 10, // 时效物品，需要增加有效期
+        RemainingUses = 20, // 使用次数
+
+    }
+
+
+    public enum GameGroupType
+    {
+        None = 0,
+        Daily = 1, //每日
+        OnlyOne = 100, //该组只能唯一性一项
+    }
+
     /// <summary>
     /// 
     /// </summary>

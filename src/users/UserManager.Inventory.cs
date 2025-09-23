@@ -265,8 +265,7 @@ namespace Server
         /// </summary>
         public async Task<int> _ConsumableUserInventoryItems(string? user_uid,
                         List<UserInventoryItem>? items,
-                        string reason = "",
-                        bool db_force_update = true)
+                        string reason = "")
         {
             if (user_uid == null || user_uid.IsNullOrWhiteSpace())
             {
@@ -325,7 +324,7 @@ namespace Server
             }
 
             // 从数据库中消耗
-            if (db_force_update && (await _DBConsumableUserInventoryItem(user_uid, consumable_items)) < 0)
+            if ((await _DBConsumableUserInventoryItem(user_uid, consumable_items)) < 0)
             {
                 _logger?.LogError($"{TAGName} (ConsumableUserInventoryItems) (User:{user_uid}) {print} Failed");
                 return -1;
@@ -628,15 +627,25 @@ namespace Server
                     return -1;
                 }
 
+                // 更新成功，同步物品
                 var using_item = list.FirstOrDefault();
                 if (result_code == 7 && using_item != null)
                 {
-                    using_item.count = 1;
-                    List<UserInventoryItem> consumable_items = new List<UserInventoryItem>();
-                    consumable_items.Add(using_item);
-                    if (await this._ConsumableUserInventoryItems(user_uid, consumable_items, "using", true) < 0)
+                    // 如果是使用次数的物品，不消耗。而是等游戏中扣除
+                    if (template_item.SubType == (int)AMToolkits.Game.ItemSubType.RemainingUses)
                     {
 
+                    }
+                    else
+                    {
+                        // 一般物品每次都消耗1
+                        using_item.count = 1;
+                        List<UserInventoryItem> consumable_items = new List<UserInventoryItem>();
+                        consumable_items.Add(using_item);
+                        if (await this._ConsumableUserInventoryItems(user_uid, consumable_items, "using") < 0)
+                        {
+
+                        }
                     }
                 }
             }

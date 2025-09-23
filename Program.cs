@@ -64,6 +64,7 @@ try
     AMToolkits.Utility.TableDataManager.GetTableData<Game.TAIPlayers>();
     AMToolkits.Utility.TableDataManager.GetTableData<Game.TShop>();
     AMToolkits.Utility.TableDataManager.GetTableData<Game.TGameEvents>();
+    AMToolkits.Utility.TableDataManager.GetTableData<Game.TGameEffects>();
 
     logger.Log("Init TableData Completed");
 
@@ -104,6 +105,7 @@ try
     var market_manager = Server.MarketManager.NewInstance(args, config);
     var cashshop_manager = Server.CashShopManager.NewInstance(args, config);
     var gameevents_manager = Server.GameEventsManager.NewInstance(args, config);
+    var gameeffects_manager = Server.GameEffectsManager.NewInstance(args, config);
 
     // 3 - 0:
     var ai_manager = Server.AIPlayerManager.NewInstance(args, config);
@@ -136,6 +138,7 @@ try
     app.RegisterHandlersListner += market_manager.OnRegisterHandlers;
     app.RegisterHandlersListner += cashshop_manager.OnRegisterHandlers;
     app.RegisterHandlersListner += gameevents_manager.OnRegisterHandlers;
+    app.RegisterHandlersListner += gameeffects_manager.OnRegisterHandlers;
     
     app.RegisterHandlersListner += match_manager.OnRegisterHandlers;
     app.RegisterHandlersListner += internal_service.OnRegisterHandlers;

@@ -137,7 +137,9 @@ namespace Server
             var shop_template_item = shop_template_data.First(v => v.ProductId == item_id);
             if (shop_template_item == null ||
                 ( shop_template_item.ShopType != (int)AMToolkits.Game.ShopType.CashShop &&
-                  shop_template_item.ShopType != (int)AMToolkits.Game.ShopType.Shop_2 )
+                  shop_template_item.ShopType != (int)AMToolkits.Game.ShopType.Shop_2 &&
+                  // 不在商店页显示的产品
+                  shop_template_item.ShopType != (int)AMToolkits.Game.ShopType.CashShop_1)
             )
             {
                 result.Code = 0;
@@ -168,20 +170,7 @@ namespace Server
                 amount = -(int)System.Math.Round(AMToolkits.Game.ItemUtils.GetDiscountPrice(cost.Count, shop_template_item.Discount));
             }
 
-            // 获取道具
-            var items = AMToolkits.Game.ItemUtils.ParseGeneralItem(shop_template_item.Items);
-            if (items.IsNullOrEmpty())
-            {
-                result.Code = 0;
-                return result;
-            }
-            var item_list = UserManager.Instance.InitGeneralItemData(items);
-            if (item_list == null)
-            {
-                result.Code = 0;
-                return result;
-            }
-
+            //
             var r_user = UserManager.Instance.GetUserT<UserBase>(user_uid);
             if (r_user == null)
             {
@@ -189,15 +178,49 @@ namespace Server
                 return result;
             }
 
-            // 需要对齐
-            int index = 1000;
-            foreach (var v in item_list)
+            // 0:
+            // 查看是否有特效
+            var effect_list = new List<string>();
+            var effects = AMToolkits.Game.ValuesUtils.ParseValues(shop_template_item.EffectValues);
+            if (!effects.IsNullOrEmpty())
             {
-                v.NID = ++index;
+                effect_list.AddRange(effects);
+
+                // 检测特效是否存在
+                if (await GameEffectsManager.Instance._CheckUserEffects(r_user, effect_list) <= 0)
+                {
+                    result.Code = -100;
+                    return result;
+                }
             }
 
+            // 1:
+            // 获取道具
+            var item_list = new List<AMToolkits.Game.GeneralItemData>();
+            var items = AMToolkits.Game.ItemUtils.ParseGeneralItem(shop_template_item.Items);
+            if (!items.IsNullOrEmpty())
+            {
+                var list = UserManager.Instance.InitGeneralItemData(items);
+                if (list == null)
+                {
+                    result.Code = 0;
+                    return result;
+                }
+                item_list.AddRange(list);
+
+                // 需要对齐
+                int index = 1000;
+                foreach (var v in item_list)
+                {
+                    v.NID = ++index;
+                }
+            }
+
+            //
             var r_result = await PlayFabService.Instance.PFCashShopBuyProduct(r_user.ID, r_user.CustomID,
-                                id, shop_template_item.ProductId, item_list, amount, AMToolkits.Game.VirtualCurrency.GM, "cashshop");
+                                    id, shop_template_item.ProductId,
+                                    effect_list, item_list,
+                                    amount, AMToolkits.Game.VirtualCurrency.GM, "cashshop");
             if (r_result == null)
             {
                 result.Code = -1;
@@ -216,14 +239,24 @@ namespace Server
             }
 
             // 添加数据库记录
-            if (await UserManager.Instance._CashshopBuyProduct(r_user.ID, r_user.CustomID, r_result.Data) <= 0)
+            if (await UserManager.Instance._CashshopBuyProduct(r_user.ID, r_user.CustomID, r_result?.Data) <= 0)
             {
                 result.Code = 0;
                 _logger?.LogWarning($"{TAGName} (BuyProduct) (User:{user_uid}) {item_id} - {shop_template_item.Name} Amount: {amount} {AMToolkits.Game.VirtualCurrency.GM} Failed");
                 //return result;
             }
 
-            if (r_result.Data?.ItemList != null)
+            if (r_result?.Data?.EffectList != null)
+            {
+                if (await GameEffectsManager.Instance._AddUserEffects(r_user, r_result?.Data?.EffectList) < 0)
+                {
+                    _logger?.LogWarning($"{TAGName} (BuyProduct) (User:{user_uid}) {item_id} - {shop_template_item.Name} Amount: {amount} {AMToolkits.Game.VirtualCurrency.GM} " + 
+                                        $" Effect:${AMToolkits.Game.ValuesUtils.ToValues(r_result?.Data.EffectList)} Failed");
+                }
+            }
+
+
+            if (r_result?.Data?.ItemList != null)
             {
                 result.Items = new List<AMToolkits.Game.GeneralItemData>();
                 foreach (var v in r_result.Data.ItemList)
@@ -234,7 +267,7 @@ namespace Server
             }
 
             //
-            _logger?.Log($"{TAGName} (BuyProduct) Balance {r_result.Data?.Balance} ({r_result.Data?.VirtualCurrency}), Amount {amount} ({shop_template_item.Discount})");
+            _logger?.Log($"{TAGName} (BuyProduct) Balance {r_result?.Data?.Balance} ({r_result?.Data?.VirtualCurrency}), Amount {amount} ({shop_template_item.Discount})");
             result.Code = 1;
             return result;
         }

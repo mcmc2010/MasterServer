@@ -453,9 +453,14 @@ namespace Server
             else if (result.Status == RESULT_REASON_SUCCESS)
             {
                 // 
-                await ExtractTransaction_V1(transaction.user_id, transaction, "review");
-
-                await DBReviewTransaction(transaction.user_id, transaction, "review");
+                if (await ExtractTransaction_V1(transaction.user_id, transaction, "review") < 0)
+                {
+                    await DBReviewTransaction(transaction.user_id, transaction, "review", "pending");
+                }
+                else
+                {
+                    await DBReviewTransaction(transaction.user_id, transaction, "review");
+                }
                 _logger?.Log($"{TAGName} (UpdateTransactionItem) [{_transactions_queue.Count}]: ({transaction.user_id}) {transaction.order_id} ({result.Status}) Final [Review]");
 
 
