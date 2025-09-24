@@ -579,7 +579,8 @@ namespace Server
         /// <param name="ids">物品ID列表(可选)，默认为NULL</param>
         /// <returns></returns>
         protected async Task<int> DBGetUserInventoryItems(DatabaseQuery? query, string user_uid,
-                            List<UserInventoryItem> items, int type = -1, int[]? ids = null)
+                            List<UserInventoryItem> items, int type = -1,
+                            int[]? ids = null, int[]? groups = null)
         {
             //
             List<DatabaseResultItemSet>? list = null;
@@ -588,13 +589,18 @@ namespace Server
             string condition_case_ids = "";
             if (ids != null && ids.Length > 0)
             {
-                condition_case_ids = $" AND (tid IN ({string.Join(",", ids)})) ";
+                condition_case_ids = $" AND (i.`tid` IN ({string.Join(",", ids)})) ";
+            }
+            string condition_case_groups = "";
+            if (groups != null && groups.Length > 0)
+            {
+                condition_case_groups = $" AND (i.`group` IN ({string.Join(",", groups)})) ";
             }
 
             // 
             string sql =
                 $"SELECT " +
-                $"    `uid`, id AS `iid`, tid AS `index`, " +
+                $"    `uid`, id AS `iid`, tid AS `index`, `group`, " +
                 $"    `user_id` AS `server_uid`, " +
                 $"    `name`, `create_time`, `expired_time`, `remaining_time`, `using_time`, " +
                 $"    `count`, `custom_data`, `status` " +
@@ -602,6 +608,7 @@ namespace Server
                 $"WHERE " +
                 $" ((? >= 0 AND `type` = ?) OR (? < 0 AND `type` >= 0)) " +
                 $" {condition_case_ids} " +
+                $" {condition_case_groups} " +
                 $" AND `user_id` = ? AND `status` > 0;";
             var result_code = query?.QueryWithList(sql, out list,
                 type, type, type,
@@ -791,9 +798,18 @@ namespace Server
                 db?.Transaction();
 
                 // 获取该类所有物品
+                int result_code = 0;
                 List<UserInventoryItem> list = new List<UserInventoryItem>();
-                int result_code = await DBGetUserInventoryItems(db, user_uid, list, template_data.Type,
-                        new int[] { template_data.Id });
+                if (template_data.Group > 0)
+                {
+                    result_code = await DBGetUserInventoryItems(db, user_uid, list, template_data.Type,
+                            null, new int[] { template_data.Group });
+                }
+                else
+                {
+                    result_code = await DBGetUserInventoryItems(db, user_uid, list, template_data.Type,
+                            new int[] { template_data.Id }, null);
+                }
                 if (result_code < 0)
                 {
                     db?.Rollback();
@@ -880,9 +896,18 @@ namespace Server
                 db?.Transaction();
 
                 // 获取该类所有物品
+                int result_code = 0;
                 List<UserInventoryItem> list = new List<UserInventoryItem>();
-                int result_code = await DBGetUserInventoryItems(db, user_uid, list, template_data.Type,
-                        new int[] { template_data.Id });
+                if (template_data.Group > 0)
+                {
+                    result_code = await DBGetUserInventoryItems(db, user_uid, list, template_data.Type,
+                            null, new int[] { template_data.Group });
+                }
+                else
+                {
+                    result_code = await DBGetUserInventoryItems(db, user_uid, list, template_data.Type,
+                            new int[] { template_data.Id }, null);
+                }
                 if (result_code < 0)
                 {
                     db?.Rollback();
@@ -912,7 +937,9 @@ namespace Server
                 items?.Add(using_item);
 
                 // 已经有其他同类型的物品再使用
-                var exist_item = list.FirstOrDefault(v => v.index == template_data.Id && v.using_time != null);
+                var exist_item = list.FirstOrDefault(v =>
+                    (v.index == template_data.Id && v.using_time != null) ||
+                    (v.group > 0 && v.using_time != null));
                 if (exist_item != null)
                 {
                     items?.Add(exist_item);
@@ -1019,7 +1046,7 @@ namespace Server
                 // 
                 string sql =
                     $"INSERT INTO `t_inventory` " +
-                    $"  (`id`,`tid`,`name`, `type`, `user_id`, " +
+                    $"  (`id`,`tid`,`name`, `type`, `group`, `user_id`, " +
                     $"  `create_time`, `last_time`, `expired_time`, `remaining_time`, `using_time`, " +
                     $"  `custom_data`, " +
                     $"  `status`) " +
@@ -1031,6 +1058,7 @@ namespace Server
                         item.IID, item.ID,
                         item.GetTemplateData<TItems>()?.Name ?? "",
                         item.GetTemplateData<TItems>()?.Type ?? 0,
+                        item.GetTemplateData<TItems>()?.Group ?? (int)AMToolkits.Game.GameGroupType.None,
                         user_uid,
                         expired);
                 if (result_code < 0)
@@ -1065,11 +1093,12 @@ namespace Server
                 // 
                 string sql =
                     $"UPDATE `t_inventory` " +
-                    $"SET `name` = ?, `type` = ?, `count` = ? " +
+                    $"SET `name` = ?, `type` = ?, `group` = ?, `count` = ? " +
                     $"WHERE `id` = ? AND `tid` = ? AND `user_id` = ? ";
                 int result_code = query.Query(sql,
                         item.GetTemplateData<TItems>()?.Name ?? "",
                         item.GetTemplateData<TItems>()?.Type ?? 0,
+                        item.GetTemplateData<TItems>()?.Group ?? (int)AMToolkits.Game.GameGroupType.None,
                         item.Count,
                         item.IID, item.ID, user_uid);
                 if (result_code < 0)
@@ -1568,6 +1597,7 @@ namespace Server
                 $" `user_id` = ? AND `status` > 0 " +
                 $" {condition_case_type} " +
                 $" {condition_case_group_index} " +
+                $" AND (`end_time` NOT NULL AND `end_time` >= CURRENT_TIMESTAMP) " +
                 $" ;";
             var result_code = query?.QueryWithList(sql, out list,
                 user_uid);
@@ -1582,6 +1612,7 @@ namespace Server
 
         /// <summary>
         /// 添加，没有做数据查询回滚，这里设置为私有函数
+        ///     特效存在多个ID+UserID不能唯一化
         /// </summary>
         /// <param name="user_uid"></param>
         /// <param name="items"></param>
@@ -1610,12 +1641,49 @@ namespace Server
                     item.GetTemplateData<TGameEffects>()?.Name ?? "",
                     item.GetTemplateData<TGameEffects>()?.EffectType ?? 0,
                     user_uid,
-                    item.GetTemplateData<TGameEffects>()?.Group ?? (int)AMToolkits.Game.GameGroupType.None);
+                    item.GetTemplateData<TGameEffects>()?.Group ?? (int)AMToolkits.Game.GameGroupType.None
+                    );
             if (result_code < 0)
             {
                 return -1;
             }
+            // 必须增加
+            item.uid = (int)query.LastID;
 
+            return 1;
+        }
+
+        /// <summary>
+        /// 目前更新包含
+        ///    
+        /// </summary>
+        /// <param name="query"></param>
+        /// <param name="user_uid"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        protected async Task<int> DBUpdateGameEffect(DatabaseQuery? query, string user_uid,
+                            GameEffectItem item)
+        {
+            var template_data = item.GetTemplateData<Game.TGameEvents>();
+
+            var end_time = item.end_time;
+            
+            // 
+            string sql =
+            $"UPDATE `t_gameeffects` " +
+            $"SET " +
+            $" `name` = ?, `group` = ? " +
+            $" `end_time` = ? " +
+            $"WHERE `uid` = ? AND `id` = ? AND `user_id` = ? ";
+            var result_code = query?.Query(sql,
+                template_data?.Name ?? item.name,
+                template_data?.Group ?? (int)AMToolkits.Game.GameGroupType.None,
+                end_time,
+                item.uid, item.id, user_uid);
+            if (result_code < 0)
+            {
+                return -1;
+            }
             return 1;
         }
 
@@ -1694,12 +1762,22 @@ namespace Server
                 };
                 item.InitTemplateData<Game.TGameEffects>(template_item);
 
+
                 if (await DBAddGameEffect(db, user_uid, item) < 0)
                 {
                     db?.Rollback();
                     return -1;
                 }
 
+                if (item.end_time != null)
+                {
+                    if (await DBUpdateGameEffect(db, user_uid, item) < 0)
+                    {
+                        db?.Rollback();
+                        return -1;
+                    }
+                }
+                
                 //
                 db?.Commit();
             }

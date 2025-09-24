@@ -34,6 +34,7 @@ namespace Server
         public string iid = "";
         public string server_uid = ""; //t_user表中的
         public int index = 0;
+        public int group = 0;
         public string name = "";
         public int count = 0;
         public DateTime? create_time = null;
@@ -608,6 +609,21 @@ namespace Server
                 return -10;
             }
 
+            // 0:
+            // 查看是否有特效
+            var effect_list = new List<string>();
+            var effects = AMToolkits.Game.ValuesUtils.ParseValues(template_item.EffectValues);
+            if (!effects.IsNullOrEmpty())
+            {
+                effect_list.AddRange(effects);
+
+                // 检测特效是否存在
+                if (await GameEffectsManager.Instance._CheckUserEffects(user_uid, effect_list) < 0)
+                {
+                    return -100;
+                }
+            }
+
             int result_code = 0;
             List<UserInventoryItem> list = new List<UserInventoryItem>();
             if (template_item.Type == (int)AMToolkits.Game.ItemType.Equipment)
@@ -644,8 +660,11 @@ namespace Server
                         consumable_items.Add(using_item);
                         if (await this._ConsumableUserInventoryItems(user_uid, consumable_items, "using") < 0)
                         {
-
+                            _logger?.LogError($"{TAGName} (UsingUserInventoryItems) (User:{user_uid}) " + 
+                                $" Consumable Item ({using_item.iid}:{using_item.index}) {using_item.name} x{using_item.count} Failed");
                         }
+
+
                     }
                 }
             }
@@ -659,15 +678,24 @@ namespace Server
             // 转换为可通用的物品类
             foreach (var v in list)
             {
-                template_item = template_data?.Get(v.index);
                 items.Add(v.ToNItem());
             }
 
             // 物品已经在使用
             if (result_code == 1)
             {
-                return 1;
+                return -100;
             }
+
+            if (effect_list.Count > 0)
+            {
+                if (await GameEffectsManager.Instance._AddUserEffects(user_uid, effect_list, template_item.Remaining) < 0)
+                {
+                    _logger?.LogWarning($"{TAGName} (UsingUserInventoryItem) (User:{user_uid}) {item_iid} - {item_index} {template_item.Name} " + 
+                                        $" Add Effect:${AMToolkits.Game.ValuesUtils.ToValues(effects)} Failed");
+                }
+            }
+
             
             return result_code;
 

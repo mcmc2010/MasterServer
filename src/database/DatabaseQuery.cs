@@ -12,6 +12,8 @@ namespace Server
     /// </summary>
     public class DatabaseQuery
     {
+        public const int ID_INVALID = -1;
+
         public string name = "";
         public string version = "";
         public MySqlConnection? db = null;
@@ -19,7 +21,9 @@ namespace Server
         internal Logger.LoggerEntry? logger = null;
 
         private int _affected = -1;
-        private long _last_id = -1;
+        private long _last_id = ID_INVALID;
+        public long LastID { get { return _last_id; } }
+        
 
         private DatabaseResultItemSet _result = new DatabaseResultItemSet();
         public DatabaseResultItemSet ResultItems {
@@ -204,7 +208,7 @@ namespace Server
 
         public void PrintSQL(string sql)
         {
-            sql = Regex.Replace(sql, @"[\r\n]+", " ");
+            sql = Regex.Replace(sql, @"[\t|\r\n]+", " ");
             logger?.Log($"[DatabaseManager] (Query) : " + sql);
         }
     }

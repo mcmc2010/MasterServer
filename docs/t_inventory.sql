@@ -31,3 +31,6 @@ ADD UNIQUE INDEX `id_UNIQUE` (`id` ASC) VISIBLE;
 
 ALTER TABLE `t_inventory` 
 ADD COLUMN `reason` VARCHAR(16) NULL DEFAULT NULL AFTER `custom_data`;
+
+ALTER TABLE `t_inventory` 
+ADD COLUMN `group` INT NOT NULL DEFAULT '0' COMMENT '物品分组号' AFTER `user_id`;
