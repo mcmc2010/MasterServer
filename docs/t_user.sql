@@ -49,3 +49,7 @@ ADD COLUMN `updated_time` DATETIME NULL DEFAULT NULL AFTER `changed_time`;
 -- 
 ALTER TABLE `t_user` 
 CHANGE COLUMN `avatar` `avatar` VARCHAR(128) NULL DEFAULT NULL COMMENT '头像' ;
+
+-- 不得使用NULL值
+ALTER TABLE `t_user` 
+CHANGE COLUMN `status` `status` INT NOT NULL DEFAULT '1' COMMENT '0:禁用;1:启用;-1:删除' ;

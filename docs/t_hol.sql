@@ -55,3 +55,7 @@ ADD COLUMN `experience` INT UNSIGNED NULL DEFAULT 0 AFTER `level`;
 ALTER TABLE `t_hol` RENAME INDEX `id_UNIQUE` TO `idx`;
 ALTER TABLE `t_hol` ALTER INDEX `idx` VISIBLE;
 ALTER TABLE `t_hol` DROP INDEX `idx` ;
+
+-- 不得使用NULL
+ALTER TABLE `t_hol` 
+CHANGE COLUMN `status` `status` INT NOT NULL DEFAULT '1' COMMENT '0:禁用;1:启用;-1:删除' ;
