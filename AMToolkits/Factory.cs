@@ -80,6 +80,15 @@ namespace AMToolkits
             _schedule_pool.Clear();
         }
 
+        /// <summary>
+        /// Pool数量
+        /// </summary>
+        /// <returns></returns>
+        public int PoolCount()
+        {
+            return _schedule_pool.Count;
+        }
+
         public T Create(params object[] args)
         {
             T o = new T();
@@ -89,7 +98,7 @@ namespace AMToolkits
                 o._SetIndex(++_factory_index);
                 _schedule_pool.Add(o);
             }
-            
+
             o.Initialize(args);
             return o;
         }

@@ -1,6 +1,7 @@
 
 using System.Net;
 using System.Threading.Tasks;
+using AMToolkits.Extensions;
 
 namespace AMToolkits.Net
 {
@@ -21,6 +22,9 @@ namespace AMToolkits.Net
         private string _url = "";
         private float _timeout = 5.0f;
 
+        private float _duration_max = 0.0f;
+
+        private List<string> _ignore_endpoints = new List<string>();
         public System.Action<HTTPClientProxy?, string>? OnLogOutput = null;
 
         /// <summary>
@@ -58,17 +62,37 @@ namespace AMToolkits.Net
             base.Initialize();
 
             _client_queue.Clear();
+
+            _ignore_endpoints.Clear();
         }
 
-        private void Log(params string[] args)
+        private void Log(HTTPClientProxy? client, params string[] args)
         {
+            // 忽略某些endpoint
+            string? endpoint = client?.GetEndPoint();
+            if (!endpoint.IsNullOrWhiteSpace()
+                && _ignore_endpoints.Any(v => string.Compare(v, endpoint, StringComparison.OrdinalIgnoreCase) == 0))
+            {
+                return;
+            }
+
             string log = string.Join(" ", args.Select(v =>
             {
                 if (v is string) { return (string)v; }
                 else { return v.ToString(); }
             }));
 
-            this.OnLogOutput?.Invoke(null, log);
+            this.OnLogOutput?.Invoke(client, log);
+        }
+
+        public void AddIgnoreEndPoint(string endpoint)
+        {
+            endpoint = endpoint.Trim();
+            if (endpoint.IsNullOrWhiteSpace())
+            {
+                return;
+            }
+            _ignore_endpoints.Add(endpoint);
         }
 
         public HTTPClientProxy? APICreate(string url, float timeout = 5.0f)
@@ -95,13 +119,13 @@ namespace AMToolkits.Net
                 _client = this.Create(url, timeout);
                 _client.OnLogOutput = (sender, message) =>
                 {
-                    if (OnLogOutput == null)
+                    if (this.OnLogOutput == null)
                     {
                         System.Console.WriteLine(message);
                     }
                     else
                     {
-                        OnLogOutput.Invoke((HTTPClientProxy?)sender, message);
+                        this.Log((HTTPClientProxy?)sender, message);
                     }
                 };
             }
@@ -123,7 +147,7 @@ namespace AMToolkits.Net
                 var client_last = _client;
                 _client = _APICreate(_url, _timeout);
 
-                this.Log($"[HTTP] (Factory) : Create Instance ({_client.Index}, last: {client_last.Index})");
+                this.Log(_client, $"[HTTP] (Factory) : Create Instance ({_client.Index}, last: {client_last.Index})");
             }
 
             var result = await _client.GetAsync<T>(endpoint, arguments, headers,
@@ -134,6 +158,9 @@ namespace AMToolkits.Net
                                 this.Free(proxy);
                             }
                         });
+
+            //
+            this._duration_max = System.Math.Max(_duration_max, _client.DurationTime);
             return result;
         }
 
@@ -152,7 +179,7 @@ namespace AMToolkits.Net
                 var client_last = _client;
                 _client = _APICreate(_url, _timeout);
 
-                this.Log($"[HTTP] (Factory) : Create Instance ({_client.Index}, last: {client_last.Index})");
+                this.Log(_client, $"[HTTP] (Factory) : Create Instance ({_client.Index}, last: {client_last.Index})");
             }
 
             var result = await _client.PostAsync<T>(endpoint, payload, headers, arguments,
@@ -163,6 +190,9 @@ namespace AMToolkits.Net
                                 this.Free(proxy);
                             }
                         });
+
+            //
+            this._duration_max = System.Math.Max(_duration_max, _client.DurationTime);
             return result;
         }
 

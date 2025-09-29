@@ -670,10 +670,11 @@ namespace Server
                 $"UPDATE `t_inventory` " +
                 $"SET " +
                 $"  { condition_update_count } " +
-                $"  `using_time` = ?, `last_time` = CURRENT_TIMESTAMP " +
+                $"  `using_time` = ?,  `remaining_time` = ?, `last_time` = CURRENT_TIMESTAMP " +
                 $"WHERE `id` = ? AND `tid` = ? AND `user_id` = ? ";
             var result_code = query?.Query(sql,
                 !is_using ? null : DateTime.Now,
+                item.remaining_time,
                 item.iid, item.index, user_uid);
             if (result_code < 0)
             {
@@ -947,6 +948,10 @@ namespace Server
                     return 1;
                 }
 
+                // 无论是否
+                if (template_data.Remaining > 0) {
+                    using_item.remaining_time = DateTime.Now.AddSeconds(template_data.Remaining);
+                }
 
                 // 更新使用物品
                 // 此处不再更新数量
@@ -1051,8 +1056,8 @@ namespace Server
                     $"  `custom_data`, " +
                     $"  `status`) " +
                     $"VALUES " +
-                    $"(?, ?, ?, ?, ?, " +
-                    $"CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,?,NULL,NULL, " +
+                    $"(?, ?, ?, ?, ?, ?, " +
+                    $"CURRENT_TIMESTAMP,CURRENT_TIMESTAMP, ?, NULL,NULL, " +
                     $"NULL,1); ";
                 int result_code = query.Query(sql,
                         item.IID, item.ID,
@@ -1146,7 +1151,8 @@ namespace Server
             return items.Count;
         }
 
-        protected async Task<int> DBUpdateUserInventoryItemsRemainingUses(DatabaseQuery? query, string user_uid, List<AMToolkits.Game.GeneralItemData> items)
+        protected async Task<int> DBUpdateUserInventoryItemsRemainingUses(DatabaseQuery? query, string user_uid, List<AMToolkits.Game.GeneralItemData> items, 
+                                    string reason = "none")
         {
             if (query == null)
             {
@@ -1156,10 +1162,23 @@ namespace Server
             // 如果名字有变更将更新
             foreach (var item in items)
             {
+                // 条件
+                string condition_update = "";
+
+                reason = reason.Trim().ToLower();
+                if (reason == "using")
+                {
+                    if (item.Count > 0)
+                    {
+                        condition_update = $" `using_time` = NULL, `remaining_time` = NULL, ";
+                    }
+                }
+
                 // 
                 string sql =
                     $"UPDATE `t_inventory` " +
-                    $"SET `count` = ? " +
+                    $"SET " +
+                    $"  {condition_update} `count` = ? " +
                     $"WHERE `id` = ? AND `tid` = ? AND `user_id` = ? ";
                 int result_code = query.Query(sql,
                         item.Count,
@@ -1222,10 +1241,31 @@ namespace Server
             // 
             foreach (var item in items)
             {
+                // ids 条件
+                string condition_update_count = "";
+                string condition_update = "";
+
+                reason = reason.Trim().ToLower();
+                if (reason == "using")
+                {
+                    if (item.Count == 0)
+                    {
+                        condition_update_count = $" `count` = 0, ";
+                    }
+                    // 消耗是按单件计算时间的
+                    else
+                    {
+                        condition_update = $" `using_time` = NULL, `remaining_time` = NULL, ";
+                    }
+                }
+
                 // 
                 string sql =
                     $"UPDATE `t_inventory` " +
-                    $"SET `reason` = ?, `status` = 0 " +
+                    $"SET " +
+                    $"  {condition_update_count} " +
+                    $"  {condition_update} " +
+                    $"  `reason` = ?, `status` = 0 " +
                     $"WHERE `id` = ? AND `tid` = ? AND `user_id` = ? ";
                 int result_code = query.Query(sql,
                         reason,
@@ -1418,8 +1458,13 @@ namespace Server
         /// <param name="items"></param>
         /// <returns></returns>
         public async Task<int> _DBConsumableUserInventoryItem(string user_uid,
-                            List<AMToolkits.Game.GeneralItemData> items)
+                            List<AMToolkits.Game.GeneralItemData> items, string reason = "")
         {
+            if (reason.IsNullOrWhiteSpace())
+            {
+                reason = "consumable";
+            }
+
             if (items.Count == 0)
             {
                 return 0;
@@ -1448,7 +1493,7 @@ namespace Server
                 }
 
                 // 获取该类所有物品
-                if (await DBRevokeUserInventoryItems(db, user_uid, revoked, "consumable") < 0 ||
+                if (await DBRevokeUserInventoryItems(db, user_uid, revoked, reason) < 0 ||
                     await DBUpdateUserInventoryItemsRemainingUses(db, user_uid, updated) < 0)
                 {
                     db?.Rollback();
@@ -1597,7 +1642,7 @@ namespace Server
                 $" `user_id` = ? AND `status` > 0 " +
                 $" {condition_case_type} " +
                 $" {condition_case_group_index} " +
-                $" AND (`end_time` NOT NULL AND `end_time` >= CURRENT_TIMESTAMP) " +
+                $" AND ((`end_time` IS NOT NULL AND `end_time` >= CURRENT_TIMESTAMP) OR (`end_time` IS NULL)) " +
                 $" ;";
             var result_code = query?.QueryWithList(sql, out list,
                 user_uid);
@@ -1664,7 +1709,7 @@ namespace Server
         protected async Task<int> DBUpdateGameEffect(DatabaseQuery? query, string user_uid,
                             GameEffectItem item)
         {
-            var template_data = item.GetTemplateData<Game.TGameEvents>();
+            var template_data = item.GetTemplateData<Game.TGameEffects>();
 
             var end_time = item.end_time;
             
@@ -1672,13 +1717,33 @@ namespace Server
             string sql =
             $"UPDATE `t_gameeffects` " +
             $"SET " +
-            $" `name` = ?, `group` = ? " +
+            $" `name` = ?, `group` = ?, " +
             $" `end_time` = ? " +
             $"WHERE `uid` = ? AND `id` = ? AND `user_id` = ? ";
             var result_code = query?.Query(sql,
                 template_data?.Name ?? item.name,
                 template_data?.Group ?? (int)AMToolkits.Game.GameGroupType.None,
                 end_time,
+                item.uid, item.id, user_uid);
+            if (result_code < 0)
+            {
+                return -1;
+            }
+            return 1;
+        }
+
+        protected async Task<int> DBUpdateGameEffect(DatabaseQuery? query, string user_uid,
+                            GameEffectItem item, string? link_items)
+        {            
+            // 
+            string sql =
+            $"UPDATE `t_gameeffects` " +
+            $"SET " +
+            $"  " +
+            $"  `items` = ? " +
+            $"WHERE `uid` = ? AND `id` = ? AND `user_id` = ? ";
+            var result_code = query?.Query(sql,
+                link_items,
                 item.uid, item.id, user_uid);
             if (result_code < 0)
             {
@@ -1729,7 +1794,8 @@ namespace Server
         /// <param name="data"></param>
         /// <returns></returns>
         public async Task<int> _DBAddGameEffectData(string user_uid,
-                            NGameEffectData data)
+                            NGameEffectData data,
+                            List<GameEffectItem> list)
         {
             // 事件必须存在
             var template_data = AMToolkits.Utility.TableDataManager.GetTableData<Game.TGameEffects>();
@@ -1769,6 +1835,10 @@ namespace Server
                     return -1;
                 }
 
+                //
+                item.end_time = data.EndTime;
+
+                //
                 if (item.end_time != null)
                 {
                     if (await DBUpdateGameEffect(db, user_uid, item) < 0)
@@ -1777,7 +1847,50 @@ namespace Server
                         return -1;
                     }
                 }
-                
+
+                //
+                db?.Commit();
+
+                //
+                list.Add(item);
+            }
+            catch (Exception e)
+            {
+                db?.Rollback();
+                _logger?.LogError($"{TAGName} (UpdateGameEventData) Error :" + e.Message);
+                return -1;
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return 1;
+        }
+
+
+        public async Task<int> _DBUpdateGameEffectData(string user_uid,
+                            GameEffectItem item,
+                            List<UserInventoryItem> list)
+        {
+            if (list.Count == 0)
+            {
+                return 0;
+            }
+
+            //
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                db?.Transaction();
+
+                var link_items = string.Join(",", list.Select(v => $"{v.index}|IID{v.iid}").ToList());
+
+                if (await DBUpdateGameEffect(db, user_uid, item, link_items) < 0)
+                {
+                    db?.Rollback();
+                    return -1;
+                }
+
                 //
                 db?.Commit();
             }
@@ -1793,7 +1906,6 @@ namespace Server
             }
             return 1;
         }
-
 
         #endregion
 

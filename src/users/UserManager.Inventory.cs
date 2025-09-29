@@ -325,7 +325,7 @@ namespace Server
             }
 
             // 从数据库中消耗
-            if ((await _DBConsumableUserInventoryItem(user_uid, consumable_items)) < 0)
+            if ((await _DBConsumableUserInventoryItem(user_uid, consumable_items, reason)) < 0)
             {
                 _logger?.LogError($"{TAGName} (ConsumableUserInventoryItems) (User:{user_uid}) {print} Failed");
                 return -1;
@@ -689,7 +689,8 @@ namespace Server
 
             if (effect_list.Count > 0)
             {
-                if (await GameEffectsManager.Instance._AddUserEffects(user_uid, effect_list, template_item.Remaining) < 0)
+                if (await GameEffectsManager.Instance._AddUserEffects(user_uid, effect_list, template_item.Remaining,
+                                list) < 0)
                 {
                     _logger?.LogWarning($"{TAGName} (UsingUserInventoryItem) (User:{user_uid}) {item_iid} - {item_index} {template_item.Name} " + 
                                         $" Add Effect:${AMToolkits.Game.ValuesUtils.ToValues(effects)} Failed");

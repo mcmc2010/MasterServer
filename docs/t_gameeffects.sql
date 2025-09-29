@@ -13,3 +13,10 @@ CREATE TABLE `t_gameeffects` (
   `status` int DEFAULT '1' COMMENT '0:归档;1:启用;-1:删除;',
   PRIMARY KEY (`uid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+ALTER TABLE `t_gameeffects` 
+ADD COLUMN `items` VARCHAR(32) NULL DEFAULT NULL AFTER `value`;
+
+ALTER TABLE `t_gameeffects` 
+CHANGE COLUMN `items` `items` VARCHAR(32) NULL DEFAULT NULL COMMENT '如果取消物品，必须取消关联物品表中物品' ;
+

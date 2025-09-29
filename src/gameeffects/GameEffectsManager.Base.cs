@@ -19,7 +19,7 @@ namespace Server
         /// <param name="user"></param>
         /// <param name="values"></param>
         /// <returns></returns>
-        
+
         public async System.Threading.Tasks.Task<int> _CheckUserEffects(string user_uid, IEnumerable<string?>? values)
         {
             if (values == null || values.Count() == 0)
@@ -144,9 +144,11 @@ namespace Server
         /// </summary>
         /// <param name="user_uid"></param>
         /// <param name="id"></param>
+        /// <param name="list">关联物品</param>
         /// <returns></returns>
         public async System.Threading.Tasks.Task<int> _AddUserEffects(string user_uid, IEnumerable<string?>? values,
-                                int remaining_time = -1)
+                                int remaining_time = -1,
+                                List<UserInventoryItem>? list = null)
         {
             if (values == null || values.Count() == 0)
             {
@@ -167,11 +169,12 @@ namespace Server
                 return -2;
             }
 
-            return await _AddUserEffects(r_user, effects, remaining_time);
+            return await _AddUserEffects(r_user, effects, remaining_time, list);
         }
 
         public async System.Threading.Tasks.Task<int> _AddUserEffects(UserBase user, IEnumerable<string?>? values,
-                                int remaining_time = -1)
+                                int remaining_time = -1,
+                                List<UserInventoryItem>? list = null)
         {
             if (values == null || values.Count() == 0)
             {
@@ -184,11 +187,12 @@ namespace Server
                 return -1;
             }
 
-            return await _AddUserEffects(user, effects);
+            return await _AddUserEffects(user, effects, remaining_time, list);
         }
 
         public async System.Threading.Tasks.Task<int> _AddUserEffects(UserBase user, AMToolkits.Game.GeneralValueData[]? values,
-                                int remaining_time = -1)
+                                int remaining_time = -1,
+                                List<UserInventoryItem>? list = null)
         {
             if (values == null || values.Count() == 0)
             {
@@ -212,9 +216,18 @@ namespace Server
                     _logger?.LogWarning($"{TAGName} (AddUserEffect) (User:{user.ID}) {effect.ID} - Not Found");
                     continue;
                 }
-                if ((result_code = await _AddUserEffectData(user, template_item, effect, remaining_time)) < 0)
+                List<GameEffectItem> items = new List<GameEffectItem>();
+                if ((result_code = await _AddUserEffectData(user, template_item, effect, remaining_time, items)) < 0)
                 {
                     break;
+                }
+                var effect_item = items.FirstOrDefault();
+                if (effect_item != null)
+                {
+                    if (list != null && (result_code = await _UpdateUserEffectItemData(user, effect_item, list)) < 0)
+                    {
+                        break;
+                    }
                 }
             }
 
@@ -223,7 +236,8 @@ namespace Server
 
         protected async System.Threading.Tasks.Task<int> _AddUserEffectData(UserBase user, Game.TGameEffects template_data,
                                 AMToolkits.Game.GeneralValueData? value,
-                                int remaining_time = -1)
+                                int remaining_time = -1,
+                                List<GameEffectItem>? items = null)
         {
             if (value == null)
             {
@@ -250,11 +264,19 @@ namespace Server
             List<GameEffectItem> list = new List<GameEffectItem>();
             switch (template_data.EffectType)
             {
+                // 经验
                 case (int)GameEffectType.Experience:
                     {
                         result_code = await UserManager.Instance._GetUserGameEffects(user.ID, list, (int)GameEffectType.Experience, template_data.Group);
                         break;
                     }
+                // 经济
+                case (int)GameEffectType.Economy:
+                    {
+                        result_code = await UserManager.Instance._GetUserGameEffects(user.ID, list, (int)GameEffectType.Economy, template_data.Group);
+                        break;
+                    }
+                // Pass
                 case (int)GameEffectType.Pass:
                     {
                         result_code = await UserManager.Instance._GetUserGameEffects(user.ID, list, (int)GameEffectType.Pass, template_data.Group);
@@ -280,12 +302,32 @@ namespace Server
 
 
             // 添加数据库记录
-            if ((result_code = await UserManager.Instance._AddGameEffectData(user.ID, user.CustomID, effect_data)) < 0)
+            if ((result_code = await UserManager.Instance._AddGameEffectData(user.ID, user.CustomID, effect_data, list)) < 0)
             {
-                _logger?.LogWarning($"{TAGName} (GameEventFinal) (User:{user.ID}) {value.ID} - {template_data.Name} Failed");
+                _logger?.LogWarning($"{TAGName} (AddUserEffectData) (User:{user.ID}) {value.ID} - {template_data.Name} Failed");
                 return -1;
             }
 
+            items?.AddRange(list);
+            return 1;
+        }
+
+        protected async System.Threading.Tasks.Task<int> _UpdateUserEffectItemData(UserBase user,
+                                GameEffectItem effect,
+                                List<UserInventoryItem>? list = null)
+        {
+            if (list == null || list.Count == 0)
+            {
+                return 0;
+            }
+
+            // 更新数据库记录
+            int result_code = 0;
+            if ((result_code = await UserManager.Instance._UpdateGameEffectData(user.ID, user.CustomID, effect, list)) < 0)
+            {
+                _logger?.LogWarning($"{TAGName} (UpdateUserEffectItemData) (User:{user.ID}) {effect.id} - {effect.name} Failed");
+                return -1;
+            }
             return 1;
         }
     }

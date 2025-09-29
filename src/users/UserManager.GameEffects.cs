@@ -100,7 +100,8 @@ namespace Server
         ///   - 
         /// </summary>
         public async Task<int> _AddGameEffectData(string user_uid, string custom_uid,
-                            NGameEffectData? data)
+                            NGameEffectData? data,
+                            List<GameEffectItem> list)
         {
             if (user_uid == null || user_uid.IsNullOrWhiteSpace())
             {
@@ -117,7 +118,40 @@ namespace Server
 
             // 保存记录
             int result_code = 0;
-            if ((result_code = await _DBAddGameEffectData(user_uid, data)) < 0)
+            if ((result_code = await _DBAddGameEffectData(user_uid, data, list)) < 0)
+            {
+                return -1;
+            }
+
+            // 已经完成，或不能完成，直接返回
+            if (result_code == 0)
+            {
+                return 0;
+            }
+            return 1;
+        }
+
+        public async Task<int> _UpdateGameEffectData(string user_uid, string custom_uid,
+                            GameEffectItem effect,
+                            List<UserInventoryItem>? list = null)
+        {
+            if (user_uid == null || user_uid.IsNullOrWhiteSpace())
+            {
+                return -1;
+            }
+            if (custom_uid == null || custom_uid.IsNullOrWhiteSpace())
+            {
+                return -1;
+            }
+
+            if (list == null || list.Count == 0)
+            {
+                return 0;
+            }
+
+            // 保存记录
+            int result_code = 0;
+            if ((result_code = await _DBUpdateGameEffectData(user_uid, effect, list)) < 0)
             {
                 return -1;
             }
@@ -131,5 +165,30 @@ namespace Server
         }
 
         #endregion
+
+        public async Task<int> GetUserGameEffects(string user_uid,
+                            List<NGameEffectData> items)
+        {
+            if (user_uid == null || user_uid.IsNullOrWhiteSpace())
+            {
+                return -1;
+            }
+            user_uid = user_uid.Trim();
+
+            List<GameEffectItem> list = new List<GameEffectItem>();
+            if (await DBGetGameEffects(user_uid, list) < 0)
+            {
+                _logger?.LogError($"{TAGName} (GetUserGameEffects) (User:{user_uid}) Failed");
+                return -1;
+            }
+
+            // 转换为可通用的类
+            foreach (var v in list)
+            {
+                items.Add(v.ToNItem());
+            }
+
+            return items.Count;
+        }
     }
 }

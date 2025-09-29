@@ -194,6 +194,27 @@ namespace Server
 
     #endregion
 
+    #region User Game Effects NProtocols
+
+    /// <summary>
+    /// 
+    /// </summary>
+    [System.Serializable]
+    public class NGetUserGameEffectsRequest
+    {
+    }
+
+    [System.Serializable]
+    public class NGetUserGameEffectsResponse
+    {
+        [JsonPropertyName("code")]
+        public int Code;
+        [JsonPropertyName("items")]
+        public List<NGameEffectData>? Items = null;
+    }
+
+    #endregion
+
     #region User Rank NProtocols
     /// <summary>
     /// 
@@ -596,6 +617,53 @@ namespace Server
             await context.ResponseResult(result);
         }
         #endregion
+
+        #region Game Effects
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        protected async Task HandleGetUserGameEffects(HttpContext context)
+        {
+            SessionAuthData auth_data = new SessionAuthData();
+            if (await ServerApplication.Instance.AuthSessionAndResult(context, auth_data) <= 0)
+            {
+                return;
+            }
+
+            // 解析 JSON
+            var request = await context.Request.JsonBodyAsync<NGetUserGameEffectsRequest>();
+            if (request == null)
+            {
+                await context.ResponseError(HttpStatusCode.BadRequest, ErrorMessage.UNKNOW);
+                return;
+            }
+
+            //
+            var result = new NGetUserGameEffectsResponse
+            {
+                Code = 0,
+                Items = null
+            };
+
+            List<NGameEffectData> list = new List<NGameEffectData>();
+            // 成功返回物品数量
+            int result_code = await this.GetUserGameEffects(auth_data.id, list);
+            if (result_code <= 0)
+            {
+                result.Code = result_code;
+            }
+            else
+            {
+                result.Code = 1;
+                result.Items = list;
+            }
+            //
+            await context.ResponseResult(result);
+        }
+        #endregion
+
 
         #region Rank
         /// <summary>

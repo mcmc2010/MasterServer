@@ -139,6 +139,8 @@ namespace Server
             args.app?.MapPost("api/user/rank/data", HandleGetUserRank);
             // Game Events
             args.app?.Map("api/user/game/events/list", HandleGetUserGameEvents);
+            // Game Effects
+            args.app?.Map("api/user/game/effects/list", HandleGetUserGameEffects);
         }
 
         public TU AllocT<TU>() where TU : UserBase, new()

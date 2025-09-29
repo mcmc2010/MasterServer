@@ -43,6 +43,8 @@ namespace Server
         [JsonPropertyName("value")]
         public string EffectValue = "";
 
+        [JsonPropertyName("items")]
+        public string LinkItems = "";
 
         [JsonPropertyName("create_time")]
         public DateTime? CreateTime = null;

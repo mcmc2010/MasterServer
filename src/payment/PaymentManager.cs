@@ -240,7 +240,7 @@ namespace Server
                 _client_factory.APICreate(base_url, 1.0f);
                 _client_factory.OnLogOutput = (client, message) =>
                 {
-                    _logger?.Log($"{TAGName} (OpenAPI) [{client?.Index}]: {message}");
+                    _logger?.Log($"{TAGName} [{client?.Index ?? -1}:{_client_factory.PoolCount()}]: {message}");
                 };
             }
 

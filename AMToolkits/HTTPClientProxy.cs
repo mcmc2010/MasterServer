@@ -1,6 +1,5 @@
 using System.Linq;
 using System.Net;
-using System.Threading.Tasks;
 using AMToolkits.Extensions;
 
 ////
@@ -60,10 +59,29 @@ namespace AMToolkits.Net
 
         private string _base_url = "";
         private string _url = "";
+        public string Url { get { return _url; }}
+        public string GetEndPoint()
+        {
+            if (_url.IsNullOrWhiteSpace())
+            {
+                return "";
+            }
+
+            // 匹配路径部分（排除协议、域名、查询参数、锚点）
+            var pattern = @"(?:https?://[^/]+)?(/[^?#]*)";
+            var match = System.Text.RegularExpressions.Regex.Match(_url, pattern);
+            if (match.Success && match.Groups.Count > 1)
+            {
+                return match.Groups[1].Value;
+            }
+
+            return "/";
+        }
         private string _full_url = "";
 
         private int _timeout_limit = 5 * 1000;
         private float _request_duration = 0.0f;
+        public float DurationTime { get { return _request_duration; } }
         private HttpStatusCode _status_code = HttpStatusCode.OK;
         public int StatusCode { get { return (int)_status_code; } }
 
@@ -551,6 +569,8 @@ namespace AMToolkits.Net
             }
             catch (TimeoutException e)
             {
+                client._request_duration = (HTTPClientProxy.LongTimestamp - timestamp) * 0.001f;
+                
                 client._status_code = HttpStatusCode.RequestTimeout;
                 client._status_error = $"({e.HResult:X8}) {e.Message}";
                 client.Log("[HTTP] (Request) Timeout:", e.Message);
@@ -558,6 +578,8 @@ namespace AMToolkits.Net
             }
             catch (Exception e)
             {
+                client._request_duration = (HTTPClientProxy.LongTimestamp - timestamp) * 0.001f;
+
                 client._status_code = HttpStatusCode.BadRequest;
                 client._status_error = $"({e.HResult:X8}) {e.Message}";
                 client.Log("[HTTP] (Request) Error:", e.Message);

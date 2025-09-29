@@ -92,12 +92,13 @@ namespace Server
 
             //
             _client_factory = HTTPClientFactory.CreateFactory<HTTPClientFactory>();
+            _client_factory.AddIgnoreEndPoint("/internal/services");
             if (!_config.PlayFab.OpenAPIUrl.IsNullOrWhiteSpace())
             {
                 _client_factory.APICreate(_config.PlayFab.OpenAPIUrl, 5.0f);
                 _client_factory.OnLogOutput = (client, message) =>
                 {
-                    _logger?.Log($"{TAGName} [{client?.Index}]: {message}");
+                    _logger?.Log($"{TAGName} [{client?.Index ?? -1}:{_client_factory.PoolCount()}]: {message}");
                 };
                 _status = AMToolkits.ServiceStatus.Initialized;
             }
