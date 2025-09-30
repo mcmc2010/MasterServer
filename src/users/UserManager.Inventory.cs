@@ -170,6 +170,90 @@ namespace Server
             return items.Count;
         }
 
+        public async Task<int> _GrantBeginnerKitItems(string? user_uid, string kit_id = "1000",
+                        List<AMToolkits.Game.GeneralItemData>? items = null, string reason = "kits")
+        {
+            if (user_uid == null || user_uid.IsNullOrWhiteSpace())
+            {
+                return -1;
+            }
+
+            if (items == null)
+            {
+                items = new List<GeneralItemData>();
+            }
+            items.Clear();
+
+            // 目前只有一个装备，可以写死。
+            var kit_items = AMToolkits.Game.ItemUtils.ParseGeneralItem("101|1");
+            if (kit_id == "1000" && kit_items != null)
+            {
+                items.AddRange(kit_items);
+            }
+            else
+            {
+                return 0;
+            }
+
+
+            // 获取用户
+            var user = UserManager.Instance.GetUserT<UserBase>(user_uid);
+            if (user == null)
+            {
+                return -1;
+            }
+
+            items = UserManager.Instance.InitGeneralItemData(items);
+            if (items == null)
+            {
+                return 0;
+            }
+
+            // 需要对齐
+            int index = 1000;
+            foreach (var v in items)
+            {
+                v.NID = ++index;
+            }
+
+            string print = "";
+            print = string.Join(";", items.Select(v => $"[{v.NID}] {v.ID} - {v.GetTemplateData<Game.TItems>()?.Name} ({v.Count})"));
+            _logger?.Log($"{TAGName} (GrantBeginnerKitItem) (User:{user_uid}) {print} [{reason}]");
+
+            // 首先要更新PlayFab 服务
+            var result = await PlayFabService.Instance.PFAddInventoryItems(user_uid, user.CustomID, items, reason);
+            if (result == null || result.Data?.ItemList == null)
+            {
+                _logger?.LogError($"{TAGName} (GrantBeginnerKitItem) (User:{user_uid}) {print} Failed [{reason}]");
+                return -1;
+            }
+
+            // 同步数据
+            foreach (var v in result.Data.ItemList)
+            {
+                var item = items.FirstOrDefault(i => i.NID > 0 && i.NID == v.NID);
+                if (item != null)
+                {
+                    item.IID = v.IID;
+                    item.Count = v.Count;
+                    item.NID = -1;
+                }
+            }
+
+            // 增加数据库记录
+            if (await _DBAddUserInventoryItems(user_uid, items) < 0)
+            {
+                _logger?.LogError($"{TAGName} (GrantBeginnerKitItem) (User:{user_uid}) {print} Failed  [{reason}]");
+                return -1;
+            }
+
+            print = string.Join(";", items.Select(v => $"{v.IID} {v.ID} - {v.GetTemplateData<Game.TItems>()?.Name} ({v.Count})"));
+            _logger?.Log($"{TAGName} (GrantBeginnerKitItem) (User:{user_uid}) {print} Success");
+
+            // 
+            return items.Count;
+        }
+
 
         /// <summary>
         /// 物品增加
@@ -203,13 +287,13 @@ namespace Server
 
             string print = "";
             print = string.Join(";", items.Select(v => $"[{v.NID}] {v.ID} - {v.GetTemplateData<Game.TItems>()?.Name} ({v.Count})"));
-            _logger?.Log($"{TAGName} (AddUserInventoryItems) (User:{user_uid}) {print} ");
+            _logger?.Log($"{TAGName} (AddUserInventoryItems) (User:{user_uid}) {print} [{reason}]");
 
             // 首先要更新PlayFab 服务
             var result = await PlayFabService.Instance.PFAddInventoryItems(user_uid, user.CustomID, items, reason);
             if (result == null || result.Data?.ItemList == null)
             {
-                _logger?.LogError($"{TAGName} (AddUserInventoryItems) (User:{user_uid}) {print} Failed");
+                _logger?.LogError($"{TAGName} (AddUserInventoryItems) (User:{user_uid}) {print} Failed [{reason}]");
                 return -1;
             }
 
@@ -228,7 +312,7 @@ namespace Server
             // 增加数据库记录
             if (await _DBAddUserInventoryItems(user_uid, items) < 0)
             {
-                _logger?.LogError($"{TAGName} (AddUserInventoryItems) (User:{user_uid}) {print} Failed");
+                _logger?.LogError($"{TAGName} (AddUserInventoryItems) (User:{user_uid}) {print} Failed  [{reason}]");
                 return -1;
             }
 

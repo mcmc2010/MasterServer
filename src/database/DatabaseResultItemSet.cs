@@ -120,6 +120,12 @@ namespace Server
             }
             else if(convert == typeof(System.DateTime?))
             {
+                // 仅仅转换为秒
+                if (value.ValueKind == JsonValueKind.Number)
+                {
+                    long timestamp = value.GetUInt32();
+                    return (T?)(object?)(DateTimeOffset.FromUnixTimeSeconds(timestamp).DateTime);
+                }
                 return (T?)(object?)value.GetDateTime();
             }
             //return System.Text.Json.JsonSerializer.Deserialize(value.GetRawText(), convert, options);

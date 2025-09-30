@@ -115,6 +115,8 @@ namespace Server
         /// <returns></returns>
         protected int DBAuthUser(UserAuthenticationData user_data)
         {
+            user_data.is_new_user = false;
+
             var db = DatabaseManager.Instance.New();
             try
             {
@@ -148,6 +150,8 @@ namespace Server
                     {
                         return -1;
                     }
+
+                    user_data.is_new_user = true;
                 }
                 // 更新
                 else
@@ -355,7 +359,7 @@ namespace Server
                 }
 
                 // 早期库默认设置
-                if (profile.AvatarUrl.Trim() == "0" || profile.AvatarUrl.Trim() == "null")
+                if (profile.AvatarUrl == null || profile.AvatarUrl.Trim() == "0" || profile.AvatarUrl.Trim() == "null")
                 {
                     profile.AvatarUrl = "";
                 }

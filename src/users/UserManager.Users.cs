@@ -30,6 +30,10 @@ namespace Server
     public class UserAuthenticationData : UserBaseData
     {
         public string? name = null;
+        /// <summary>
+        /// 是否为新用户
+        /// </summary>
+        public bool is_new_user = false;
 
         ///
         public string custom_id = "";
@@ -200,20 +204,12 @@ namespace Server
                 _logger?.LogWarning($"(UserAdmin) (ClientUID:{user_data.client_uid} - {user_data.server_uid}) Level:{user_data.privilege_level}");
             }
 
-            // 5.
-            var items = await PlayFabService.Instance.PFGetInventoryItems(user_data.server_uid, user_data.custom_id, "user_init");
-            if (items != null && items.Data?.ItemList != null)
+            // 5: 
+            if ((result_code = await this._InitUserData(user_data)) < 0)
             {
-                int result_count = 0;
-                if ((result_count = await this._DBUpdateUserInventoryItems(user_data.server_uid, [.. items.Data.ItemList])) < 0)
-                {
-                    _logger?.LogWarning($"(User:{user_data.server_uid}) UpdateInventoryItems Failed (Count: {items.Data.ItemList.Length}) Result:{result_count}");
-                }
+                return result_code;
             }
-            else
-            {
-                _logger?.LogWarning($"(User:{user_data.server_uid}) GetInventoryItems Failed");
-            }
+
 
             var wallet = await this._GetWalletData(user_data.server_uid);
             if (wallet != null)
@@ -253,6 +249,48 @@ namespace Server
             }
 
             return result_code;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="user_data"></param>
+        /// <returns></returns>
+        protected async Task<int> _InitUserData(UserAuthenticationData user_data)
+        {
+            // 0: 玩家物品
+            var items = await PlayFabService.Instance.PFGetInventoryItems(user_data.server_uid, user_data.custom_id, "user_init");
+            if (items != null && items.Data?.ItemList != null)
+            {
+                int result_count = 0;
+                if ((result_count = await this._DBUpdateUserInventoryItems(user_data.server_uid, [.. items.Data.ItemList])) < 0)
+                {
+                    _logger?.LogWarning($"(User:{user_data.server_uid}) UpdateInventoryItems Failed (Count: {items.Data.ItemList.Length}) Result:{result_count}");
+                    return 0;
+                }
+            }
+            else
+            {
+                _logger?.LogWarning($"(User:{user_data.server_uid}) GetInventoryItems Failed");
+                return 0;
+            }
+
+            //
+            List<UserInventoryItem> inventory_items = new List<UserInventoryItem>();
+            if (await this.DBGetUserInventoryItems(user_data.server_uid, inventory_items, (int)AMToolkits.Game.ItemType.Equipment) < 0)
+            {
+                _logger?.LogWarning($"(User:{user_data.server_uid}) GetInventoryItems Failed");
+                return 0;
+            }
+
+            var default_equipment = inventory_items.FirstOrDefault(v => v.index == GameSettingsInstance.Settings.User.ItemDefaultEquipmentIndex ||
+                    v.expired_time == null);
+            if (default_equipment == null)
+            {
+                List<AMToolkits.Game.GeneralItemData> kit_items = new List<AMToolkits.Game.GeneralItemData>();
+                await _GrantBeginnerKitItems(user_data.server_uid, "1000", kit_items);
+            }
+            return 1;
         }
 
         /// <summary>
@@ -311,7 +349,7 @@ namespace Server
             {
                 profile.ExperienceMax = GameSettingsInstance.Settings.User.UserLevelExperiences[profile.Level + 1];
             }
-            
+
 
             profile.LastRankLevel = db_profile_1?.LastRankLevel ?? 1000;
             profile.LastRankValue = db_profile_1?.LastRankValue ?? 0;
