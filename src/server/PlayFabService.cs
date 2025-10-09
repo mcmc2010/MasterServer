@@ -244,8 +244,22 @@ namespace Server
                 return -1;
             }
 
-            _logger?.Log($"{TAGName} (User:{client_uid}) Authentication : ({playfab_uid}) [{response.Data?.Result}]");
-            return 0;
+            int result_code = 1;
+            bool is_test_user = false;
+            Dictionary<string, object?>? data = response.Data?.Data.ToDictionaryObject();
+            if (data != null)
+            {
+                if (data.TryGetValue("test_user", out var value) && value is bool is_test && is_test == true)
+                {
+                    is_test_user = true;
+                    result_code = 0; // Test User ot Guest User is Zero
+                }
+            }
+
+            _logger?.Log($"{TAGName} (User:{client_uid}) Authentication : ({playfab_uid}) [{response.Data?.Result}]" +
+                         $" {(!is_test_user ? "" : "[TestUser]")}");
+
+            return result_code;
         }
 
 

@@ -34,6 +34,10 @@ namespace Server
         /// 是否为新用户
         /// </summary>
         public bool is_new_user = false;
+        /// <summary>
+        /// 是否为测试用户
+        /// </summary>
+        public bool is_test_user = false;
 
         ///
         public string custom_id = "";

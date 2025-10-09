@@ -18,6 +18,9 @@ namespace Logger.Extensions {
         private readonly string _pathname;
         private readonly string _filename;
 
+        //
+        private Logger.LogLevel _loglevel = LogLevel.Information;
+
         // 存储当前作用域状态的栈
         private readonly Stack<object?> _scope = new Stack<object?>();
         // 嵌套类：管理作用域生命周期
@@ -44,11 +47,14 @@ namespace Logger.Extensions {
             }
         }
 
-        public ServiceLogger(string name, string pathname, string filename)
+        public ServiceLogger(string name, string pathname, string filename,
+                    Logger.LogLevel level = LogLevel.Information)
         {
             _name = name;
             _pathname = pathname;
             _filename = filename;
+
+            _loglevel = level;
 
             if (_pathname.Length > 0 && !Path.Exists(_pathname))
             {
@@ -146,6 +152,34 @@ namespace Logger.Extensions {
             message = this.LogFormatter(message);
 
             string content = $"{DateTime.Now:HH:mm:ss} [{logLevel}] {message}{Environment.NewLine}";
+
+            // 
+            if (_loglevel > LogLevel.Debug && state is IEnumerable<KeyValuePair<string, object?>> pairs)
+            {
+                var value = pairs.FirstOrDefault(v => string.Compare(v.Key, "path", StringComparison.OrdinalIgnoreCase) == 0 ||
+                                        v.Key.StartsWith("endpoint", StringComparison.OrdinalIgnoreCase)).Value;
+                if (value is Microsoft.AspNetCore.Http.Endpoint ep)
+                {
+                    value = ep.DisplayName;
+                }
+
+                if (value == null)
+                {
+                    value = this.GetValueFromState("Path", null);
+                }
+
+                                   
+                if (value is string endpoint && endpoint.Trim().Length > 0)
+                {
+                    // 默认直接访问index，忽略显示
+                    if (endpoint == "/" ||
+                        LoggerProvider.ignore_endpoints.Any(v => endpoint.Trim().StartsWith(v, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        return;
+                    }
+                }
+            }
+            
             // 输出控制台
             System.Console.Write(content);
 
@@ -159,27 +193,41 @@ namespace Logger.Extensions {
             string filename = Path.GetFileNameWithoutExtension(_filename);
             filename = $"{filename}_{DateTime.Now:yyyy-MM-dd}{Path.GetExtension(_filename)}";
             filename = Path.Join(_pathname, filename);
-
-            //File.AppendAllText(filename, content);
+            
             AMToolkits.FileAsync.AppendAllText(filename, content);
         }
     }
 
     public class LoggerProvider : Microsoft.Extensions.Logging.ILoggerProvider
     {
+        private Logger.LogLevel _loglevel = LogLevel.Information;
+
         private readonly string _pathname;
         private readonly string _filename;
 
-        public LoggerProvider(string filename)
+        private static readonly List<string> _ignore_endpoints = new List<string>();
+        internal static List<string> ignore_endpoints => _ignore_endpoints;
+
+        public LoggerProvider(string filename,
+                Logger.LogLevel level,
+                List<string>? ignore_endpoints = null)
         {
+            _loglevel = level;
+
+            if (ignore_endpoints != null && ignore_endpoints.Count > 0)
+            {
+                _ignore_endpoints.AddRange(ignore_endpoints.Select(v => v.Trim()));
+            }
+
             string fullname = Path.GetFullPath(filename);
-            _pathname = Path.GetDirectoryName(fullname)??"";
+            _pathname = Path.GetDirectoryName(fullname) ?? "";
             _filename = Path.GetFileName(fullname);
+
         }
 
         public Microsoft.Extensions.Logging.ILogger CreateLogger(string name) 
         {
-            return new ServiceLogger(name, _pathname, _filename);
+            return new ServiceLogger(name, _pathname, _filename, _loglevel);
         }
 
         public void Dispose() { }

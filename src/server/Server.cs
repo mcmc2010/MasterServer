@@ -226,6 +226,17 @@ namespace Server
                 }
             });
 
+            // 默认忽略的，只有在Debug模式才会显示
+            var ignore_endpoints = new List<string>()
+            {
+                //
+                "/favicon.ico",
+                //
+                "/ping",
+                // API
+                "/api/ping"
+            };
+
             //
             var cfg = _config.Logging.FirstOrDefault(v => v.Name.Trim().ToLower() == "http");
             if (cfg != null && cfg.File.Length > 0)
@@ -235,7 +246,8 @@ namespace Server
                 //builder.Logging.AddFile("logs/main.log", minimumLevel: LogLevel.Information);
                 builder.Logging.SetMinimumLevel((Microsoft.Extensions.Logging.LogLevel)cfg.Getlevel());
                 // 注册自定义文件日志提供程序
-                builder.Logging.AddProvider(new Logger.Extensions.LoggerProvider(cfg.File));
+                builder.Logging.AddProvider(new Logger.Extensions.LoggerProvider(cfg.File,
+                        cfg.Getlevel(), ignore_endpoints));
             }
 
             // 

@@ -298,6 +298,10 @@ namespace Server
                 //
                 jwt_token = ""
             };
+            if (result_code == 0)
+            {
+                user_data.is_test_user = true;
+            }
 
             result_code = await this.AuthenticationAndInitUser(user_data);
             if (result_code <= 0)
