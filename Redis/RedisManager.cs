@@ -99,6 +99,14 @@ namespace AMToolkits.Redis
         private string[]? _arguments = null;
         private Logger.LoggerEntry? _logger = null;
 
+        public bool IsInitialized
+        {
+            get
+            {
+                return _database != null;
+            }
+        }
+
         private RedisOptions _options = new RedisOptions()
         {
 
@@ -257,7 +265,14 @@ namespace AMToolkits.Redis
                     _logger?.LogError($"Redis connection failed: {args.Exception}");
 
                 _connection.ConnectionRestored += (sender, args) =>
+                {
                     _logger?.Log("Redis connection restored");
+
+                    if(_database == null)
+                    {
+                        _database = this.GetDatabase();
+                    }
+                };
 
                 _connection.ErrorMessage += (sender, args) =>
                     _logger?.LogError($"Redis error: {args.Message}");

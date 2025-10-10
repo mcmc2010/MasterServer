@@ -186,7 +186,16 @@ namespace Server
             }
             user_data.jwt_token = hash;
 
-            // 4:
+            // 4 - 0:
+#if USING_REDIS
+            if(!AMToolkits.Redis.RedisManager.Instance.IsInitialized)
+            {
+                _logger?.LogError($"(User) Auth User (ClientUID:{user_data.client_uid} - {user_data.server_uid}) Failed, " 
+                        + "Redis Not Initialize ");
+                return -1;
+            }
+#endif
+            // 4 - 1:
             // Add User To Manager
             var user = this.AllocT<UserBase>();
             user.ID = user_data.server_uid;

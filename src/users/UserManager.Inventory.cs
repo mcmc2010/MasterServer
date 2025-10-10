@@ -529,7 +529,15 @@ namespace Server
                 }
                 else
                 {
+                    // 修复使用物品时间丢失
+                    // 
                     current.using_time = DateTime.Now;
+                    int index = items.FindIndex(v => v.iid == current.iid);
+                    if(index >= 0)
+                    {
+                        items[index] = current.ToNItem();
+                    }
+
                     await this.DBUsingUserInventoryItem(user_uid, current.iid, item_template_data, null);
                 }
             }
