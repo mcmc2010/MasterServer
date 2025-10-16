@@ -278,9 +278,15 @@ namespace Server
             if (result_code < 0)
             {
                 _logger?.LogWarning($"(User) Auth User (ClientUID:{request?.UID} - {request?.SessionUID}) Failed, Result: {result_code}");
-
-                //
-                await context.ResponseError(HttpStatusCode.Unauthorized, ErrorMessage.NotAllowAccess_Unauthorized_NotLogin);
+                if (result_code == (int)AMToolkits.APIResultCode.TooMany)
+                {
+                    await context.ResponseError(HttpStatusCode.TooManyRequests, ErrorMessage.NotAllowAccess_Unauthorized_TooMany);
+                }
+                else
+                {
+                    //
+                    await context.ResponseError(HttpStatusCode.Unauthorized, ErrorMessage.NotAllowAccess_Unauthorized_NotLogin);
+                }
                 return;
             }
 

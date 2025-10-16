@@ -37,6 +37,11 @@ namespace AMToolkits.Net
         {
             get { return _client?.LastError; }
         }
+        public int? LastStatusCode
+        {
+            get { return _client?.StatusCode; }
+        }
+        
         /// <summary>
         /// 
         /// </summary>
@@ -160,7 +165,7 @@ namespace AMToolkits.Net
                         });
 
             //
-            this._duration_max = System.Math.Max(_duration_max, _client.DurationTime);
+            this._duration_max = System.Math.Max(_duration_max, _client.DurationTimeMS);
             return result;
         }
 
@@ -192,7 +197,7 @@ namespace AMToolkits.Net
                         });
 
             //
-            this._duration_max = System.Math.Max(_duration_max, _client.DurationTime);
+            this._duration_max = System.Math.Max(_duration_max, _client.DurationTimeMS);
             return result;
         }
 

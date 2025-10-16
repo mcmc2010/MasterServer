@@ -8,7 +8,10 @@ namespace Server
     public class GameSettings_User
     {
         [JsonPropertyName("user_icons")]
-        public string[] UserIcons = new string[]{ };
+        public string[] UserIcons = new string[] { };
+
+        [JsonPropertyName("using_user_level_experiences_table")]
+        public bool UsingUserLevelExperiencesTable = false;
         [JsonPropertyName("user_level_experiences")]
         public long[] UserLevelExperiences = new long[]{ 0, 100 };
 

@@ -60,6 +60,7 @@ try
 
     // 1 - 2:
     AMToolkits.Utility.TableDataManager.NewInstance(args);
+    AMToolkits.Utility.TableDataManager.GetTableData<Game.TPlayerLevel>();
     AMToolkits.Utility.TableDataManager.GetTableData<Game.TItems>();
     AMToolkits.Utility.TableDataManager.GetTableData<Game.TAIPlayers>();
     AMToolkits.Utility.TableDataManager.GetTableData<Game.TShop>();

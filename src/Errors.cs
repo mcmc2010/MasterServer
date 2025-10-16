@@ -11,5 +11,6 @@ namespace Server
         /// </summary>
         public const string NotAllowAccess_Unauthorized_NotKey = "Please contact the developer, unauthorized access";
         public const string NotAllowAccess_Unauthorized_NotLogin = "Please login your account, unauthorized access";
+        public const string NotAllowAccess_Unauthorized_TooMany = "Too many requests, unauthorized access";
     }
 }

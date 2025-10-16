@@ -1,3 +1,6 @@
+////
+/// Fixed : request_duration show error;
+
 using System.Linq;
 using System.Net;
 using AMToolkits.Extensions;
@@ -59,7 +62,7 @@ namespace AMToolkits.Net
 
         private string _base_url = "";
         private string _url = "";
-        public string Url { get { return _url; }}
+        public string Url { get { return _url; } }
         public string GetEndPoint()
         {
             if (_url.IsNullOrWhiteSpace())
@@ -80,8 +83,13 @@ namespace AMToolkits.Net
         private string _full_url = "";
 
         private int _timeout_limit = 5 * 1000;
-        private float _request_duration = 0.0f;
-        public float DurationTime { get { return _request_duration; } }
+        /// <summary>
+        /// 单位秒
+        /// </summary>
+        private float _request_duration = 0.0f; // 单位毫秒
+        public float DurationTimeMS { get { return _request_duration; } }
+        public float DurationTime { get { return _request_duration * 0.001f; } }
+
         private HttpStatusCode _status_code = HttpStatusCode.OK;
         public int StatusCode { get { return (int)_status_code; } }
 
@@ -101,7 +109,7 @@ namespace AMToolkits.Net
         /// 
         /// </summary>
         private FactoryObjectStatus _status = FactoryObjectStatus.None;
-        public bool IsRunning { get { return _status == FactoryObjectStatus.Running; }}
+        public bool IsRunning { get { return _status == FactoryObjectStatus.Running; } }
 
         private bool _has_compress = false;
         private bool _is_output_log = true;
@@ -224,9 +232,22 @@ namespace AMToolkits.Net
 
 
         /// <summary>
-        /// 
+        /// 精度秒
         /// </summary>
         /// <returns></returns>
+        public static UInt32 Timestamp
+        {
+            get
+            {
+                DateTime tn = DateTime.UtcNow;
+                DateTime t0 = new DateTime(1970, 1, 1);
+                TimeSpan span = tn - t0;
+                return (UInt32)span.TotalSeconds;
+            }
+        }
+        /// <summary>
+        /// 精度毫秒
+        /// </summary>
         public static long LongTimestamp
         {
             get
@@ -235,6 +256,20 @@ namespace AMToolkits.Net
                 DateTime t0 = new DateTime(1970, 1, 1);
                 TimeSpan span = tn - t0;
                 return (long)span.TotalMilliseconds;
+            }
+        }
+
+        /// <summary>
+        /// 精度微秒
+        /// </summary>
+        public static double PrecisionTimestamp
+        {
+            get
+            {
+                DateTime tn = DateTime.UtcNow;
+                DateTime t0 = new DateTime(1970, 1, 1);
+                TimeSpan span = tn - t0;
+                return span.TotalMicroseconds;
             }
         }
 
@@ -436,7 +471,7 @@ namespace AMToolkits.Net
             client._status_code = HttpStatusCode.OK;
             client._status_error = null;
 
-            long timestamp = HTTPClientProxy.LongTimestamp;
+            double timestamp = HTTPClientProxy.PrecisionTimestamp;
 
             //
             if (arguments != null)
@@ -502,7 +537,7 @@ namespace AMToolkits.Net
 
                 var response = await client._http_client.SendAsync(request, client._cts.Token);
                 client._status_code = response.StatusCode;
-                client._request_duration = (HTTPClientProxy.LongTimestamp - timestamp) * 0.001f;
+                client._request_duration = (float)(HTTPClientProxy.PrecisionTimestamp - timestamp) * 0.001f;
 
                 //  无论成功与否都尝试解析body
                 long content_length = 0;
@@ -552,7 +587,7 @@ namespace AMToolkits.Net
                 {
                     if (client._is_output_log)
                     {
-                        client.Log("[HTTP] (Request) Failed:", $"({response.StatusCode})", client._url, $"[{client._request_duration:F3}ms]");
+                        client.Log("[HTTP] (Request) Failed:", $"({response.StatusCode})", client._url, $"[{client.DurationTimeMS:F2}ms]");
                         client.Log("[HTTP] (Response) Body:", client._data);
                     }
                     return default(T);
@@ -561,7 +596,7 @@ namespace AMToolkits.Net
                 {
                     if (client._is_output_log)
                     {
-                        client.Log("[HTTP] (Request) Finish:", $"({response.StatusCode})", client._url, $"[{client._request_duration:F3}ms]");
+                        client.Log("[HTTP] (Request) Finish:", $"({response.StatusCode})", client._url, $"[{client.DurationTimeMS:F2}ms]");
                     }
                     return body;
                 }
@@ -569,20 +604,28 @@ namespace AMToolkits.Net
             }
             catch (TimeoutException e)
             {
-                client._request_duration = (HTTPClientProxy.LongTimestamp - timestamp) * 0.001f;
-                
-                client._status_code = HttpStatusCode.RequestTimeout;
-                client._status_error = $"({e.HResult:X8}) {e.Message}";
-                client.Log("[HTTP] (Request) Timeout:", e.Message);
+                client._request_duration = (float)(HTTPClientProxy.PrecisionTimestamp - timestamp) * 0.001f;
+                HandleTimeoutException(client, e);
                 return default(T);
             }
             catch (Exception e)
             {
-                client._request_duration = (HTTPClientProxy.LongTimestamp - timestamp) * 0.001f;
+                client._request_duration = (float)(HTTPClientProxy.PrecisionTimestamp - timestamp) * 0.001f;
 
-                client._status_code = HttpStatusCode.BadRequest;
-                client._status_error = $"({e.HResult:X8}) {e.Message}";
-                client.Log("[HTTP] (Request) Error:", e.Message);
+                
+                //  按超时处理
+                if (e.InnerException is TimeoutException e_timeout)
+                {
+                    HandleTimeoutException(client, e_timeout);
+                }
+                else if(e.InnerException is TaskCanceledException e_canceled)
+                {
+                    HandleUnknowException(client, e_canceled, true);
+                }
+                else
+                {
+                    HandleUnknowException(client, e, true);
+                }
                 return default(T);
             }
             finally
@@ -593,6 +636,42 @@ namespace AMToolkits.Net
                 }
 
                 callback?.Invoke(client, null);
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="client"></param>
+        /// <param name="e"></param>
+        protected static void HandleTimeoutException(HTTPClientProxy client, TimeoutException e)
+        {
+            //            
+            client._status_code = HttpStatusCode.RequestTimeout;
+            client._status_error = $"({e.HResult:X8}) {e.Message}";
+            client.Log("[HTTP] (Request) Timeout:", e.Message, $"[{client.DurationTimeMS:F2}ms]");
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="client"></param>
+        /// <param name="e"></param>
+        /// <param name="is_trace"></param>
+        protected static void HandleUnknowException(HTTPClientProxy client, Exception e, bool is_trace = false)
+        {
+            //            
+            client._status_code = HttpStatusCode.BadRequest;
+            if(e is TaskCanceledException canceled)
+            {
+                client._status_code = HttpStatusCode.TooManyRequests;
+            }
+            client._status_error = $"({e.HResult:X8}) {e.Message}";
+            client.Log("[HTTP] (Request) Error:", e.Message, $"[{client.DurationTimeMS:F2}ms]");
+            if (is_trace)
+            {
+                client.Log("[HTTP] (Request) Trace: ");
+                client.Log(e.StackTrace ?? "None");
             }
         }
     }

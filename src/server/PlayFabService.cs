@@ -1,4 +1,5 @@
 
+using System.Net;
 using System.Text.Json.Serialization;
 
 using AMToolkits.Extensions;
@@ -234,7 +235,14 @@ namespace Server
                     });
             if (response == null)
             {
-                _logger?.LogError($"{TAGName} (User:{client_uid}) Authentication Failed: ({playfab_uid}) {_client_factory?.LastError?.Message}");
+
+                _logger?.LogError($"{TAGName} (User:{client_uid}) Authentication Failed: ({playfab_uid}) ({_client_factory?.LastStatusCode}) {_client_factory?.LastError?.Message}");
+
+                if (_client_factory?.LastStatusCode == (int)HttpStatusCode.RequestTimeout ||
+                   _client_factory?.LastStatusCode == (int)HttpStatusCode.TooManyRequests)
+                {
+                    return (int)AMToolkits.APIResultCode.TooMany;
+                }
                 return -1;
             }
 
