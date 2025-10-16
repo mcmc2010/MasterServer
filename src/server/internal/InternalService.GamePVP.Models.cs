@@ -80,6 +80,7 @@ namespace Server
                     $"WHERE `id` = ? AND `season` = ? AND `status` > 0;";
                 result_code = db?.Query(sql,
                     added_count,
+                    winning_streak_count, winning_streak_highest,
                     data.UserID,
                     GameSettingsInstance.Settings.Season.Code);
                 if (result_code < 0)
