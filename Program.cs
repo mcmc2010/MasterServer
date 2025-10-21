@@ -62,10 +62,13 @@ try
     AMToolkits.Utility.TableDataManager.NewInstance(args);
     AMToolkits.Utility.TableDataManager.GetTableData<Game.TPlayerLevel>();
     AMToolkits.Utility.TableDataManager.GetTableData<Game.TItems>();
+    AMToolkits.Utility.TableDataManager.GetTableData<Game.TItemEquipment>();
     AMToolkits.Utility.TableDataManager.GetTableData<Game.TAIPlayers>();
     AMToolkits.Utility.TableDataManager.GetTableData<Game.TShop>();
     AMToolkits.Utility.TableDataManager.GetTableData<Game.TGameEvents>();
     AMToolkits.Utility.TableDataManager.GetTableData<Game.TGameEffects>();
+    //
+    AMToolkits.Utility.TableDataManager.GetTableData<Game.TNormalGame>();
 
     logger.Log("Init TableData Completed");
 
@@ -160,6 +163,8 @@ try
 
     //
     proxy_service.StartWorking();
+    internal_service.StartWorking();
+    
     // 
     payment_manager.StartWorking();
 

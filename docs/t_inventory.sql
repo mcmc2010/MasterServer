@@ -34,3 +34,6 @@ ADD COLUMN `reason` VARCHAR(16) NULL DEFAULT NULL AFTER `custom_data`;
 
 ALTER TABLE `t_inventory` 
 ADD COLUMN `group` INT NOT NULL DEFAULT '0' COMMENT '物品分组号' AFTER `user_id`;
+
+ALTER TABLE `t_inventory` 
+ADD COLUMN `delete_time` DATETIME NULL DEFAULT NULL COMMENT '删除时间' AFTER `last_time`;

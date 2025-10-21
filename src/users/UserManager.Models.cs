@@ -316,6 +316,45 @@ namespace Server
             return -1;
         }
 
+        /// <summary>
+        /// 仅仅更新等级和经验
+        /// </summary>
+        /// <param name="user_id"></param>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        protected int DBUpdateHOLData(string user_id, UserHOLData data)
+        {
+
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                // 
+                string sql =
+                    $"UPDATE `t_hol` AS h SET " +
+                    $"   " +
+                    $"  h.`level` = ?, h.`experience` = ? " +
+                    $"WHERE h.`id` = ? AND h.`season` = ? AND h.`status` > 0; ";
+                var result_code = db?.Query(sql,
+                    data.level, data.experience,
+                    user_id,
+                    GameSettingsInstance.Settings.Season.Code);
+                if (result_code < 0)
+                {
+                    return -1;
+                }
+
+                return 1;
+            }
+            catch (Exception e)
+            {
+                _logger?.LogError("(User) Error :" + e.Message);
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return -1;
+        }
 
 
         #endregion HOL
@@ -758,7 +797,9 @@ namespace Server
         /// <param name="items"></param>
         /// <param name="list"></param>
         /// <returns></returns>
-        protected async Task<int> DBGetUserInventoryItems(string user_uid, AMToolkits.Game.GeneralItemData[] items, List<UserInventoryItem> list)
+        protected async Task<int> DBGetUserInventoryItems(string user_uid,
+                            IEnumerable<AMToolkits.Game.GeneralItemData> items,
+                            List<UserInventoryItem> list)
         {
             //
             var db = DatabaseManager.Instance.New();
@@ -1218,7 +1259,9 @@ namespace Server
                 // 
                 string sql =
                     $"UPDATE `t_inventory` " +
-                    $"SET `reason` = ?, `status` = 0 " +
+                    $"SET " +
+                    $" `delete_time` = CURRENT_TIMESTAMP, " +
+                    $" `reason` = ?, `status` = 0 " +
                     $"WHERE `id` = ? AND `tid` = ? AND `user_id` = ? ";
                 int result_code = query.Query(sql,
                         reason,
@@ -1269,6 +1312,7 @@ namespace Server
                     $"SET " +
                     $"  {condition_update_count} " +
                     $"  {condition_update} " +
+                    $" `delete_time` = CURRENT_TIMESTAMP, " +
                     $"  `reason` = ?, `status` = 0 " +
                     $"WHERE `id` = ? AND `tid` = ? AND `user_id` = ? ";
                 int result_code = query.Query(sql,
@@ -1768,6 +1812,8 @@ namespace Server
                                     int group_index = -1)
         {
 
+            var template_data = AMToolkits.Utility.TableDataManager.GetTableData<Game.TGameEffects>();
+
             //
             var db = DatabaseManager.Instance.New();
             try
@@ -1776,6 +1822,18 @@ namespace Server
                 if (result_code < 0)
                 {
                     return -1;
+                }
+
+                if(items.Count > 0)
+                {
+                    foreach(var item in items)
+                    {
+                        var template_item = template_data?.Get(item.id);
+                        if(template_item != null)
+                        {
+                            item.InitTemplateData<TGameEffects>(template_item);
+                        }
+                    }
                 }
 
             }

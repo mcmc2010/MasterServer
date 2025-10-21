@@ -76,11 +76,22 @@ namespace AMToolkits.Game
             return $"{item.ID}{separator}{item.Count}{separator}IID{item.IID}";
         }
 
-        public static string[]? ToItemValues(GeneralItemData[]? items, string separator = ",")
+        public static string[]? ToItemValues(IEnumerable<GeneralItemData>? items)
         {
             if (items == null) { return null; }
             var values = items.Select(v => ToItemValue(v) ?? "").ToArray();
             return values;
+        }
+
+        public static string? ToItemValue(IEnumerable<GeneralItemData>? items, string separator = ",")
+        {
+            if (items == null) { return null; }
+            var values = ToItemValues(items);
+            if(values?.Length > 0)
+            {
+                return string.Join(separator, values);
+            }
+            return null;
         }
 
         /// <summary>

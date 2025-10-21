@@ -1,4 +1,5 @@
 
+using System.Text.Json.Serialization;
 using AMToolkits.Extensions;
 using AMToolkits.Game;
 
@@ -6,6 +7,23 @@ using Logger;
 
 namespace Server
 {
+    /// <summary>
+    /// 
+    /// </summary>
+    [System.Serializable]
+    public class NUserInventoryItemsResult
+    {
+
+        [JsonPropertyName("virtual_currency")]
+        public Dictionary<int, object?>? VirtualCurrency = null;
+        
+        [JsonPropertyName("items")]
+        public string ItemValues = "";
+    }
+    
+    /// <summary>
+    /// 
+    /// </summary>
     public partial class InternalService
     {
         /// <summary>
@@ -106,6 +124,132 @@ namespace Server
             return result;
         }
 
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="custom_uid"></param>
+        /// <param name="ItemValues"></param>
+        /// <param name="reason"></param>
+        /// <returns></returns>
+        public async Task<int> _AddUserInventoryItems(string user_uid, string custom_uid,
+                            string item_values,
+                            NUserInventoryItemsResult result,
+                            string reason = "internal")
+        {
+            item_values = item_values.Trim();
+            // 获取道具 (是否有物品发放)
+            var items = AMToolkits.Game.ItemUtils.ParseGeneralItem(item_values);
+            if (items == null || items.Length == 0)
+            {
+                return 0;
+            }
+
+            //
+            var item_list = UserManager.Instance.InitGeneralItemData(items);
+            if (item_list == null)
+            {
+                _logger?.LogError($"{TAGName} (AddUserInventoryItems) (User:{user_uid}) Add Items {item_values} Failed ({reason})");
+                return -1;
+            }
+
+            // 1: 虚拟货币
+            var list = item_list.Where(v => AMToolkits.Game.ItemUtils.HasVirtualCurrency(v.ID)).ToList();
+            if (list.Count > 0)
+            {
+                item_list.RemoveAll(v => list.Contains(v));
+
+                result.VirtualCurrency = new Dictionary<int, object?>();
+
+                Dictionary<string, object?>? r_vc = null;
+                foreach (var v in list)
+                {
+                    string currency = AMToolkits.Game.CurrencyUtils.CURRENCY_GOLD_SHORT;
+                    if (v.ID == AMToolkits.Game.ItemConstants.ID_GD && v.Count > 0)
+                    {
+                        r_vc = await UserManager.Instance._UpdateVirtualCurrency(user_uid, v.Count, AMToolkits.Game.VirtualCurrency.GD, reason);
+
+                        result.VirtualCurrency[0] = r_vc;
+                    }
+                    else if (v.ID == AMToolkits.Game.ItemConstants.ID_GM)
+                    {
+                        currency = AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS_SHORT;
+                        r_vc = await UserManager.Instance._UpdateVirtualCurrency(user_uid, v.Count, AMToolkits.Game.VirtualCurrency.GM, reason);
+
+                        result.VirtualCurrency[1] = r_vc;
+                    }
+
+                    if (r_vc == null)
+                    {
+                        _logger?.LogError($"{TAGName} (AddUserInventoryItems) (User:{user_uid}) {v.ID} " +
+                                          $"Amount: {v.Count} {currency} Failed");
+                        break;
+                    }
+                }
+
+                if (r_vc == null)
+                {
+                    return 0;
+                }
+            }
+
+
+            // 2: 物品
+            if (item_list.Count > 0)
+            {
+                // 发放物品 :
+                var result_code = await UserManager.Instance._AddUserInventoryItems(user_uid, item_list, reason);
+                if (result_code < 0)
+                {
+                    return -1;
+                }
+
+                result.ItemValues = AMToolkits.Game.ItemUtils.ToItemValue(item_list) ?? "";
+            }
+            return 1;
+        }
+
+        /// <summary>
+        /// 消耗物品
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="custom_uid"></param>
+        /// <param name="item_values"></param>
+        /// <param name="result"></param>
+        /// <param name="reason"></param>
+        /// <returns></returns>
+        public async Task<int> _ConsumableUserInventoryItems(string user_uid, string custom_uid,
+                            string item_values,
+                            NUserInventoryItemsResult result,
+                            string reason = "internal")
+        {
+            item_values = item_values.Trim();
+            // 获取道具 (是否有物品发放)
+            var items = AMToolkits.Game.ItemUtils.ParseGeneralItem(item_values);
+            if (items == null || items.Length == 0)
+            {
+                return 0;
+            }
+
+            //
+            var item_list = UserManager.Instance.InitGeneralItemData(items);
+            if (item_list == null)
+            {
+                _logger?.LogError($"{TAGName} (AddUserInventoryItems) (User:{user_uid}) Add Items {item_values} Failed ({reason})");
+                return -1;
+            }
+
+            List<UserInventoryItem> consumable_items = new List<UserInventoryItem>();
+            if( await UserManager.Instance._ConsumableUserInventoryItems(user_uid, item_list, consumable_items, reason) < 0)
+            {
+                return -1;
+            }
+
+            string[] values = consumable_items.Select(v => $"{v.index}|{v.count}|IID{v.iid}").ToArray();
+            result.ItemValues = string.Join(",", values);
+            return 1;
+        }
     }
 }
 

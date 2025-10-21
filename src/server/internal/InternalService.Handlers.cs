@@ -79,6 +79,79 @@ namespace Server
         public Dictionary<string, object?>? Data = null;
     }
 
+
+    /// <summary>
+    /// 增加物品
+    /// Endpoint: api/internal/user/inventory/add
+    /// </summary>
+    [System.Serializable]
+    public class NAddUserInventoryItemsRequest
+    {
+        /// <summary>
+        /// 玩家账号
+        /// </summary>
+        [JsonPropertyName("user_uid")]
+        public string UserID = "";
+
+        /// <summary>
+        /// 目前是PlayfabID
+        /// </summary>
+        [JsonPropertyName("custom_uid")]
+        public string CustomID = "";
+
+        /// <summary>
+        /// 物品列表：ID|CNT, ...
+        /// </summary>
+        [JsonPropertyName("items")]
+        public string Items = "";
+    }
+
+    [System.Serializable]
+    public class NAddUserInventoryItemsResponse
+    {
+        [JsonPropertyName("code")]
+        public int Code;
+
+        [JsonPropertyName("data")]
+        public NUserInventoryItemsResult? Data = null;
+    }
+
+    /// <summary>
+    /// 消耗物品
+    /// Endpoint: api/internal/user/inventory/consumable
+    /// </summary>
+    [System.Serializable]
+    public class NConsumableUserInventoryItemsRequest
+    {
+        /// <summary>
+        /// 玩家账号
+        /// </summary>
+        [JsonPropertyName("user_uid")]
+        public string UserID = "";
+
+        /// <summary>
+        /// 目前是PlayfabID
+        /// </summary>
+        [JsonPropertyName("custom_uid")]
+        public string CustomID = "";
+
+        /// <summary>
+        /// 物品列表：ID|CNT, ...
+        /// </summary>
+        [JsonPropertyName("items")]
+        public string Items = "";
+    }
+
+    [System.Serializable]
+    public class NConsumableUserInventoryItemsResponse
+    {
+        [JsonPropertyName("code")]
+        public int Code;
+
+        [JsonPropertyName("data")]
+        public NUserInventoryItemsResult? Data = null;
+    }
+
     #endregion
 
     #region Game PVP
@@ -236,6 +309,90 @@ namespace Server
 
 
         /// <summary>
+        /// 增加物品
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        protected async Task HandleAddUserInventoryItems(HttpContext context)
+        {
+            // 解析 JSON
+            var request = await context.Request.JsonBodyAsync<NAddUserInventoryItemsRequest>();
+            if (request == null)
+            {
+                await context.ResponseError(HttpStatusCode.BadRequest, ErrorMessage.UNKNOW);
+                return;
+            }
+
+
+            //
+            var result = new NAddUserInventoryItemsResponse
+            {
+                Code = 0,
+            };
+
+
+            // 
+            var result_data = new NUserInventoryItemsResult();
+            var result_code = await this._AddUserInventoryItems(request.UserID, request.CustomID, request.Items, result_data);
+            if (result_code < 0)
+            {
+                result.Code = result_code;
+            }
+            else
+            {
+                //
+                result.Code = 1;
+                result.Data = result_data;
+            }
+
+            //
+            await context.ResponseResult(result);
+        }
+
+
+        /// <summary>
+        ///  消耗物品
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        protected async Task HandleConsumableUserInventoryItems(HttpContext context)
+        {
+            // 解析 JSON
+            var request = await context.Request.JsonBodyAsync<NConsumableUserInventoryItemsRequest>();
+            if (request == null)
+            {
+                await context.ResponseError(HttpStatusCode.BadRequest, ErrorMessage.UNKNOW);
+                return;
+            }
+
+
+            //
+            var result = new NConsumableUserInventoryItemsResponse
+            {
+                Code = 0,
+            };
+
+
+            // 
+            var result_data = new NUserInventoryItemsResult();
+            var result_code = await this._ConsumableUserInventoryItems(request.UserID, request.CustomID, request.Items, result_data);
+            if (result_code < 0)
+            {
+                result.Code = result_code;
+            }
+            else
+            {
+                //
+                result.Code = 1;
+                result.Data = result_data;
+            }
+
+            //
+            await context.ResponseResult(result);
+        }
+
+
+        /// <summary>
         /// 
         /// </summary>
         /// <param name="context"></param>
@@ -271,6 +428,9 @@ namespace Server
             }
             else
             {
+                await this._SettlementGamePVPResult(uid, request.RoomType, request.RoomLevel, request.WinnerPlayer);
+                await this._SettlementGamePVPResult(uid, request.RoomType, request.RoomLevel, request.LoserPlayer);
+
                 _logger?.Log($"{TAGName} (GamePVPCompleted) : ({uid}) Room {request.RoomType} - {request.RoomLevel}," +
                              $"{request.WinnerPlayer?.UserID} - {request.WinnerPlayer?.Name} vs {request.LoserPlayer?.UserID} - {request.LoserPlayer?.Name}" +
                              $"");
