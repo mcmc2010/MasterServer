@@ -117,6 +117,11 @@ namespace Server
         {
             user_data.is_new_user = false;
 
+            string? link_id = null;
+            if(user_data.link_name?.Trim().IsNullOrWhiteSpace() == false)
+            {
+                link_id = $"{user_data.link_name}_openid_{user_data.link_id}";
+            }
             var db = DatabaseManager.Instance.New();
             try
             {
@@ -125,8 +130,10 @@ namespace Server
                 // PlayFab 
                 string sql =
                     $"SELECT uid, id AS server_id, client_id, " +
-                    $"name, " +
-                    $"token, passphrase, last_time, privilege_level, status " +
+                    $"  name, " +
+                    $"  token, passphrase, last_time, privilege_level, " +
+                    $"  link_id, " +
+                    $"  status " +
                     $"FROM t_user WHERE client_id = ? AND playfab_id = ? AND status >= 0;";
                 var result_code = db?.Query(sql, user_data.client_uid, user_data.custom_id);
                 if (result_code < 0)
@@ -140,12 +147,15 @@ namespace Server
                     sql =
                         $"INSERT INTO `t_user` " +
                         $"(`id`,`client_id`," +
-                        $"`token`,`passphrase`,`playfab_id`, `device`)" +
-                        $"VALUES(?, ?,  ?,?,?, ?);";
+                        $"  `token`,`passphrase`,`playfab_id`, `device`, " +
+                        $"  `link_id` " +
+                        $")" +
+                        $"VALUES(?, ?,  ?,?,?, ?, ?);";
                     result_code = db?.Query(sql,
                         user_data.server_uid, user_data.client_uid,
                         user_data.token, user_data.passphrase,
-                        user_data.custom_id, user_data.device);
+                        user_data.custom_id, user_data.device,
+                        link_id);
                     if (result_code < 0)
                     {
                         return -1;
@@ -174,6 +184,13 @@ namespace Server
                     }
 
                     //
+                    string? openid = (db?.ResultItems["link_id"]?.String);
+                    if(!openid.IsNullOrWhiteSpace() && openid != link_id)
+                    {
+                        return -5;
+                    }
+
+                    //
                     privilege_level = (int)(db?.ResultItems["privilege_level"]?.Number ?? 0);
 
                     //
@@ -181,10 +198,12 @@ namespace Server
                         $"UPDATE `t_user` " +
                         $"SET " +
                         $"    `token` = ?, `passphrase` = ?, " +
-                        $"    `device` = ?, `last_time` = NOW() " +
+                        $"    `device` = ?, `last_time` = NOW(), " +
+                        $"    `link_id` = ? " +
                         $"WHERE `id` = ? AND `uid` = ?;";
                     result_code = db?.Query(sql,
                         user_data.token, user_data.passphrase, user_data.device,
+                        link_id,
                         user_data.server_uid, uid);
 
                 }

@@ -69,7 +69,8 @@ try
     AMToolkits.Utility.TableDataManager.GetTableData<Game.TGameEffects>();
     //
     AMToolkits.Utility.TableDataManager.GetTableData<Game.TNormalGame>();
-
+    AMToolkits.Utility.TableDataManager.GetTableData<Game.TRankGame>();
+ 
     logger.Log("Init TableData Completed");
 
     // 1:

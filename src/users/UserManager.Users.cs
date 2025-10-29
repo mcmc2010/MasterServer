@@ -43,6 +43,12 @@ namespace Server
         public string custom_id = "";
         ///
         public string jwt_token = "";
+
+
+        //Link Account:
+        public string? link_name;
+        public string? link_id;
+        public string? link_token;
     }
 
 

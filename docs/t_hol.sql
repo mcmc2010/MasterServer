@@ -59,3 +59,11 @@ ALTER TABLE `t_hol` DROP INDEX `idx` ;
 -- 不得使用NULL
 ALTER TABLE `t_hol` 
 CHANGE COLUMN `status` `status` INT NOT NULL DEFAULT '1' COMMENT '0:禁用;1:启用;-1:删除' ;
+
+--
+ALTER TABLE `t_hol` 
+ADD COLUMN `season_played_count` INT NOT NULL DEFAULT '0' COMMENT '游戏次数或局数' AFTER `winning_streak_highest`,
+ADD COLUMN `season_played_win_count` INT NOT NULL DEFAULT '0' COMMENT '游戏次数或局数' AFTER `season_played_count`,
+ADD COLUMN `season_winning_streak_count` INT NOT NULL DEFAULT '0' COMMENT '连胜次数' AFTER `season_played_win_count`,
+ADD COLUMN `season_winning_streak_highest` INT NOT NULL DEFAULT '0' COMMENT '最高连胜次数' AFTER `season_winning_streak_count`;
+

@@ -53,3 +53,16 @@ CHANGE COLUMN `avatar` `avatar` VARCHAR(128) NULL DEFAULT NULL COMMENT '头像' 
 -- 不得使用NULL值
 ALTER TABLE `t_user` 
 CHANGE COLUMN `status` `status` INT NOT NULL DEFAULT '1' COMMENT '0:禁用;1:启用;-1:删除' ;
+
+--
+ALTER TABLE `t_user` 
+CHANGE COLUMN `client_id` `client_id` VARCHAR(64) NOT NULL COMMENT '字母或数字，通常是16位,第三方平台通常大于32位' ;
+
+
+--
+ALTER TABLE `t_user` 
+ADD COLUMN `link_id` VARCHAR(64) NULL COMMENT '字母或数字，通常是16位,第三方平台通常大于32位' AFTER `privilege_level`,
+CHANGE COLUMN `client_id` `client_id` VARCHAR(32) NOT NULL COMMENT '字母或数字，通常是16位,第三方平台通常大于32位' ,
+ADD UNIQUE INDEX `link_id_UNIQUE` (`link_id` ASC) VISIBLE;
+
+

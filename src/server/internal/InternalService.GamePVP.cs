@@ -182,9 +182,14 @@ namespace Server
                 return 0;
             }
 
-            var templates_data_0 = AMToolkits.Utility.TableDataManager.GetTableData<Game.TNormalGame>();
-            var template_item_0 = templates_data_0?.Get(v => v.Value == $"{room_level}");
-            if(template_item_0 == null)
+            var templates_data_game = AMToolkits.Utility.TableDataManager.GetTableData<Game.TNormalGame>();
+            var templates_data_rank = AMToolkits.Utility.TableDataManager.GetTableData<Game.TRankGame>();
+            AMToolkits.Utility.ITableData? template_item = templates_data_game?.Get(v => v.Value == $"{room_level}");
+            if(room_type == 2)
+            {
+                template_item = templates_data_rank?.Get(v => v.Id == player_data.RankLevel);
+            }
+            if(template_item == null)
             {
                 return 0;
             }
@@ -211,14 +216,25 @@ namespace Server
             experience_ratio = experience_ratio + _CalculationExperienceRatio(using_items);
             if (room_type == 2)
             {
-
+                var template_item_rank = template_item as Game.TRankGame;
+                if (template_item_rank == null)
+                {
+                    return 0;
+                }
+                
+                //experience = template_item_rank.RankReward
             }
             else
             {
-                experience = template_item_0.ExpWin;
+                var template_item_game = template_item as Game.TNormalGame;
+                if(template_item_game == null)
+                {
+                    return 0;
+                }
+                experience = template_item_game.ExpWin;
                 if (!player_data.IsVictory)
                 {
-                    experience = -template_item_0.ExpLose;
+                    experience = -template_item_game.ExpLose;
                 }
             }
 
@@ -251,13 +267,13 @@ namespace Server
             }
             else
             {
-                var item = AMToolkits.Game.ItemUtils.ParseGeneralItem(template_item_0.Award)?.FirstOrDefault();
-                virtual_amount = item?.Count ?? 0;
-                if (!player_data.IsVictory)
-                {
-                    //virtual_amount = -virtual_amount;
-                    virtual_amount = 0.0f;
-                }
+                // var item = AMToolkits.Game.ItemUtils.ParseGeneralItem(template_item.Award)?.FirstOrDefault();
+                // virtual_amount = item?.Count ?? 0;
+                // if (!player_data.IsVictory)
+                // {
+                //     //virtual_amount = -virtual_amount;
+                //     virtual_amount = 0.0f;
+                // }
             }
 
             if (player_data.IsVictory)

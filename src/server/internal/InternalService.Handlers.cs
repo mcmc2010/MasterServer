@@ -169,6 +169,9 @@ namespace Server
 
         [JsonPropertyName("is_victory")]
         public bool IsVictory = false;
+
+        [JsonPropertyName("rank_level")]
+        public int RankLevel = 0;
     }
 
     /// <summary>
@@ -190,6 +193,9 @@ namespace Server
     [System.Serializable]
     public class NGamePVPCompletedRequest
     {
+        /// <summary>
+        /// 1:Normal,2:Rank
+        /// </summary>
         [JsonPropertyName("roomType")]
         public int RoomType = 0;
         [JsonPropertyName("roomLv")]

@@ -214,7 +214,8 @@ namespace Server
         /// <param name="playfab_uid"></param>
         /// <param name="playfab_token"></param>
         /// <returns></returns>
-        public async Task<int> PFUserAuthentication(string client_uid, string playfab_uid, string playfab_token)
+        public async Task<int> PFUserAuthentication(string client_uid, string playfab_uid, string playfab_token,
+                                    string link_name, string link_id)
         {
             if (_status != AMToolkits.ServiceStatus.Ready)
             {
@@ -231,7 +232,11 @@ namespace Server
                     {
                         { "client_uid", client_uid },
                         { "playfab_uid", playfab_uid },
-                        { "playfab_token", playfab_token}
+                        { "playfab_token", playfab_token},
+                        //
+                        { "link_name", link_name },
+                        { "link_id", link_id },
+
                     });
             if (response == null)
             {
@@ -265,7 +270,8 @@ namespace Server
             }
 
             _logger?.Log($"{TAGName} (User:{client_uid}) Authentication : ({playfab_uid}) [{response.Data?.Result}]" +
-                         $" {(!is_test_user ? "" : "[TestUser]")}");
+                         $" {(!is_test_user ? "" : "[TestUser]")}" +
+                         $" {(link_name.IsNullOrWhiteSpace() ? "" : "[" + link_name + "] " + link_id)}");
 
             return result_code;
         }

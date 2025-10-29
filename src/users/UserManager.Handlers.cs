@@ -23,6 +23,16 @@ namespace Server
         public string SessionUID = "";
         [JsonPropertyName("session_token")]
         public string SessionToken = "";
+
+        /// <summary>
+        /// Link Account
+        /// </summary>
+        [JsonPropertyName("link_name")]
+        public string? LinkName = "";
+        [JsonPropertyName("link_id")]
+        public string? LinkID = "";
+        [JsonPropertyName("link_token")]
+        public string? LinkToken = "";
     }
 
     [System.Serializable]
@@ -271,13 +281,22 @@ namespace Server
                     AMToolkits.Utils.DATETIME_FORMAT_LONG_STRING);
 
             // 0: 第三方验证平台
+            string link_print = "";
+            if (request?.LinkName?.IsNullOrWhiteSpace() == true)
+            {
+                link_print = $" [{request?.LinkName}] {request?.LinkID}";
+            }
+                
             // PlayFab验证
             int result_code = await PlayFabService.Instance.PFUserAuthentication(request?.UID ?? "",
                     request?.SessionUID ?? "",
-                    request?.SessionToken ?? "");
+                    request?.SessionToken ?? "",
+                    request?.LinkName ?? "", request?.LinkID ?? "");
             if (result_code < 0)
             {
-                _logger?.LogWarning($"(User) Auth User (ClientUID:{request?.UID} - {request?.SessionUID}) Failed, Result: {result_code}");
+
+                _logger?.LogWarning($"(User) Auth User (ClientUID:{request?.UID} - {request?.SessionUID}) Failed, Result: {result_code}" +
+                        $"{link_print}");
                 if (result_code == (int)AMToolkits.APIResultCode.TooMany)
                 {
                     await context.ResponseError(HttpStatusCode.TooManyRequests, ErrorMessage.NotAllowAccess_Unauthorized_TooMany);
@@ -302,7 +321,13 @@ namespace Server
                 device = $"{platform}",
 
                 //
-                jwt_token = ""
+                jwt_token = "",
+
+                //
+                link_name = request?.LinkName ?? "",
+                link_id = request?.LinkID ?? "",
+                link_token = request?.LinkToken ?? "",
+
             };
             if (result_code == 0)
             {
@@ -312,7 +337,8 @@ namespace Server
             result_code = await this.AuthenticationAndInitUser(user_data);
             if (result_code <= 0)
             {
-                _logger?.LogWarning($"(User) Auth User (ClientUID:{user_data.client_uid} - {user_data.server_uid}) Failed, Result: {result_code}");
+                _logger?.LogWarning($"(User) Auth User (ClientUID:{user_data.client_uid} - {user_data.server_uid}) Failed, Result: {result_code}" +
+                    $"{link_print}" );
             }
 
             //
