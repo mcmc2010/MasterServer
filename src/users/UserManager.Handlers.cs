@@ -70,8 +70,14 @@ namespace Server
     [System.Serializable]
     public class NUserUpdateProfileRequest
     {
+        [JsonPropertyName("nick_name")]
+        public string? Nickname = null;
+
         [JsonPropertyName("avatar_url")]
         public string AvatarUrl = "";
+        
+        [JsonPropertyName("gender")]
+        public int gender = -1;
     }
 
 
@@ -421,7 +427,9 @@ namespace Server
             };
 
             UserProfile profile = new UserProfile();
+            profile.Name = request.Nickname ?? "";
             profile.AvatarUrl = request.AvatarUrl;
+            profile.Gender = request.gender;
             int result_code = await UpdateUserProfile(auth_data.id, profile);
             if (result_code > 0)
             {

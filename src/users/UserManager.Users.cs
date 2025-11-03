@@ -436,10 +436,34 @@ namespace Server
 
             // 是否在有效头像范围
             profile.AvatarUrl = profile.AvatarUrl.Trim().ToLower();
-            if (!profile.AvatarUrl.IsNullOrWhiteSpace() &&
-                (profile.AvatarUrl.StartsWith("icon:") && !GameSettingsInstance.Settings.User.UserIcons.Any(v => v == profile.AvatarUrl)))
+            if (!profile.AvatarUrl.IsNullOrWhiteSpace())
             {
-                return -1;
+                if (profile.AvatarUrl.StartsWith("icon:"))
+                {
+                    if (!GameSettingsInstance.Settings.User.UserIcons.Any(v => v == profile.AvatarUrl))
+                    {
+                        return -1;
+                    }
+                }
+
+                // 微信头像地址
+                // https://thirdwx.qlogo.cn/mmopen/vi_32/CQhjoje02HHDAOC50Y55FWb1pdmJCcrkU1LcicraasUtlloODmU1N3cBWN7Gic82NONM7u4yWlFeIibDEibNCtoBzQ/132
+                else if (profile.AvatarUrl.StartsWith("https:") && profile.AvatarUrl.Contains("mmopen"))
+                {
+                    var (hash, size, _) = AMToolkits.ThirdPartyUtils.WXParseAvatarUrl(profile.AvatarUrl);
+                    if (hash != null)
+                    {
+                        profile.AvatarUrl = $"wechat://{hash}:{size}";
+                    }
+                    else
+                    {
+                        profile.AvatarUrl = "";
+                    }
+                }
+                else
+                {
+                    profile.AvatarUrl = "";
+                }
             }
 
             // 不是同一个，这里暂时使用同一个
@@ -448,6 +472,16 @@ namespace Server
             if (result_code < 0)
             {
                 return -1;
+            }
+
+            profile.Name = (profile.Name ?? "").Trim();
+            // 当昵称为null时才更新
+            if(!string.IsNullOrWhiteSpace(db_profile?.Name))
+            {
+                //profile.Name = "";
+            }
+            if(string.IsNullOrWhiteSpace(db_profile?.AvatarUrl))
+            {
             }
 
             result_code = await this.DBUpdateUserProfile(user, db_profile, profile);

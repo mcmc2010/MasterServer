@@ -496,21 +496,42 @@ namespace Server
                 return -1;
             }
 
+            var parameters = new List<object?>();
+
+            // 条件
+            string condition_update_nickname = "";
+            if (to_profile.Name.Length > 0)
+            {
+                condition_update_nickname = $" `name` = ?, ";
+                parameters.Add(to_profile.Name);
+            }
+
+            parameters.Add(to_profile.AvatarUrl);
+
+            string condition_update_gender = "";
+            if (to_profile.Gender >= 0)
+            {
+                condition_update_gender = $" `gender` = ?, ";
+                parameters.Add(to_profile.Gender);
+            }
+
             //
             var db = DatabaseManager.Instance.New();
             try
             {
                 db?.Transaction();
 
+                parameters.Add(profile.UID);
                 //
                 string sql =
                     $"UPDATE `t_user` " +
                     $"SET " +
-                    $"    `avatar` = ?, `updated_time` = CURRENT_TIMESTAMP " +
+                    $"    {condition_update_nickname} " +
+                    $"    `avatar` = ?, " +
+                    $"    {condition_update_gender} " +
+                    $"    `updated_time` = CURRENT_TIMESTAMP " +
                     $"WHERE `id` = ? AND `status` > 0;";
-                var result_code = db?.Query(sql,
-                    to_profile.AvatarUrl,
-                    user.UID);
+                var result_code = db?.Query(sql, parameters.ToArray());
                 if (result_code < 0)
                 {
                     db?.Rollback();
@@ -521,6 +542,8 @@ namespace Server
 
                 //
                 profile.AvatarUrl = to_profile.AvatarUrl;
+                profile.Name = to_profile.Name;
+                profile.Gender = to_profile.Gender;
 
                 //
                 return 1;
