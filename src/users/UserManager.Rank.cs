@@ -76,6 +76,16 @@ namespace Server
         public int WinningStreakCount = 0;
         [JsonPropertyName("winning_streak_highest")]
         public int WinningStreakHighest = 0;
+
+        [JsonPropertyName("season_played_count")]
+        public int SeasonPlayedCount = 0;
+        [JsonPropertyName("season_played_win_count")]
+        public int SeasonPlayedWinCount = 0;
+
+        [JsonPropertyName("season_winning_streak_count")]
+        public int SeasonWinningStreakCount = 0;
+        [JsonPropertyName("season_winning_streak_highest")]
+        public int SeasonWinningStreakHighest = 0;
     }
 
 

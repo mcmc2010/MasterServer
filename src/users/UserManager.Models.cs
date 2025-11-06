@@ -1655,9 +1655,11 @@ namespace Server
                     $"SELECT  " +
                     $"  h.`uid`, h.`id`, u.`name`, " +
                     $"  h.`value`, " +
-                    $"  `cp_value`, `played_count`, `played_win_count`, `winning_streak_count`, `winning_streak_highest`, " +
+                    $"  `cp_value`, `winning_streak_count`, `winning_streak_highest`, " +
+                    $"  `played_count`, `played_win_count`, `season_played_count`, `season_played_win_count`, " +
                     $"  `season`, `season_time`, `challenger_reals`, " +
-                    $"  `last_rank_level`, `last_rank_value`, `rank_level`, `rank_value`, " +
+                    $"  `last_rank_level`, `last_rank_value`, `rank_level`, `rank_value`, `rank_level_best`, " +
+                    $"  `winning_streak_count`, `season_winning_streak_highest`, `season_winning_streak_count`, `season_winning_streak_highest`, " +
                     $"  h.`create_time`, h.`last_time`, " +
                     $"  h.`status`  " +
                     $"FROM `t_hol` AS h " +
@@ -2463,7 +2465,7 @@ namespace Server
                     if (item.IsCompleted)
                     {
                         data.CompletedTime = item.completed_time;
-                        
+
                         db?.Rollback();
                         return 0;
                     }
