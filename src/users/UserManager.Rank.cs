@@ -24,6 +24,9 @@ namespace Server
         [JsonPropertyName("rank_value")]
         public int RankValue = 0;
 
+        [JsonPropertyName("rank_level_best")]
+        public int RankLevelBest = 0;
+
         /// <summary>
         /// 上赛季 段位
         /// </summary>
@@ -67,6 +70,9 @@ namespace Server
     [System.Serializable]
     public class UserRankDataExtend : UserRankData
     {
+        [JsonPropertyName("rank_score")]
+        public int RankScore = 0;
+
         [JsonPropertyName("played_count")]
         public int PlayedCount = 0;
         [JsonPropertyName("played_win_count")]

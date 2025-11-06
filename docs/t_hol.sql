@@ -70,3 +70,7 @@ ADD COLUMN `season_winning_streak_highest` INT NOT NULL DEFAULT '0' COMMENT '最
 --
 ALTER TABLE `t_hol` 
 ADD COLUMN `rank_level_best` INT NOT NULL DEFAULT '1000' COMMENT '这个是当前赛季最好段位' AFTER `rank_value`;
+
+ALTER TABLE `t_hol` 
+ADD COLUMN `rank_score` INT NOT NULL DEFAULT '0' COMMENT '排位积分' AFTER `rank_level_best`;
+
