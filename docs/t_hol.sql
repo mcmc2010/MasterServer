@@ -67,3 +67,6 @@ ADD COLUMN `season_played_win_count` INT NOT NULL DEFAULT '0' COMMENT '游戏次
 ADD COLUMN `season_winning_streak_count` INT NOT NULL DEFAULT '0' COMMENT '连胜次数' AFTER `season_played_win_count`,
 ADD COLUMN `season_winning_streak_highest` INT NOT NULL DEFAULT '0' COMMENT '最高连胜次数' AFTER `season_winning_streak_count`;
 
+--
+ALTER TABLE `t_hol` 
+ADD COLUMN `rank_level_best` INT NOT NULL DEFAULT '1000' COMMENT '这个是当前赛季最好段位' AFTER `rank_value`;

@@ -26,6 +26,11 @@ namespace Server
         public int played_win_count = 0;
         public int winning_streak_count = 0;
         public int winning_streak_highest = 0;
+        public int season_played_count = 0;
+        // 对局获胜数量
+        public int season_played_win_count = 0;
+        public int season_winning_streak_count = 0;
+        public int season_winning_streak_highest = 0;
         public DateTime? create_time = null;
         public DateTime? last_time = null;
 
@@ -38,6 +43,7 @@ namespace Server
         // 本赛季
         public int rank_level = 1000;
         public int rank_value = 0;
+        public int rank_level_best = 1000;
         //
         public int challenger_reals = 0;
 

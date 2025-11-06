@@ -15,6 +15,7 @@ namespace Server
         Normal = 1,
         Economy = 7,
         Payment = 10,
+        Rank = 100,     //排位段位
     }
 
     /// <summary>
@@ -45,6 +46,9 @@ namespace Server
 
         [JsonPropertyName("items")]
         public string Items = "";
+
+        [JsonPropertyName("season")]
+        public int Season = 0;
 
         [JsonPropertyName("create_time")]
         public DateTime? CreateTime = null;
@@ -146,6 +150,9 @@ namespace Server
                 UserID = r_user.ID,
                 EventType = template_item.EventType,
                 Count = 1,
+
+                //
+                Season = GameSettingsInstance.Settings.Season.Code,
             };
 
             // 检测时间
@@ -201,6 +208,17 @@ namespace Server
                             result_code = await GameEventFinal_Result(r_user, id, template_item, result_events, result);
                         }
                         break;
+                    }
+
+                // 100 : 
+                case (int)GameEventType.Rank:
+                    {
+                        result_code = await GameEventFinal_GameRank(r_user, id, template_item, result_events);
+                        if (result_code > 0)
+                        {
+                            result_code = await GameEventFinal_Result(r_user, id, template_item, result_events, result);
+                        }
+                        break;    
                     }
             }
 

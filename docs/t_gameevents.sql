@@ -21,3 +21,9 @@ ADD COLUMN `value` VARCHAR(32) NULL DEFAULT NULL AFTER `sub_type`;
 
 ALTER TABLE `t_gameevents` 
 ADD COLUMN `group` INT NOT NULL DEFAULT 0 AFTER `sub_type`;
+
+-- Add season field
+ALTER TABLE `t_gameevents` 
+ADD COLUMN `season` INT NOT NULL DEFAULT '0' COMMENT '赛季或赛年周期性的值' AFTER `group`,
+DROP INDEX `index2` ,
+ADD INDEX `idx` (`user_id` ASC, `id` ASC, `season` ASC) VISIBLE;

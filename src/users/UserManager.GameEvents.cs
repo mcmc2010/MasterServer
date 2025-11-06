@@ -29,6 +29,8 @@ namespace Server
 
         private List<AMToolkits.Game.GeneralItemData> _items = new List<AMToolkits.Game.GeneralItemData>();
         private AMToolkits.Utility.ITableData? _template_data = null;
+
+        public int season = 0;
         public int status = 0;
 
 
@@ -81,6 +83,7 @@ namespace Server
                 LastTime = this.last_time,
                 CompletedTime = this.completed_time,
                 Items = "",
+                Season = this.season,
             };
         }
     }

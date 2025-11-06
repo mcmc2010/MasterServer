@@ -94,6 +94,10 @@ namespace Server
         /// </summary>
         [JsonPropertyName("level")]
         public int Level = 0;
+
+        [JsonPropertyName("cp_value")]
+        public int CPValue = 0;
+        
         /// <summary>
         /// 用户经验
         /// </summary>
@@ -113,6 +117,12 @@ namespace Server
         /// </summary>
         [JsonPropertyName("rank_value")]
         public int RankValue = 0;
+
+        /// <summary>
+        /// 当前赛季 段位 最好
+        /// </summary>
+        [JsonPropertyName("rank_level_best")]
+        public int RankLevelBest = 0;
 
         /// <summary>
         /// 上赛季 段位
@@ -143,6 +153,30 @@ namespace Server
         /// </summary>
         [JsonPropertyName("season_time")]
         public DateTime? SeasonTime = null;
+
+        /// <summary>
+        /// 玩家游戏局数
+        /// </summary>
+        [JsonPropertyName("played_count")]
+        public int PlayedCount = 0;
+
+        /// <summary>
+        /// 玩家获胜游戏局数
+        /// </summary>
+        [JsonPropertyName("played_win_count")]
+        public int PlayedWinCount = 0;
+        
+        /// <summary>
+        /// 玩家游戏局数
+        /// </summary>
+        [JsonPropertyName("season_played_count")]
+        public int SeasonPlayedCount = 0;
+
+        /// <summary>
+        /// 玩家获胜游戏局数
+        /// </summary>
+        [JsonPropertyName("season_played_win_count")]
+        public int SeasonPlayedWinCount = 0;
     }
     #endregion
 
@@ -152,6 +186,63 @@ namespace Server
     /// </summary>
     public partial class UserManager
     {
+        #region Server Internal
+        /// <summary>
+        /// 获取用户信息
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <returns></returns>
+        public async Task<int> _GetUserProfile(string user_uid, UserProfileExtend profile)
+        {
+            if (user_uid.IsNullOrWhiteSpace())
+            {
+                return -1;
+            }
+
+            ///返回用户不存在
+            profile.UID = user_uid;
+
+            // 不是同一个，这里暂时使用同一个
+            DBUserProfile? db_profile = null;
+            int result_code = this.DBGetUserProfile(profile.UID, profile.UID, out db_profile);
+            if (result_code < 0)
+            {
+                return -1;
+            }
+
+            profile.AvatarUrl = db_profile?.AvatarUrl ?? "";
+            profile.Gender = db_profile?.Gender ?? (int)UserGender.Female;
+            profile.Region = db_profile?.Region ?? "";
+
+            profile.Name = db_profile?.Name ?? "";
+
+            DBUserProfileExtend? db_profile_1 = await this.DBGetUserProfileExtend(profile.UID, profile);
+            if (db_profile_1 == null)
+            {
+                return -1;
+            }
+
+            //
+            _InitUserLevelAndExperiences(db_profile_1, profile);
+
+            //
+            profile.LastRankLevel = db_profile_1?.LastRankLevel ?? 1000;
+            profile.LastRankValue = db_profile_1?.LastRankValue ?? 0;
+            profile.RankLevel = db_profile_1?.RankLevel ?? 1000;
+            profile.RankValue = db_profile_1?.RankValue ?? 0;
+            profile.RankLevelBest = db_profile_1?.RankLevelBest ?? 1000;
+            profile.Season = db_profile_1?.Season ?? 1;
+            profile.SeasonTime = db_profile_1?.SeasonTime ?? null;
+            profile.ChallengerReals = db_profile_1?.ChallengerReals ?? 0;
+            profile.PlayedCount = db_profile_1?.PlayedCount ?? 0;
+            profile.PlayedWinCount = db_profile_1?.PlayedWinCount ?? 0;
+            profile.SeasonPlayedCount = db_profile_1?.SeasonPlayedCount ?? 0;
+            profile.SeasonPlayedWinCount = db_profile_1?.SeasonPlayedWinCount ?? 0;
+            return 1;
+        }
+
+        #endregion
+
         /// <summary>
         /// 
         /// </summary>
@@ -378,7 +469,7 @@ namespace Server
 
             // 不是同一个，这里暂时使用同一个
             DBUserProfile? db_profile = null;
-            int result_code = this.DBGetUserProfile(user, profile.UID, out db_profile);
+            int result_code = this.DBGetUserProfile(user.ID, profile.UID, out db_profile);
             if (result_code < 0)
             {
                 return -1;
@@ -390,7 +481,7 @@ namespace Server
 
             profile.Name = db_profile?.Name ?? "";
 
-            DBUserProfileExtend? db_profile_1 = await this.DBGetUserProfileExtend(user, profile);
+            DBUserProfileExtend? db_profile_1 = await this.DBGetUserProfileExtend(user.ID, profile);
             if (db_profile_1 == null)
             {
                 return -1;
@@ -404,9 +495,14 @@ namespace Server
             profile.LastRankValue = db_profile_1?.LastRankValue ?? 0;
             profile.RankLevel = db_profile_1?.RankLevel ?? 1000;
             profile.RankValue = db_profile_1?.RankValue ?? 0;
+            profile.RankLevelBest = db_profile_1?.RankLevelBest ?? 1000;
             profile.Season = db_profile_1?.Season ?? 1;
             profile.SeasonTime = db_profile_1?.SeasonTime ?? null;
             profile.ChallengerReals = db_profile_1?.ChallengerReals ?? 0;
+            profile.PlayedCount = db_profile_1?.PlayedCount ?? 0;
+            profile.PlayedWinCount = db_profile_1?.PlayedWinCount ?? 0;
+            profile.SeasonPlayedCount = db_profile_1?.SeasonPlayedCount ?? 0;
+            profile.SeasonPlayedWinCount = db_profile_1?.SeasonPlayedWinCount ?? 0;
             return 1;
         }
 
@@ -468,7 +564,7 @@ namespace Server
 
             // 不是同一个，这里暂时使用同一个
             DBUserProfile? db_profile = null;
-            var result_code = this.DBGetUserProfile(user, profile.UID, out db_profile);
+            var result_code = this.DBGetUserProfile(user.ID, profile.UID, out db_profile);
             if (result_code < 0)
             {
                 return -1;
@@ -534,7 +630,7 @@ namespace Server
             profile.UID = user_uid;
             // 不是同一个，这里暂时使用同一个
             DBUserProfile? db_profile = null;
-            result_code = this.DBGetUserProfile(user, profile.UID, out db_profile);
+            result_code = this.DBGetUserProfile(user.ID, profile.UID, out db_profile);
             if (result_code < 0)
             {
                 return -1;

@@ -136,6 +136,76 @@ namespace Server
             {
                 is_completed = true;
             }
+
+            if (is_completed && event_item.completed_time == null)
+            {
+                event_item.completed_time = DateTime.Now;
+            }
+
+            if ((result_code = await UserManager.Instance._UpdateGameEventItem(user.ID, event_item)) < 0)
+            {
+                return -1;
+            }
+
+            // 返回事件和关联事件
+            result_events.Add(event_item);
+
+            return 1;
+
+        }
+        
+        /// <summary>
+        /// 段位
+        /// </summary>
+        /// <param name="template_item"></param>
+        /// <param name="result">上一个调用结果</param>
+        protected async System.Threading.Tasks.Task<int> GameEventFinal_GameRank(UserBase user,
+                                int id,
+                                Game.TGameEvents template_item,
+                                List<GameEventItem> result_events)
+        {
+            result_events.Clear();
+
+            var template_data = AMToolkits.Utility.TableDataManager.GetTableData<Game.TGameEvents>();
+            if (template_data == null)
+            {
+                return -1;
+            }
+
+            List<GameEventItem> list = new List<GameEventItem>();
+            int result_code = await UserManager.Instance._GetUserGameEvents(user.ID, list, (int)GameEventType.Rank, -1);
+            if (result_code <= 0)
+            {
+                return -1;
+            }
+
+            var event_item = list.FirstOrDefault(v => v.id == template_item.Id);
+            if (event_item == null)
+            {
+                return 0;
+            }
+            event_item.InitTemplateData<Game.TGameEvents>(template_item);
+
+            bool is_completed = false;
+
+            UserProfileExtend profile = new UserProfileExtend();
+            if (await UserManager.Instance._GetUserProfile(user.ID, profile) < 0)
+            {
+                return -1;
+            }
+
+            int rank_level_limit = 0;
+            if(!int.TryParse(event_item.GetTemplateData<Game.TGameEvents>()?.Value ?? "0", out rank_level_limit))
+            {
+                rank_level_limit = 0;
+            }
+
+            //
+            if (rank_level_limit > 0 &&
+                (rank_level_limit <= profile.RankLevel || rank_level_limit <= profile.RankLevelBest))
+            {
+                is_completed = true;
+            }
             
             if (is_completed && event_item.completed_time == null)
             {

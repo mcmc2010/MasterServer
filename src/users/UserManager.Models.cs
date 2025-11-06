@@ -73,6 +73,12 @@ namespace Server
         public int RankValue = 0;
 
         /// <summary>
+        /// 当前赛季 段位 最好
+        /// </summary>
+        [JsonPropertyName("rank_level_best")]
+        public int RankLevelBest = 0;
+
+        /// <summary>
         /// 上赛季 段位
         /// </summary>
         [JsonPropertyName("last_rank_level")]
@@ -101,6 +107,30 @@ namespace Server
         /// </summary>
         [JsonPropertyName("season_time")]
         public DateTime? SeasonTime = null;
+
+        /// <summary>
+        /// 玩家游戏局数
+        /// </summary>
+        [JsonPropertyName("played_count")]
+        public int PlayedCount = 0;
+
+        /// <summary>
+        /// 玩家获胜游戏局数
+        /// </summary>
+        [JsonPropertyName("played_win_count")]
+        public int PlayedWinCount = 0;
+        
+        /// <summary>
+        /// 玩家游戏局数
+        /// </summary>
+        [JsonPropertyName("season_played_count")]
+        public int SeasonPlayedCount = 0;
+
+        /// <summary>
+        /// 玩家获胜游戏局数
+        /// </summary>
+        [JsonPropertyName("season_played_win_count")]
+        public int SeasonPlayedWinCount = 0;
     }
 
     /// <summary>
@@ -301,8 +331,9 @@ namespace Server
                     $"  h.`level`, h.`experience`, " +
                     $"  h.`value`, " +
                     $"  `cp_value`, `played_count`, `played_win_count`, `winning_streak_count`, `winning_streak_highest`, " +
+                    $"  `season_played_count`, `season_played_win_count`, `season_winning_streak_count`, `season_winning_streak_highest`, "+
                     $"  `season`, `season_time`, `challenger_reals`, " +
-                    $"  `last_rank_level`, `last_rank_value`, `rank_level`, `rank_value`, " +
+                    $"  `last_rank_level`, `last_rank_value`, `rank_level`, `rank_value`, `rank_level_best`, " +
                     $"  h.`create_time`, h.`last_time`, " +
                     $"  h.`status`  " +
                     $"FROM `t_hol` AS h " +
@@ -383,9 +414,10 @@ namespace Server
         /// 获取用户信息
         /// </summary>
         /// <param name="user_uid"></param>
+        /// <param name="target_user_uid"></param>
         /// <param name="profile"></param>
         /// <returns></returns>
-        protected int DBGetUserProfile(UserBase user, string user_uid, out DBUserProfile? profile)
+        protected int DBGetUserProfile(string user_id, string target_user_uid, out DBUserProfile? profile)
         {
             profile = null;
 
@@ -403,7 +435,7 @@ namespace Server
                     $"    `status` " +
                     $"FROM `t_user` " +
                     $"WHERE id = ? AND status > 0;";
-                var result_code = db?.Query(sql, user_uid);
+                var result_code = db?.Query(sql, target_user_uid);
                 if (result_code < 0)
                 {
                     return -1;
@@ -439,10 +471,10 @@ namespace Server
         /// <summary>
         /// 获取用户信息
         /// </summary>
-        /// <param name="user_uid"></param>
-        /// <param name="profile"></param>
+        /// <param name="user_uid">当前用户</param>
+        /// <param name="user_profile"></param>
         /// <returns></returns>
-        protected async Task<DBUserProfileExtend?> DBGetUserProfileExtend(UserBase user, UserProfile user_profile)
+        protected async Task<DBUserProfileExtend?> DBGetUserProfileExtend(string user_id, UserProfile user_profile)
         {
             DBUserProfileExtend? profile = null;
 
@@ -455,8 +487,9 @@ namespace Server
                     $"    `uid`as nid, " +
                     $"    `id` as uid, " +
                     $"    `level`, `experience`, " +
-                    $"    `last_rank_level`, `last_rank_value`, `rank_level`, `rank_value`,  " +
+                    $"    `last_rank_level`, `last_rank_value`, `rank_level`, `rank_value`, `rank_level_best`, " +
                     $"    `challenger_reals`, `season`, `season_time`, " +
+                    $"    `played_count`, `played_win_count`, `season_played_count`, `season_played_win_count`, " +
                     $"    `create_time`, `last_time`, " +
                     $"    `status` " +
                     $"FROM `t_hol` " +
@@ -2088,7 +2121,7 @@ namespace Server
         /// <returns></returns>
         protected async Task<int> DBGetGameEvents(DatabaseQuery? query, string user_uid,
                             List<GameEventItem> items,
-                            int type = -1, int group_index = -1)
+                            int type = -1, int group_index = -1, bool is_season = true)
         {
             
             // type 条件
@@ -2104,6 +2137,12 @@ namespace Server
                 condition_case_group_index = $" AND (e.`group` = {group_index}) ";
             }
 
+            string condition_case = "";
+            if (is_season)
+            {
+                condition_case = $" AND `season` = {GameSettingsInstance.Settings.Season.Code} ";
+            }
+
 
             //
             List<DatabaseResultItemSet>? list = null;
@@ -2115,12 +2154,13 @@ namespace Server
                 $"    `type` as `event_type`, `sub_type` as `event_sub_type`, `group` as `group_index`, " +
                 $"    `user_id` AS `server_uid`, " +
                 $"    `create_time`, `last_time`, `completed_time`, " +
-                $"    `count`, `items`, `status` " +
+                $"    `count`, `items`, `season`, `status` " +
                 $"FROM `t_gameevents` e " +
                 $"WHERE " +
                 $" `user_id` = ? AND `status` > 0 " +
                 $" {condition_case_type} " +
                 $" {condition_case_group_index} " +
+                $" {condition_case} " +
                 $" ;";
             var result_code = query?.QueryWithList(sql, out list,
                 user_uid);
@@ -2153,17 +2193,19 @@ namespace Server
                 $"  (`id`,`name`, `type`, `user_id`, `group`, " +
                 $"  `create_time`, `last_time`, `completed_time`, " +
                 $"  `items`, " +
+                $"  `season`, " +
                 $"  `status`) " +
                 $"VALUES " +
                 $"(?, ?, ?, ?, ?, " +
                 $"CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,NULL, " +
-                $"NULL,1); ";
+                $"NULL, ?, 1); ";
             int result_code = query.Query(sql,
                     item.id,
                     item.GetTemplateData<TGameEvents>()?.Name ?? "",
                     item.GetTemplateData<TGameEvents>()?.EventType ?? 0,
                     user_uid,
-                    item.GetTemplateData<TGameEvents>()?.Group ?? (int)AMToolkits.Game.GameGroupType.None);
+                    item.GetTemplateData<TGameEvents>()?.Group ?? (int)AMToolkits.Game.GameGroupType.None,
+                    GameSettingsInstance.Settings.Season.Code);
             if (result_code < 0)
             {
                 return -1;
@@ -2190,11 +2232,12 @@ namespace Server
             $"SET " +
             $" `name` = ?,`count` = ?, `group` = ?, " +
             $" `completed_time` = NULL , `last_time` = CURRENT_TIMESTAMP " +
-            $"WHERE `id` = ? AND `user_id` = ? ";
+            $"WHERE `id` = ? AND `user_id` = ? AND `season` = ? ";
             var result_code = query?.Query(sql,
                 template_data?.Name ?? data.Name, data.Count,
                 template_data?.Group ?? (int)AMToolkits.Game.GameGroupType.None,
-                data.ID, user_uid);
+                data.ID, user_uid,
+                GameSettingsInstance.Settings.Season.Code);
             if (result_code < 0)
             {
                 return -1;
@@ -2213,12 +2256,13 @@ namespace Server
             $"SET " +
             $" `name` = ?,`count` = ?, `group` = ?, `value` = ?, " +
             $" `completed_time` = ? , `last_time` = CURRENT_TIMESTAMP " +
-            $"WHERE `id` = ? AND `user_id` = ? ";
+            $"WHERE `id` = ? AND `user_id` = ? AND `season` = ? ";
             var result_code = query?.Query(sql,
                 template_data?.Name ?? item.name, item.count,
                 template_data?.Group ?? 0, item.value,
                 item.completed_time,
-                item.id, user_uid);
+                item.id, user_uid,
+                GameSettingsInstance.Settings.Season.Code);
             if (result_code < 0)
             {
                 return -1;
@@ -2254,10 +2298,11 @@ namespace Server
             $"UPDATE `t_gameevents` " +
             $"SET " +
             $" `items` = ? " +
-            $"WHERE `id` = ? AND `user_id` = ? AND `status` > 0 ";
+            $"WHERE `id` = ? AND `user_id` = ? AND `season` = ? AND `status` > 0 ";
             int result_code = query.Query(sql,
                     values,
-                    id, user_uid);
+                    id, user_uid,
+                    GameSettingsInstance.Settings.Season.Code);
             if (result_code < 0)
             {
                 return -1;
@@ -2411,9 +2456,14 @@ namespace Server
                 {
                     item.InitTemplateData<Game.TGameEvents>(template_item);
 
+                    data.CreateTime = item.create_time;
+                    data.LastTime = item.last_time;
+
                     // 已经完成，不再处理
                     if (item.IsCompleted)
                     {
+                        data.CompletedTime = item.completed_time;
+                        
                         db?.Rollback();
                         return 0;
                     }
