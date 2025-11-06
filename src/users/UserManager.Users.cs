@@ -226,6 +226,7 @@ namespace Server
             _InitUserLevelAndExperiences(db_profile_1, profile);
 
             //
+            profile.CPValue = db_profile_1.CPValue;
             profile.LastRankLevel = db_profile_1?.LastRankLevel ?? 1000;
             profile.LastRankValue = db_profile_1?.LastRankValue ?? 0;
             profile.RankLevel = db_profile_1?.RankLevel ?? 1000;
@@ -491,6 +492,7 @@ namespace Server
             _InitUserLevelAndExperiences(db_profile_1, profile);
 
             //
+            profile.CPValue = db_profile_1.CPValue;
             profile.LastRankLevel = db_profile_1?.LastRankLevel ?? 1000;
             profile.LastRankValue = db_profile_1?.LastRankValue ?? 0;
             profile.RankLevel = db_profile_1?.RankLevel ?? 1000;

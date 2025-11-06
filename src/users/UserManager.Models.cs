@@ -61,6 +61,12 @@ namespace Server
         public int Experience = 0;
 
         /// <summary>
+        /// 隐藏分
+        /// </summary>
+        [JsonPropertyName("cp_value")]
+        public int CPValue = 0;
+
+        /// <summary>
         /// 当前赛季 段位
         /// </summary>
         [JsonPropertyName("rank_level")]
@@ -486,7 +492,7 @@ namespace Server
                     $"SELECT " +
                     $"    `uid`as nid, " +
                     $"    `id` as uid, " +
-                    $"    `level`, `experience`, " +
+                    $"    `level`, `experience`, `cp_value`, " +
                     $"    `last_rank_level`, `last_rank_value`, `rank_level`, `rank_value`, `rank_level_best`, " +
                     $"    `challenger_reals`, `season`, `season_time`, " +
                     $"    `played_count`, `played_win_count`, `season_played_count`, `season_played_win_count`, " +
