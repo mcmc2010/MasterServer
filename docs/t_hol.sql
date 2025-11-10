@@ -74,3 +74,5 @@ ADD COLUMN `rank_level_best` INT NOT NULL DEFAULT '1000' COMMENT '这个是当�
 ALTER TABLE `t_hol` 
 ADD COLUMN `rank_score` INT NOT NULL DEFAULT '0' COMMENT '排位积分' AFTER `rank_level_best`;
 
+ALTER TABLE `t_hol` 
+ADD COLUMN `season_max_rank_level` INT NOT NULL DEFAULT '0' COMMENT '游戏次数或局数' AFTER `winning_streak_highest`;

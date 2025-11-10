@@ -47,9 +47,11 @@ namespace Server
             {
                 item_list.RemoveAll(v => vc_list.Contains(v));
 
-                Dictionary<string, object?>? result_vc = null;
+                List<string> vcs = new List<string>();
+
                 foreach (var v in vc_list)
                 {
+                    Dictionary<string, object?>? result_vc = null;
                     string currency = AMToolkits.Game.CurrencyUtils.CURRENCY_GOLD_SHORT;
                     if (v.ID == AMToolkits.Game.ItemConstants.ID_GD && v.Count > 0)
                     {
@@ -60,41 +62,61 @@ namespace Server
                         currency = AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS_SHORT;
                         result_vc = await UserManager.Instance._UpdateVirtualCurrency(user.ID, v.Count, AMToolkits.Game.VirtualCurrency.GM);
                     }
+
+                    // 默认为int32，此处用浮点表示
+                    float balance = 0.0f;
                     if (result_vc == null)
                     {
                         _logger?.LogError($"{TAGName} (GameEventFinal) (User:{user.ID}) {id} - {template_item.Name} " +
                                           $"Amount: {v.Count} {currency} Failed");
                     }
+                    else
+                    {
+                        // 默认为int32，此处用浮点表示
+                        balance = System.Convert.ToSingle(result_vc.Get("balance") ?? 0.0f);
+                    }
+
+                    vcs.Add($"{currency}:{v.Count}|{balance}");
+
+                }
+                
+                // 添加数据库记录
+                if (vcs.Count > 0 && await UserManager.Instance._UpdateGameEventVirtualCurrency(user.ID, user.CustomID, result_events[0], vcs) <= 0)
+                {
+                    _logger?.LogWarning($"{TAGName} (GameEventFinal) (User:{user.ID}) {id} - {template_item.Name} VirtualCurrency Failed");
+                    return -1;
                 }
             }
 
-            // 需要对齐
-            int index = 1000;
-            foreach (var v in item_list)
+            if (item_list.Count > 0)
             {
-                v.NID = ++index;
+                // 需要对齐
+                int index = 1000;
+                foreach (var v in item_list)
+                {
+                    v.NID = ++index;
+                }
+
+                string print = "";
+                print = string.Join(";", items.Select(v => $"[{v.NID}] {v.ID} - {v.GetTemplateData<Game.TItems>()?.Name} ({v.Count})"));
+
+                // 发放物品 :
+                var result_code = await UserManager.Instance._AddUserInventoryItems(user.ID, item_list);
+                if (result_code < 0)
+                {
+                    _logger?.LogError($"{TAGName} (GameEventFinal) (User:{user.ID}) {id} - {template_item.Name} Add Items: {print} Failed");
+                    return -1;
+                }
+
+                result.Items = new List<AMToolkits.Game.GeneralItemData>(item_list);
+
+                // 添加数据库记录
+                if (await UserManager.Instance._UpdateGameEventItemData(user.ID, user.CustomID, result_events[0], result.Items) <= 0)
+                {
+                    _logger?.LogWarning($"{TAGName} (GameEventFinal) (User:{user.ID}) {id} - {template_item.Name} Add Items: {print} Failed");
+                    return -1;
+                }
             }
-
-            string print = "";
-            print = string.Join(";", items.Select(v => $"[{v.NID}] {v.ID} - {v.GetTemplateData<Game.TItems>()?.Name} ({v.Count})"));
-
-            // 发放物品 :
-            var result_code = await UserManager.Instance._AddUserInventoryItems(user.ID, item_list);
-            if (result_code < 0)
-            {
-                _logger?.LogError($"{TAGName} (GameEventFinal) (User:{user.ID}) {id} - {template_item.Name} Add Items: {print} Failed");
-                return -1;
-            }
-
-            result.Items = new List<AMToolkits.Game.GeneralItemData>(item_list);
-
-            // 添加数据库记录
-            if (await UserManager.Instance._UpdateGameEventItemData(user.ID, user.CustomID, result_events[0], result.Items) <= 0)
-            {
-                _logger?.LogWarning($"{TAGName} (GameEventFinal) (User:{user.ID}) {id} - {template_item.Name} Add Items: {print} Failed");
-                return -1;
-            }
-
             return 1;
 
         }

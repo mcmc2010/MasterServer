@@ -339,7 +339,7 @@ namespace Server
                     $"  `cp_value`, `played_count`, `played_win_count`, `winning_streak_count`, `winning_streak_highest`, " +
                     $"  `season_played_count`, `season_played_win_count`, `season_winning_streak_count`, `season_winning_streak_highest`, "+
                     $"  `season`, `season_time`, `challenger_reals`, " +
-                    $"  `last_rank_level`, `last_rank_value`, `rank_level`, `rank_value`, `rank_level_best`, " +
+                    $"  `last_rank_level`, `last_rank_value`, `rank_level`, `rank_value`, `season_max_rank_level` AS rank_level_best, " +
                     $"  h.`create_time`, h.`last_time`, " +
                     $"  h.`status`  " +
                     $"FROM `t_hol` AS h " +
@@ -363,7 +363,7 @@ namespace Server
             }
             catch (Exception e)
             {
-                _logger?.LogError("(User) Error :" + e.Message);
+                _logger?.LogError("(User) (GetHOLData) Error :" + e.Message);
             }
             finally
             {
@@ -493,7 +493,7 @@ namespace Server
                     $"    `uid`as nid, " +
                     $"    `id` as uid, " +
                     $"    `level`, `experience`, `cp_value`, " +
-                    $"    `last_rank_level`, `last_rank_value`, `rank_level`, `rank_value`, `rank_level_best`, " +
+                    $"    `last_rank_level`, `last_rank_value`, `rank_level`, `rank_value`, `season_max_rank_level` AS rank_level_best, " +
                     $"    `challenger_reals`, `season`, `season_time`, " +
                     $"    `played_count`, `played_win_count`, `season_played_count`, `season_played_win_count`, " +
                     $"    `create_time`, `last_time`, " +
@@ -1664,7 +1664,7 @@ namespace Server
                     $"  `cp_value`,  " +
                     $"  `played_count`, `played_win_count`, `season_played_count`, `season_played_win_count`, " +
                     $"  `season`, `season_time`, `challenger_reals`, " +
-                    $"  `last_rank_level`, `last_rank_value`, `rank_level`, `rank_value`, `rank_level_best`, `rank_score`, " +
+                    $"  `last_rank_level`, `last_rank_value`, `rank_level`, `rank_value`, `season_max_rank_level` AS rank_level_best, `rank_score`, " +
                     $"  `winning_streak_count`, `winning_streak_highest`, `season_winning_streak_count`, `season_winning_streak_highest`, " +
                     $"  h.`create_time`, h.`last_time`, " +
                     $"  h.`status`  " +
@@ -2279,6 +2279,47 @@ namespace Server
         }
 
         /// <summary>
+        /// 更新事件货币记录
+        /// </summary>
+        /// <param name="query"></param>
+        /// <param name="user_uid"></param>
+        /// <param name="id"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        protected async Task<int> DBUpdateGameEventVirtualCurrency(DatabaseQuery? query, string user_uid,
+                                int id, // 事件ID，不是UID
+                                string[]? items)
+        {
+            if (query == null)
+            {
+                return -1;
+            }
+
+            string? values = null;
+            if (items != null && items.Length > 0)
+            {
+                values = string.Join(",", items.Select(v => $"{v}").ToList());
+            }
+
+            // 
+            string sql =
+            $"UPDATE `t_gameevents` " +
+            $"SET " +
+            $" `virtual_currency` = ? " +
+            $"WHERE `id` = ? AND `user_id` = ? AND `season` = ? AND `status` > 0 ";
+            int result_code = query.Query(sql,
+                    values,
+                    id, user_uid,
+                    GameSettingsInstance.Settings.Season.Code);
+            if (result_code < 0)
+            {
+                return -1;
+            }
+
+            return 1;
+        }
+
+        /// <summary>
         /// 更新事件物品
         /// </summary>
         /// <param name="query"></param>
@@ -2378,6 +2419,50 @@ namespace Server
             return 1;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="item"></param>
+        /// <param name="currency_list"></param>
+        /// <returns></returns>
+        public async Task<int> _DBUpdateGameEventVirtualCurrency(string user_uid,
+                            GameEventItem item, List<string> currency_list)
+        {
+            //
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                db?.Transaction();
+
+                if (await DBUpdateGameEventVirtualCurrency(db, user_uid, item.id, currency_list.ToArray()) < 0)
+                {
+                    db?.Rollback();
+                    return -1;
+                }
+
+                db?.Commit();
+
+            }
+            catch (Exception e)
+            {
+                _logger?.LogError($"{TAGName} (DBUpdateGameEventVirtualCurrency) Error :" + e.Message);
+                return -1;
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return 1;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="item"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
         public async Task<int> _DBUpdateGameEventItemData(string user_uid,
                             GameEventItem item, List<AMToolkits.Game.GeneralItemData> items)
         {

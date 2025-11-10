@@ -27,3 +27,7 @@ ALTER TABLE `t_gameevents`
 ADD COLUMN `season` INT NOT NULL DEFAULT '0' COMMENT '赛季或赛年周期性的值' AFTER `group`,
 DROP INDEX `index2` ,
 ADD INDEX `idx` (`user_id` ASC, `id` ASC, `season` ASC) VISIBLE;
+
+
+ALTER TABLE `t_gameevents` 
+ADD COLUMN `virtual_currency` VARCHAR(64) NULL DEFAULT NULL AFTER `count`;

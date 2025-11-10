@@ -151,6 +151,44 @@ namespace Server
             return 1;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="custom_uid"></param>
+        /// <param name="item"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        public async Task<int> _UpdateGameEventVirtualCurrency(string user_uid, string custom_uid,
+                            GameEventItem? item, List<string> currency_list)
+        {
+            if (user_uid == null || user_uid.IsNullOrWhiteSpace())
+            {
+                return -1;
+            }
+            if (custom_uid == null || custom_uid.IsNullOrWhiteSpace())
+            {
+                return -1;
+            }
+            if (item == null)
+            {
+                return -1;
+            }
+
+            // 保存记录
+            int result_code = 0;
+            if ((result_code = await _DBUpdateGameEventVirtualCurrency(user_uid, item, currency_list)) < 0)
+            {
+                return -1;
+            }
+
+            // 已经完成，或不能完成，直接返回
+            if (result_code == 0)
+            {
+                return 0;
+            }
+            return 1;
+        }
 
         /// <summary>
         /// 事件更新
