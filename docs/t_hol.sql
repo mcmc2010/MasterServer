@@ -76,3 +76,8 @@ ADD COLUMN `rank_score` INT NOT NULL DEFAULT '0' COMMENT '排位积分' AFTER `r
 
 ALTER TABLE `t_hol` 
 ADD COLUMN `season_max_rank_level` INT NOT NULL DEFAULT '0' COMMENT '游戏次数或局数' AFTER `winning_streak_highest`;
+
+-- 赛季通行证
+ALTER TABLE `t_hol` 
+ADD COLUMN `season_pass_value` INT NOT NULL DEFAULT '0' COMMENT '赛季通行证值' AFTER `winning_streak_highest`;
+

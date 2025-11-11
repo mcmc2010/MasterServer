@@ -49,7 +49,7 @@ namespace Server
             // 
             string sql =
                 $"SELECT " +
-                $"    `uid`, `id`, `name`, `type`, " +
+                $"    `uid`, `id`, `name`, `avatar`, `type`, " +
                 $"    `create_time`, `last_time`,  " +
                 $"    `balance`, `cost`, `currency`, `rank`, `status` " +
                 $"FROM `t_leaderboard` " +
@@ -386,6 +386,52 @@ namespace Server
             return 1;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="profile"></param>
+        /// <returns></returns>
+        public async Task<int> DBUpdateLeaderboardRecord(string user_uid, UserProfileExtend profile)
+        {
+
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                // 
+                string sql =
+                $"UPDATE `t_leaderboard` " +
+                $"SET " +
+                $" `name` = ?, " +
+                $" `avatar` = ? " +
+                $"WHERE `id` = ? AND `status` > 0 ";
+                var result_code = db?.Query(sql,
+                        profile.Name,
+                        profile.AvatarUrl,
+                        user_uid);
+                if (result_code < 0)
+                {
+                    return -1;
+                }
+            }
+            catch (Exception e)
+            {
+                _logger?.LogError($"{TAGName} (UpdateLeaderboardRecord) Error :" + e.Message);
+                return -1;
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return 1;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="item"></param>
+        /// <returns></returns>
         public async Task<int> DBUpdateLeaderboardRecord(string user_uid, NUserInventoryItem item)
         {
 
@@ -401,7 +447,7 @@ namespace Server
                 $" `items` = ? " +
                 $"WHERE `id` = ? AND `status` > 0 ";
                 var result_code = db?.Query(sql,
-                        value, 
+                        value,
                         user_uid);
                 if (result_code < 0)
                 {
@@ -464,7 +510,7 @@ namespace Server
                 // 
                 string sql =
                 $"SELECT " +
-                $"	  `uid`, `id`, `name`, `type`, " +
+                $"	  `uid`, `id`, `name`, `avatar`, `type`, " +
                 $"    `balance`, `cost`, `currency`, `rank`, " +
                 $"    `items`, " +
                 $"    `create_time`, `last_time` " +
@@ -544,7 +590,7 @@ namespace Server
                 // 
                 string sql =
                 $"SELECT " +
-                $"	  `uid`, `id`, `name`, `type`, " +
+                $"	  `uid`, `id`, `name`, `avatar`, `type`, " +
                 $"    `balance`, `cost`, `currency`, `rank`, " +
                 $"    `items`, " +
                 $"    `create_time`, `last_time` " +

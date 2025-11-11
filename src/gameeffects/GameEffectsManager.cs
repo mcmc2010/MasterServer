@@ -52,6 +52,9 @@ namespace Server
         public DateTime? LastTime = null;
         [JsonPropertyName("end_time")]
         public DateTime? EndTime = null;
+
+        [JsonPropertyName("season")]
+        public int Season = 0;
     }
 
     /// <summary>

@@ -25,6 +25,9 @@ namespace Server
         public DateTime? end_time = null;
 
         private AMToolkits.Utility.ITableData? _template_data = null;
+
+        public int season = 0;
+
         public int status = 0;
 
 
@@ -62,6 +65,7 @@ namespace Server
                 LastTime = this.last_time,
                 EndTime = this.end_time,
                 EffectValue = "",
+                Season = this.season,
             };
         }
     }

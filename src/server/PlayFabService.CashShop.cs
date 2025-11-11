@@ -83,7 +83,7 @@ namespace Server
                                     List<string> effect_list,
                                     List<AMToolkits.Game.GeneralItemData> item_list,
                                     float amount,
-                                    AMToolkits.Game.VirtualCurrency currency = AMToolkits.Game.VirtualCurrency.GM,
+                                    int currency = (int)AMToolkits.Game.VirtualCurrency.GM,
                                     string reason = "cashshop")
         {
             if (_status != AMToolkits.ServiceStatus.Ready)
@@ -96,21 +96,35 @@ namespace Server
                 return null;
             }
 
+            string currency_s = AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS_SHORT;
+            if (currency == (int)AMToolkits.Game.VirtualCurrency.GD)
+            {
+                currency_s = AMToolkits.Game.CurrencyUtils.CURRENCY_GOLD_SHORT;
+            }
+            else if (currency == (int)AMToolkits.Game.Currency.CNY)
+            {
+                currency_s = AMToolkits.Game.CurrencyUtils.CNY;
+            }
+            else
+            {
+                return null;
+            }
+
+
+            //
             var response = await this.APICall<PFCashShopBuyProductResponse>("/internal/services/cashshop/buy",
-                    new Dictionary<string, object>()
-                    {
+                        new Dictionary<string, object>()
+                        {
                         { "user_uid", user_uid },
                         { "playfab_uid", playfab_uid },
                         { "nid", nid },
                         { "product_id", product_id },
-                        { "currency", currency == AMToolkits.Game.VirtualCurrency.GD ?
-                                    AMToolkits.Game.CurrencyUtils.CURRENCY_GOLD_SHORT:
-                                    AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS_SHORT},
+                        { "currency", currency_s },
                         { "amount", amount },
                         { "items", item_list },
                         { "effects", effect_list },
                         { "reason", reason }
-                    });
+                        });
             if (response == null)
             {
                 _logger?.LogError($"{TAGName} (User:{user_uid}) PFCashShopBuyProduct Failed: ({playfab_uid}) {_client_factory?.LastError?.Message}");

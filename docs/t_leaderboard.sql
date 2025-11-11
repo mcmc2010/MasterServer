@@ -28,4 +28,8 @@ RENAME TO  `t_leaderboard` ;
 ALTER TABLE `t_leaderboard` 
 ADD COLUMN `items` VARCHAR(64) NULL DEFAULT NULL AFTER `rank`;
 
+--
+ALTER TABLE `t_leaderboard` 
+ADD COLUMN `avatar` VARCHAR(128) NULL DEFAULT NULL COMMENT '头像' AFTER `name`;
+
 

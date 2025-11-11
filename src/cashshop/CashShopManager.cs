@@ -136,7 +136,7 @@ namespace Server
             // 物品必须是商城物品
             var shop_template_item = shop_template_data.First(v => v.ProductId == item_id);
             if (shop_template_item == null ||
-                ( shop_template_item.ShopType != (int)AMToolkits.Game.ShopType.CashShop &&
+                (shop_template_item.ShopType != (int)AMToolkits.Game.ShopType.CashShop &&
                   shop_template_item.ShopType != (int)AMToolkits.Game.ShopType.Shop_2 &&
                   // 不在商店页显示的产品
                   shop_template_item.ShopType != (int)AMToolkits.Game.ShopType.CashShop_1)
@@ -146,35 +146,44 @@ namespace Server
                 return result;
             }
 
-            // 获取花费
-            // 没有花费，物品不能购买
-            var costs = AMToolkits.Game.ItemUtils.ParseGeneralItem(shop_template_item.Cost);
-            if (costs.IsNullOrEmpty())
-            {
-                return result;
-            }
-
-            // 目前只支持单一扣除
-            var cost = AMToolkits.Game.ItemUtils.GetVirtualCurrency(costs, AMToolkits.Game.ItemConstants.ID_NONE);
-            // 必须有消耗, 目前商城没有金币购买物品
-            if (cost == null || cost.ID != AMToolkits.Game.ItemConstants.ID_GM)
-            {
-                result.Code = 0;
-                return result;
-            }
-
-            // 当原价大于等于10折扣才会生效
-            float amount = -cost.Count;
-            if (shop_template_item.Discount > 0)
-            {
-                amount = -(int)System.Math.Round(AMToolkits.Game.ItemUtils.GetDiscountPrice(cost.Count, shop_template_item.Discount));
-            }
-
             //
             var r_user = UserManager.Instance.GetUserT<UserBase>(user_uid);
             if (r_user == null)
             {
                 result.Code = -2; //未验证
+                return result;
+            }
+
+            // 获取花费
+            bool is_payment = false;
+            float amount = 0.0f;
+            // 没有花费，物品不能购买
+            var costs = AMToolkits.Game.ItemUtils.ParseGeneralItem(shop_template_item.Cost);
+            if (shop_template_item.Pay > 0)
+            {
+                is_payment = true;
+                amount = shop_template_item.Pay;
+            }
+            else if (!costs.IsNullOrEmpty())
+            {
+                // 目前只支持单一扣除
+                var cost = AMToolkits.Game.ItemUtils.GetVirtualCurrency(costs, AMToolkits.Game.ItemConstants.ID_NONE);
+                // 必须有消耗, 目前商城没有金币购买物品
+                if (cost == null || cost.ID != AMToolkits.Game.ItemConstants.ID_GM)
+                {
+                    result.Code = 0;
+                    return result;
+                }
+
+                // 当原价大于等于10折扣才会生效
+                amount = -cost.Count;
+                if (shop_template_item.Discount > 0)
+                {
+                    amount = -(int)System.Math.Round(AMToolkits.Game.ItemUtils.GetDiscountPrice(cost.Count, shop_template_item.Discount));
+                }
+            }
+            else
+            {
                 return result;
             }
 
@@ -187,7 +196,7 @@ namespace Server
                 effect_list.AddRange(effects);
 
                 // 检测特效是否存在
-                if (await GameEffectsManager.Instance._CheckUserEffects(r_user, effect_list) <= 0)
+                if (await GameEffectsManager.Instance._CheckUserEffects(r_user, effect_list) < 0)
                 {
                     result.Code = -100;
                     return result;
@@ -197,30 +206,44 @@ namespace Server
             // 1:
             // 获取道具
             var item_list = new List<AMToolkits.Game.GeneralItemData>();
-            var items = AMToolkits.Game.ItemUtils.ParseGeneralItem(shop_template_item.Items);
-            if (!items.IsNullOrEmpty())
+            //
             {
-                var list = UserManager.Instance.InitGeneralItemData(items);
-                if (list == null)
+                var items = AMToolkits.Game.ItemUtils.ParseGeneralItem(shop_template_item.Items);
+                if (!items.IsNullOrEmpty())
                 {
-                    result.Code = 0;
-                    return result;
-                }
-                item_list.AddRange(list);
+                    var list = UserManager.Instance.InitGeneralItemData(items);
+                    if (list == null)
+                    {
+                        result.Code = 0;
+                        return result;
+                    }
+                    item_list.AddRange(list);
 
-                // 需要对齐
-                int index = 1000;
-                foreach (var v in item_list)
-                {
-                    v.NID = ++index;
+                    // 需要对齐
+                    int index = 1000;
+                    foreach (var v in item_list)
+                    {
+                        v.NID = ++index;
+                    }
                 }
             }
 
             //
-            var r_result = await PlayFabService.Instance.PFCashShopBuyProduct(r_user.ID, r_user.CustomID,
-                                    id, shop_template_item.ProductId,
-                                    effect_list, item_list,
-                                    amount, AMToolkits.Game.VirtualCurrency.GM, "cashshop");
+            PFCashShopResultItemData? r_result = null;
+            if (is_payment)
+            {
+                r_result = await PlayFabService.Instance.PFCashShopBuyProduct(r_user.ID, r_user.CustomID,
+                                        id, shop_template_item.ProductId,
+                                        effect_list, item_list,
+                                        amount, (int)AMToolkits.Game.Currency.CNY, "cashshop");
+            }
+            else
+            {
+                r_result = await PlayFabService.Instance.PFCashShopBuyProduct(r_user.ID, r_user.CustomID,
+                                        id, shop_template_item.ProductId,
+                                        effect_list, item_list,
+                                        amount, (int)AMToolkits.Game.VirtualCurrency.GM, "cashshop");
+            }
             if (r_result == null)
             {
                 result.Code = -1;

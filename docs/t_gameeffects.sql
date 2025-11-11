@@ -20,3 +20,8 @@ ADD COLUMN `items` VARCHAR(32) NULL DEFAULT NULL AFTER `value`;
 ALTER TABLE `t_gameeffects` 
 CHANGE COLUMN `items` `items` VARCHAR(32) NULL DEFAULT NULL COMMENT '如果取消物品，必须取消关联物品表中物品' ;
 
+ALTER TABLE `t_gameeffects` 
+ADD COLUMN `season` INT NOT NULL DEFAULT '0' COMMENT '赛季或赛年周期性的值' AFTER `end_time`;
+
+ALTER TABLE `t_gameeffects` 
+ADD INDEX `idx` (`id` ASC, `season` ASC, `user_id` ASC, `type` ASC, `group` ASC) VISIBLE;

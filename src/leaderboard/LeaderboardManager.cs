@@ -43,6 +43,12 @@ namespace Server
         public int uid = 0;
         public string id = ""; //t_user表中的
         public string name = "";
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public string avatar_url = "";
+        
         public int balance = 0;
         public double cost = 0; // 消费累计
         public string currency = "";
@@ -69,6 +75,7 @@ namespace Server
             {
                 id = this.id,
                 name = this.name,
+                avatar_url = this.avatar_url,
                 balance = this.balance,
                 cost = this.cost,
                 currency = this.currency,
@@ -87,6 +94,14 @@ namespace Server
     {
         public string id = ""; //t_user表中的
         public string name = "";
+        /// <summary>
+        /// 
+        /// </summary>
+        public string avatar_url = "";
+
+        /// <summary>
+        /// 
+        /// </summary>
         public int balance = 0;
         public double cost = 0;
         public string currency = "";
@@ -205,6 +220,15 @@ namespace Server
                 return -1;
             }
 
+
+            UserProfileExtend profile = new UserProfileExtend();
+            if (await UserManager.Instance._GetUserProfile(user_uid, profile) < 0)
+            {
+                return -1;
+            }
+
+            await _UpdateLeaderboardUserProfile(user_uid, profile);
+
             await _UpdateLeaderboardUserInventoryItems(user_uid);
             return result_code;
         }
@@ -220,6 +244,15 @@ namespace Server
             }
 
 
+            UserProfileExtend profile = new UserProfileExtend();
+            if (await UserManager.Instance._GetUserProfile(user_uid, profile) < 0)
+            {
+                return -1;
+            }
+
+            await _UpdateLeaderboardUserProfile(user_uid, profile);
+
+
             await _UpdateLeaderboardUserInventoryItems(user_uid);
             return result_code;
         }
@@ -233,11 +266,40 @@ namespace Server
                 return -1;
             }
 
+            UserProfileExtend profile = new UserProfileExtend();
+            if (await UserManager.Instance._GetUserProfile(user_uid, profile) < 0)
+            {
+                return -1;
+            }
+
+            await _UpdateLeaderboardUserProfile(user_uid, profile);
+
             await _UpdateLeaderboardUserInventoryItems(user_uid);
             return result_code;
         }
 
-        public async Task _UpdateLeaderboardUserInventoryItems(string user_uid)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="profile"></param>
+        /// <returns></returns>
+        protected async Task _UpdateLeaderboardUserProfile(string user_uid, UserProfileExtend profile)
+        {
+            if (user_uid != profile.UID)
+            {
+                return;
+            }
+
+            await DBUpdateLeaderboardRecord(user_uid, profile);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <returns></returns>
+        protected async Task _UpdateLeaderboardUserInventoryItems(string user_uid)
         {
             List<UserInventoryItem> list = new List<UserInventoryItem>();
             if (await UserManager.Instance._GetUserInventoryItems(user_uid, list, AMToolkits.Game.ItemType.Equipment, true) < 0)

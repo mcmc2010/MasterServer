@@ -1767,16 +1767,18 @@ namespace Server
                 $"    `type` as `effect_type`, `sub_type` AS `effect_sub_type`, `group` AS `group_index`, " +
                 $"    `user_id` AS `server_uid`, " +
                 $"    `create_time`, `last_time`, `end_time`, " +
-                $"    `value` AS `effect_value`, `status` " +
+                $"    `value` AS `effect_value`, `season`, `status` " +
                 $"FROM `t_gameeffects` e " +
                 $"WHERE " +
                 $" `user_id` = ? AND `status` > 0 " +
+                $" AND `season` = ? " +
                 $" {condition_case_type} " +
                 $" {condition_case_group_index} " +
                 $" AND ((`end_time` IS NOT NULL AND `end_time` >= CURRENT_TIMESTAMP) OR (`end_time` IS NULL)) " +
                 $" ;";
             var result_code = query?.QueryWithList(sql, out list,
-                user_uid);
+                user_uid,
+                GameSettingsInstance.Settings.Season.Code);
             if (result_code < 0 || list == null)
             {
                 return -1;
@@ -1806,18 +1808,19 @@ namespace Server
                 $"INSERT INTO `t_gameeffects` " +
                 $"  (`id`,`name`, `type`, `user_id`, `group`, " +
                 $"  `create_time`, `last_time`, `end_time`, " +
-                $"  `value`, " +
+                $"  `value`, `season`, " +
                 $"  `status`) " +
                 $"VALUES " +
-                $"(?, ?, ?, ?, ?, " +
-                $"CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,NULL, " +
-                $"NULL,1); ";
+                $"  (?, ?, ?, ?, ?, " +
+                $"  CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,NULL, " +
+                $"  NULL, ?, 1); ";
             int result_code = query.Query(sql,
                     item.id,
                     item.GetTemplateData<TGameEffects>()?.Name ?? "",
                     item.GetTemplateData<TGameEffects>()?.EffectType ?? 0,
                     user_uid,
-                    item.GetTemplateData<TGameEffects>()?.Group ?? (int)AMToolkits.Game.GameGroupType.None
+                    item.GetTemplateData<TGameEffects>()?.Group ?? (int)AMToolkits.Game.GameGroupType.None,
+                    GameSettingsInstance.Settings.Season.Code
                     );
             if (result_code < 0)
             {
@@ -1850,12 +1853,13 @@ namespace Server
             $"SET " +
             $" `name` = ?, `group` = ?, " +
             $" `end_time` = ? " +
-            $"WHERE `uid` = ? AND `id` = ? AND `user_id` = ? ";
+            $"WHERE `uid` = ? AND `id` = ? AND `user_id` = ? AND `season` = ? ;";
             var result_code = query?.Query(sql,
                 template_data?.Name ?? item.name,
                 template_data?.Group ?? (int)AMToolkits.Game.GameGroupType.None,
                 end_time,
-                item.uid, item.id, user_uid);
+                item.uid, item.id, user_uid,
+                GameSettingsInstance.Settings.Season.Code);
             if (result_code < 0)
             {
                 return -1;
@@ -1872,10 +1876,11 @@ namespace Server
             $"SET " +
             $"  " +
             $"  `items` = ? " +
-            $"WHERE `uid` = ? AND `id` = ? AND `user_id` = ? ";
+            $"WHERE `uid` = ? AND `id` = ? AND `user_id` = ? AND `season` = ? ?";
             var result_code = query?.Query(sql,
                 link_items,
-                item.uid, item.id, user_uid);
+                item.uid, item.id, user_uid,
+                GameSettingsInstance.Settings.Season.Code);
             if (result_code < 0)
             {
                 return -1;
