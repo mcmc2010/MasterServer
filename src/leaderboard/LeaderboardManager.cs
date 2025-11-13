@@ -47,7 +47,7 @@ namespace Server
         /// <summary>
         /// 
         /// </summary>
-        public string avatar_url = "";
+        public string avatar = "";
         
         public int balance = 0;
         public double cost = 0; // 消费累计
@@ -75,7 +75,7 @@ namespace Server
             {
                 id = this.id,
                 name = this.name,
-                avatar_url = this.avatar_url,
+                avatar = this.avatar,
                 balance = this.balance,
                 cost = this.cost,
                 currency = this.currency,
@@ -97,7 +97,7 @@ namespace Server
         /// <summary>
         /// 
         /// </summary>
-        public string avatar_url = "";
+        public string avatar = "";
 
         /// <summary>
         /// 

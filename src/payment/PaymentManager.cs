@@ -453,7 +453,7 @@ namespace Server
             else if (result.Status == RESULT_REASON_SUCCESS)
             {
                 // 
-                if (await ExtractTransaction_V1(transaction.user_id, transaction, "review") < 0)
+                if (await ExtractTransaction_V0(transaction.user_id, transaction, "review") < 0)
                 {
                     await DBReviewTransaction(transaction.user_id, transaction, "review", "pending");
                 }

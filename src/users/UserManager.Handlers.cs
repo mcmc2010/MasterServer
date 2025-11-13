@@ -73,7 +73,7 @@ namespace Server
         [JsonPropertyName("nick_name")]
         public string? Nickname = null;
 
-        [JsonPropertyName("avatar_url")]
+        [JsonPropertyName("avatar")]
         public string AvatarUrl = "";
         
         [JsonPropertyName("gender")]

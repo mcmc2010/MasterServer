@@ -12,6 +12,25 @@ namespace Server
     {
 
         /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="shop_template_item"></param>
+        /// <returns></returns>
+        public bool IsPaymentProduct(Game.TShop? shop_template_item)
+        {
+            if (shop_template_item == null) { return false; }
+
+            // 商城物品隐藏物品，并且支付金额大于0，这个特殊性
+            if (shop_template_item.ShopType == (int)AMToolkits.Game.ShopType.CashShop_1 && shop_template_item.Pay > 0.0f)
+            {
+                return true;
+            }
+
+            //
+            return shop_template_item.ShopType == (int)AMToolkits.Game.ShopType.Shop_1;
+        }
+
+        /// <summary>
         /// 修改订单 - 待审核
         /// </summary>
         /// <param name="user_uid"></param>
@@ -31,42 +50,6 @@ namespace Server
         }
 
         /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="user_uid"></param>
-        /// <param name="transaction"></param>
-        /// <returns></returns>
-        public async System.Threading.Tasks.Task<int> ExtractTransaction_V1(string user_uid, TransactionItem transaction,
-                                string reason = "review")
-        {
-            if (transaction.virtual_amount == 0.0f)
-            {
-                return 0;
-            }
-
-            transaction.result_code = reason;
-
-            var r_result = await PlayFabService.Instance.PFPaymentFinal(transaction.user_id, transaction.custom_id, transaction.id,
-                            transaction, "payment");
-            if (r_result == null)
-            {
-                _logger?.LogError($"{TAGName} (UpdateTransactionItem) : ({user_uid}) {transaction.order_id} " +
-                                $"Amount : {transaction.amount} {transaction.currency}, " +
-                                $"Update : {transaction.virtual_amount} {transaction.virtual_currency} Failed");
-                return -1;
-            }
-
-            transaction.virtual_amount = r_result.Data?.CurrentAmount ?? transaction.virtual_amount;
-            transaction.virtual_currency = r_result.Data?.CurrentVirtualCurrency ?? transaction.virtual_currency;
-
-
-            _logger?.Log($"{TAGName} (UpdateTransactionItem) : ({user_uid}) {transaction.order_id} " +
-                                $"Amount : {transaction.amount} {transaction.currency}, " +
-                                $"Update : {transaction.virtual_amount} {transaction.virtual_currency} Success");
-            return 1;
-        }
-
-        /// <summary>
         /// 开始支付 - 创建订单
         /// </summary>
         /// <param name="user_uid"></param>
@@ -81,7 +64,7 @@ namespace Server
             }
             // 物品必须是商城物品
             var shop_template_item = shop_template_data.First(v => v.ProductId == transaction.product_id);
-            if (shop_template_item == null || shop_template_item.ShopType != (int)AMToolkits.Game.ShopType.Shop_1)
+            if (shop_template_item == null || !IsPaymentProduct(shop_template_item))
             {
                 return -1;
             }
@@ -92,6 +75,20 @@ namespace Server
             if (r_user == null || r_user.ID != transaction.user_id)
             {
                 return -2;
+            }
+
+            // 0: 如果支付包含特效关联，已经存在就不能再支付
+            var effect_list = new List<string>();
+            var effects = AMToolkits.Game.ValuesUtils.ParseValues(shop_template_item.EffectValues);
+            if (!effects.IsNullOrEmpty())
+            {
+                effect_list.AddRange(effects);
+
+                // 检测特效是否存在
+                if (await GameEffectsManager.Instance._CheckUserEffects(r_user, effect_list) < 0)
+                {
+                    return -100;
+                }
             }
 
             transaction.custom_id = r_user.CustomID;
@@ -213,12 +210,12 @@ namespace Server
             }
             // 物品必须是商城物品
             var shop_template_item = shop_template_data.First(v => v.ProductId == transaction.product_id);
-            if (shop_template_item == null || shop_template_item.ShopType != (int)AMToolkits.Game.ShopType.Shop_1)
+            if (shop_template_item == null || !IsPaymentProduct(shop_template_item))
             {
                 return -1;
             }
 
-            // 获取道具
+            // 获取物品列表
             var items = AMToolkits.Game.ItemUtils.ParseGeneralItem(shop_template_item.Items);
             if (items.IsNullOrEmpty())
             {
@@ -230,23 +227,29 @@ namespace Server
                 return -1;
             }
 
-            // 只处理第一个配置物品
-            var item = item_list.FirstOrDefault();
-            if (item?.ID == AMToolkits.Game.ItemConstants.ID_GM)
+            // 获取道具
+            if (shop_template_item.ShopType == (int)AMToolkits.Game.ShopType.Shop_1)
             {
-                transaction.virtual_currency = AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS_SHORT;
-                transaction.virtual_amount = item.Count;
-            }
-            // 不支持 R 兑换游戏币（金币）
-            else if (item?.ID == AMToolkits.Game.ItemConstants.ID_GD)
-            {
-                //transaction.virtual_currency = AMToolkits.Game.CurrencyUtils.CURRENCY_GOLD_SHORT;
-                //transaction.virtual_amount = item.Count;
-            }
-            else
-            {
+                // 只处理第一个配置物品
+                var item = item_list.FirstOrDefault();
+                if (item?.ID == AMToolkits.Game.ItemConstants.ID_GM)
+                {
+                    transaction.virtual_currency = AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS_SHORT;
+                    transaction.virtual_amount = item.Count;
+                }
+                // 不支持 R 兑换游戏币（金币）
+                else if (item?.ID == AMToolkits.Game.ItemConstants.ID_GD)
+                {
+                    //transaction.virtual_currency = AMToolkits.Game.CurrencyUtils.CURRENCY_GOLD_SHORT;
+                    //transaction.virtual_amount = item.Count;
+                }
+                else
+                {
+                    // 其它物品不处理
+                }
             }
 
+            //
             var r_result_payment = await PlayFabService.Instance.PFPaymentFinal(transaction.user_id, transaction.custom_id, transaction.id,
                             transaction, "payment");
             if (r_result_payment != null && r_result_payment.Data != null)

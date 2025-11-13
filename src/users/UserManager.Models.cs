@@ -32,7 +32,7 @@ namespace Server
         /// <summary>
         /// 未使用
         /// </summary>
-        [JsonPropertyName("avatar_url")]
+        [JsonPropertyName("avatar")]
         public string AvatarUrl = "";
 
         [JsonPropertyName("changed_time")]
@@ -436,7 +436,7 @@ namespace Server
                     $"    `uid`as nid, " +
                     $"    `id` as uid, " +
                     $"    `name`,`gender`,`region`, " +
-                    $"    `avatar` as avatar_url, " +
+                    $"    `avatar`, " +
                     $"    `create_time`, `last_time`, `changed_time`, " +
                     $"    `status` " +
                     $"FROM `t_user` " +

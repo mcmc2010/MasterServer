@@ -73,7 +73,7 @@ namespace Server
         /// <summary>
         /// 
         /// </summary>
-        [JsonPropertyName("avatar_url")]
+        [JsonPropertyName("avatar")]
         public string AvatarUrl = "";
 
         public void InitFromDB(DBUserProfile? profile)

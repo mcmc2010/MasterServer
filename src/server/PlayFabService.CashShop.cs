@@ -67,6 +67,13 @@ namespace Server
         public PFCashShopResultItemData? Data = null;
     }
 
+
+    [System.Serializable]
+    public class PFPaymentFinalProductsResponse : AMToolkits.Net.HTTPResponseResult
+    {
+        public PFCashShopResultItemData? Data = null;
+    }
+
     /// <summary>
     /// 
     /// </summary>
@@ -167,7 +174,7 @@ namespace Server
                         { "amount", transaction.amount },
                         { "virtual_amount", transaction.virtual_amount },
                         { "virtual_currency", transaction.virtual_currency },
-                        { "transaction_code", transaction.result_code ?? "pending" }, 
+                        { "transaction_code", transaction.result_code ?? "pending" },
                         { "reason", reason }
                     });
             if (response == null)
@@ -179,6 +186,60 @@ namespace Server
             if (response.Data?.Result != AMToolkits.ServiceConstants.VALUE_SUCCESS)
             {
                 _logger?.LogError($"{TAGName} (User:{user_uid}) PFPaymentFinal Failed: ({playfab_uid}) [{response.Data?.Result}:{response.Data?.Error}]");
+                return null;
+            }
+
+            return response.Data;
+        }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="playfab_uid"></param>
+        /// <param name="nid"></param>
+        /// <param name="transaction"></param>
+        /// <param name="reason"></param>
+        /// <returns></returns>
+        public async Task<PFCashShopResultItemData?> PFPaymentFinalProducts(string user_uid, string playfab_uid,
+                                    string nid, //流水单号
+                                    TransactionItem transaction,
+                                    List<string> effect_list,
+                                    List<AMToolkits.Game.GeneralItemData> item_list,
+                                    string reason = "payment")
+        {
+            if (_status != AMToolkits.ServiceStatus.Ready)
+            {
+                return null;
+            }
+
+            // 只有pending,review,approved,rejected
+            var response = await this.APICall<PFPaymentFinalProductsResponse>("/internal/services/payment/final/products",
+                    new Dictionary<string, object>()
+                    {
+                        { "user_uid", user_uid },
+                        { "playfab_uid", playfab_uid },
+                        { "nid", nid },
+                        { "product_id", transaction.product_id },
+                        { "currency", transaction.currency },
+                        { "amount", transaction.amount },
+                        { "virtual_amount", transaction.virtual_amount },
+                        { "virtual_currency", transaction.virtual_currency },
+                        { "transaction_code", transaction.result_code ?? "pending" },
+                        { "items", item_list },
+                        { "effects", effect_list },
+                        { "reason", reason }
+                    });
+            if (response == null)
+            {
+                _logger?.LogError($"{TAGName} (User:{user_uid}) PFPaymentFinalProducts Failed: ({playfab_uid}) {_client_factory?.LastError?.Message}");
+                return null;
+            }
+
+            if (response.Data?.Result != AMToolkits.ServiceConstants.VALUE_SUCCESS)
+            {
+                _logger?.LogError($"{TAGName} (User:{user_uid}) PFPaymentFinalProducts Failed: ({playfab_uid}) [{response.Data?.Result}:{response.Data?.Error}]");
                 return null;
             }
 
