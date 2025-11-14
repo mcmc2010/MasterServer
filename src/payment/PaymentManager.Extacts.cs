@@ -154,21 +154,26 @@ namespace Server
                 return -1;
             }
 
+            string print_effects = "";
+            string print_items = "";
             if (result_product?.Data?.EffectList != null)
             {
+                print_effects = string.Join(";", result_product.Data.EffectList);
                 if (await GameEffectsManager.Instance._AddUserEffects(user_uid, result_product.Data.EffectList) < 0)
                 {
                     _logger?.LogWarning($"{TAGName} (ExtractTransaction_V2) (User:{user_uid}) {transaction.order_id} - {shop_template_item.Name} " +
-                                        $" Effects:{AMToolkits.Game.ValuesUtils.ToValues(result_product?.Data.EffectList)} Failed");
+                                        $" Effects:{print_effects} Failed");
                 }
             }
             
             if (result_product?.Data?.ItemList != null)
             {
+                print_items = string.Join(";", result_product.Data.ItemList.Select(v => $"{v.IID} - {v.ID}({v.Count})"));
                 // 添加数据库记录
-                if (await UserManager.Instance._CashshopBuyProduct(user_uid, transaction.custom_id, r_result.Data) <= 0)
+                if (await UserManager.Instance._CashshopBuyProduct(user_uid, transaction.custom_id, result_product.Data) <= 0)
                 {
-                    _logger?.LogWarning($"{TAGName} (ExtractTransaction_V2) (User:{user_uid}) {transaction.order_id} - {shop_template_item.Name} Failed");
+                    _logger?.LogWarning($"{TAGName} (ExtractTransaction_V2) (User:{user_uid}) {transaction.order_id} - {shop_template_item.Name} " +
+                                        $" {print_items} Failed");
                     //return result;
                 }
             }
@@ -176,7 +181,8 @@ namespace Server
             //
             _logger?.Log($"{TAGName} (ExtractTransaction_V2) : ({user_uid}) {transaction.order_id} " +
                                 $"Amount : {transaction.amount} {transaction.currency}, " +
-                                $"Update : {transaction.virtual_amount} {transaction.virtual_currency} Success");
+                                $"Update : {transaction.virtual_amount} {transaction.virtual_currency}, " +
+                                $"Effects: {print_effects}, Items: {print_items} Success");
             return 1;
         }
     }

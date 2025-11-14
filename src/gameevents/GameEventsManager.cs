@@ -16,6 +16,7 @@ namespace Server
         Economy = 7,
         Payment = 10,
         Rank = 100,     //排位段位
+        Pass = 1000,    //通行证
     }
 
     /// <summary>
