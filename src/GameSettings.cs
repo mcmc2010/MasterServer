@@ -41,6 +41,12 @@ namespace Server
 
         [JsonPropertyName("code")]
         public int Code = 0; //赛季代码，通常是4位数
+
+        /// <summary>
+        /// 通行证
+        /// </summary>
+        [JsonPropertyName("pass")]
+        public Dictionary<int, int[]> PassLevels = new Dictionary<int, int[]>(); 
     }
 
     [System.Serializable]

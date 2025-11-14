@@ -246,6 +246,127 @@ namespace Server
 
         }
 
+
+        /// <summary>
+        ///  通行证
+        /// </summary>
+        /// <param name="template_item"></param>
+        /// <param name="result">上一个调用结果</param>
+        protected async System.Threading.Tasks.Task<int> GameEventFinal_GamePass(UserBase user,
+                                int id,
+                                Game.TGameEvents template_item,
+                                List<GameEventItem> result_events)
+        {
+            result_events.Clear();
+
+            var template_data = AMToolkits.Utility.TableDataManager.GetTableData<Game.TGameEvents>();
+            if (template_data == null)
+            {
+                return -1;
+            }
+
+            var pass_template_data = AMToolkits.Utility.TableDataManager.GetTableData<Game.TBattlePass>();
+            if (pass_template_data == null)
+            {
+                return -1;
+            }
+
+            // 0: 获取特效 是否包含通行证
+            List<GameEffectItem> effect_list = new List<GameEffectItem>();
+            if(await UserManager.Instance._GetUserGameEffects(user.ID, effect_list, (int)GameEffectType.Pass, -1) < 0)
+            {
+                return -1;
+            }
+
+            int pass_level = UserManager.Instance._GetPassLevel(effect_list.Select(v => v.id));
+
+            // 1: 获取当前事件是否存在
+            List<GameEventItem> list = new List<GameEventItem>();
+            int result_code = await UserManager.Instance._GetUserGameEvents(user.ID, list, (int)GameEventType.Pass, -1);
+            if (result_code <= 0)
+            {
+                return -1;
+            }
+
+            var event_item = list.FirstOrDefault(v => v.id == template_item.Id);
+            if (event_item == null)
+            {
+                return 0;
+            }
+            event_item.InitTemplateData<Game.TGameEvents>(template_item);
+
+            //
+            int pass_id = 0;
+            int.TryParse(event_item.GetTemplateData<Game.TGameEvents>()?.Value ?? "0", out pass_id);
+            Game.TBattlePass? pass_template_item = null;
+            if(pass_id > 0)
+            {
+                pass_template_item = pass_template_data.Get(pass_id);
+            }
+
+            // 添加普通物品
+            List<AMToolkits.Game.GeneralItemData> item_list = new List<AMToolkits.Game.GeneralItemData>();
+            var items = AMToolkits.Game.ItemUtils.ParseGeneralItem(pass_template_item?.Reward ?? "");
+            if(items != null && !items.IsNullOrEmpty())
+            {
+                item_list.AddRange(items);
+            }
+
+            // 获取通行证物品
+            bool is_completed = false;
+            if(pass_level >= 1)
+            {
+                items = AMToolkits.Game.ItemUtils.ParseGeneralItem(pass_template_item?.RewardLv1 ?? "");
+                if(items != null && !items.IsNullOrEmpty())
+                {
+                    item_list.AddRange(items);
+                }
+            }
+            if(pass_level >= 2)
+            {
+                items = AMToolkits.Game.ItemUtils.ParseGeneralItem(pass_template_item?.RewardLv2 ?? "");
+                if(items != null && !items.IsNullOrEmpty())
+                {
+                    item_list.AddRange(items);
+                }
+            }
+
+            // UserProfileExtend profile = new UserProfileExtend();
+            // if (await UserManager.Instance._GetUserProfile(user.ID, profile) < 0)
+            // {
+            //     return -1;
+            // }
+
+            // int rank_level_limit = 0;
+            // if(!int.TryParse(event_item.GetTemplateData<Game.TGameEvents>()?.Value ?? "0", out rank_level_limit))
+            // {
+            //     rank_level_limit = 0;
+            // }
+
+            // //
+            // if (rank_level_limit > 0 &&
+            //     (rank_level_limit <= profile.RankLevel || rank_level_limit <= profile.RankLevelBest))
+            // {
+            //     is_completed = true;
+            // }
+            
+            // if (is_completed && event_item.completed_time == null)
+            // {
+            //     event_item.completed_time = DateTime.Now;
+            // }
+
+            // if ((result_code = await UserManager.Instance._UpdateGameEventItem(user.ID, event_item)) < 0)
+            // {
+            //     return -1;
+            // }
+
+            // // 返回事件和关联事件
+            // result_events.Add(event_item);
+
+            return 0;
+
+        }
+
         /// <summary>
         /// 付费
         /// </summary>

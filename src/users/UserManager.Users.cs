@@ -242,6 +242,27 @@ namespace Server
             return 1;
         }
 
+        public int _GetPassLevel(IEnumerable<int>? effect_ids)
+        {
+            int level = 0;
+            if(effect_ids == null || effect_ids?.Any() == false)
+            {
+                return level;
+            }
+            
+            var levels = GameSettingsInstance.Settings.Season.PassLevels;
+            foreach(var v in levels)
+            {
+                if(v.Value.Any(v => effect_ids?.Any(id => id == v) ?? false))
+                {
+                    if(level < v.Key) {
+                        level = v.Key;
+                    }
+                }
+            }
+            return level;
+        }
+
         #endregion
 
         /// <summary>

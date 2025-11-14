@@ -211,7 +211,7 @@ namespace Server
                         break;
                     }
 
-                // 100 : 
+                // 100 : 排位
                 case (int)GameEventType.Rank:
                     {
                         result_code = await GameEventFinal_GameRank(r_user, id, template_item, result_events);
@@ -220,6 +220,16 @@ namespace Server
                             result_code = await GameEventFinal_Result(r_user, id, template_item, result_events, result);
                         }
                         break;    
+                    }
+                // 1000: 通行证
+                case (int)GameEventType.Pass:
+                    {
+                        result_code = await GameEventFinal_GamePass(r_user, id, template_item, result_events);
+                        if (result_code > 0)
+                        {
+                            result_code = await GameEventFinal_Result(r_user, id, template_item, result_events, result);
+                        }
+                        break;
                     }
             }
 

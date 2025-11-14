@@ -70,6 +70,7 @@ try
     //
     AMToolkits.Utility.TableDataManager.GetTableData<Game.TNormalGame>();
     AMToolkits.Utility.TableDataManager.GetTableData<Game.TRankGame>();
+    AMToolkits.Utility.TableDataManager.GetTableData<Game.TBattlePass>();
  
     logger.Log("Init TableData Completed");
 
