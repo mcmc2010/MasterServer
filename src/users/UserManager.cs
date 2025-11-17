@@ -137,6 +137,8 @@ namespace Server
             args.app?.MapPost("api/user/inventory/upgrade", HandleUpgradeUserInventoryItem);
             // Rank
             args.app?.MapPost("api/user/rank/data", HandleGetUserRank);
+            // Game Pass
+            args.app?.MapPost("api/user/pass/data", HandleGetUserGamePass);
             // Game Events
             args.app?.Map("api/user/game/events/list", HandleGetUserGameEvents);
             // Game Effects

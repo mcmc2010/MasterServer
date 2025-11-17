@@ -3,6 +3,9 @@
 using Logger;
 using Server;
 
+using AMSX = AMToolkits.Statistics;
+
+
 bool is_development = true;
 
 try
@@ -46,6 +49,12 @@ try
     logger.Log("Init Logger Completed");
     logger.Log($"Server Index - {config.ServerIndex}");
 
+    // 0 - 1:
+    AMSX.StatisticalManager.OnLogOutput = (v) =>
+    {
+        logger.Log("(AMSX) Event : " + v);
+    };
+
     // 1 - 0:
     AMToolkits.Utility.ResourcesManager.NewInstance(args);
 
@@ -57,6 +66,7 @@ try
         System.Console.WriteLine("(1 - 1) Loading GameSettings Error.");
         return;
     }
+
 
     // 1 - 2:
     AMToolkits.Utility.TableDataManager.NewInstance(args);

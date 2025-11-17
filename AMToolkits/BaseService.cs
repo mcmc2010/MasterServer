@@ -31,6 +31,7 @@ namespace AMToolkits
         public const string VALUE_EXPIRED = "expired";
         public const string VALUE_LIMIT = "limit";
         public const string VALUE_NOTFOUND = "not_found";
+        public const string VALUE_NOTMATCH = "not_same";
         // 余额不足，或数量不够
         public const string VALUE_INSUFFICIENT = "insufficient";
         //

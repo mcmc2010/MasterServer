@@ -2712,5 +2712,55 @@ namespace Server
 
         #endregion
 
+
+        #region Pass
+        protected async Task<UserPassData?> DBGetUserPass(string user_id)
+        {
+
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                // 
+                string sql =
+                    $"SELECT  " +
+                    $"  h.`uid`, h.`id`, u.`name`, " +
+                    $"  h.`value`, " +
+                    $"  `season_pass_value`,  " +
+                    $"  `season`, `season_time`, " +
+                    $"  h.`create_time`, h.`last_time`, " +
+                    $"  h.`status`  " +
+                    $"FROM `t_hol` AS h " +
+                    $"LEFT JOIN `t_user` AS u ON u.`id` = h.`id` AND u.`status` > 0  " +
+                    $"WHERE h.`id` = ? AND h.`season` = ? AND h.`status` > 0";
+                var result_code = db?.Query(sql, user_id,
+                        GameSettingsInstance.Settings.Season.Code);
+                if (result_code < 0)
+                {
+                    return null;
+                }
+
+                //
+                var data = db?.ResultItems.To<UserPassData>();
+                if (data == null)
+                {
+                    return null;
+                }
+
+                return data;
+            }
+            catch (Exception e)
+            {
+                _logger?.LogError("(User) Error :" + e.Message);
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return null;
+        }
+
+        #endregion
+
+
     }
 }

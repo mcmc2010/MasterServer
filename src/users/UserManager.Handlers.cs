@@ -2,8 +2,11 @@ using System.Net;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
 using AMToolkits.Extensions;
+
 using Logger;
-using Microsoft.VisualBasic;
+using StackExchange.Redis;
+
+using AMSX = AMToolkits.Statistics;
 
 
 namespace Server
@@ -250,6 +253,25 @@ namespace Server
     }
     #endregion
 
+    #region User GamePass NProtocols
+    /// <summary>
+    /// 
+    /// </summary>
+    [System.Serializable]
+    public class NGetUserPassDataRequest
+    {
+    }
+
+    [System.Serializable]
+    public class NGetUserPassDataResponse
+    {
+        [JsonPropertyName("code")]
+        public int Code;
+        [JsonPropertyName("data")]
+        public UserPassData? Data = null;
+    }
+    #endregion
+
     /// <summary>
     /// 
     /// </summary>
@@ -292,6 +314,9 @@ namespace Server
             {
                 link_print = $" [{request?.LinkName}] {request?.LinkID}";
             }
+
+            using (new AMSX.StatisticalEvent("handle_user_auth", true))
+            {
                 
             // PlayFab验证
             int result_code = await PlayFabService.Instance.PFUserAuthentication(request?.UID ?? "",
@@ -346,7 +371,7 @@ namespace Server
                 _logger?.LogWarning($"(User) Auth User (ClientUID:{user_data.client_uid} - {user_data.server_uid}) Failed, Result: {result_code}" +
                     $"{link_print}" );
             }
-
+            
             //
             var result = new NAuthUserResponse
             {
@@ -362,6 +387,7 @@ namespace Server
 
             //
             await context.ResponseResult(result);
+            }
         }
 
 
@@ -740,6 +766,53 @@ namespace Server
 
             // 成功返回
             UserRankDataExtend? extend = await this.GetUserRank(auth_data.id);
+            if (extend == null)
+            {
+                result.Code = -1;
+            }
+            else
+            {
+                result.Code = 1;
+                result.Data = extend;
+            }
+
+            //
+            await context.ResponseResult(result);
+        }
+        #endregion
+
+
+        #region Pass
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        protected async Task HandleGetUserGamePass(HttpContext context)
+        {
+            SessionAuthData auth_data = new SessionAuthData();
+            if (await ServerApplication.Instance.AuthSessionAndResult(context, auth_data) <= 0)
+            {
+                return;
+            }
+
+            // 解析 JSON
+            var request = await context.Request.JsonBodyAsync<NGetUserPassDataRequest>();
+            if (request == null)
+            {
+                await context.ResponseError(HttpStatusCode.BadRequest, ErrorMessage.UNKNOW);
+                return;
+            }
+
+            //
+            var result = new NGetUserPassDataResponse
+            {
+                Code = 0,
+                Data = null
+            };
+
+            // 成功返回
+            UserPassData? extend = await this.GetUserGamePass(auth_data.id);
             if (extend == null)
             {
                 result.Code = -1;
