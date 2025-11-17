@@ -104,7 +104,11 @@ namespace Server
             }
 
             string currency_s = AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS_SHORT;
-            if (currency == (int)AMToolkits.Game.VirtualCurrency.GD)
+            if(currency == (int)AMToolkits.Game.VirtualCurrency.GM)
+            {
+                // nothing
+            }
+            else if (currency == (int)AMToolkits.Game.VirtualCurrency.GD)
             {
                 currency_s = AMToolkits.Game.CurrencyUtils.CURRENCY_GOLD_SHORT;
             }
