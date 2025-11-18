@@ -207,6 +207,10 @@ namespace Server
             {
                 transaction.payment_method = PaymentMethod.Alipay.ToString().ToLower();
             }
+            else if (request.method == (int)PaymentMethod.Wechat)
+            {
+                transaction.payment_method = PaymentMethod.Wechat.ToString().ToLower();
+            }
             else
             {
                 transaction.payment_method = "none";
@@ -293,6 +297,10 @@ namespace Server
             if (request.method == (int)PaymentMethod.Alipay)
             {
                 transaction.payment_method = PaymentMethod.Alipay.ToString().ToLower();
+            }
+            else if (request.method == (int)PaymentMethod.Wechat)
+            {
+                transaction.payment_method = PaymentMethod.Wechat.ToString().ToLower();
             }
             else
             {

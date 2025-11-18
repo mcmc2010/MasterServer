@@ -2693,7 +2693,7 @@ namespace Server
                         index++;
                     }
                 }
-                
+
                 //
                 db?.Commit();
             }
@@ -2714,12 +2714,37 @@ namespace Server
 
 
         #region Pass
-        protected async Task<UserPassData?> DBGetUserPass(string user_id)
+
+        /// <summary>
+        /// 数据库结果集转换为事件列表
+        /// </summary>
+        /// <param name="rows"></param>
+        /// <returns></returns>
+        protected List<UserGamePassData> ToGamePassDataList(List<DatabaseResultItemSet>? rows)
+        {
+            List<UserGamePassData> items = new List<UserGamePassData>();
+            if (rows != null)
+            {
+                foreach (var v in rows)
+                {
+                    UserGamePassData? item = v.To<UserGamePassData>();
+                    if (item == null) { continue; }
+
+                    items.Add(item);
+                }
+            }
+            return items;
+        }
+        
+        protected async Task<int> DBGetUserGamePass(string user_id, List<UserGamePassData> pass_list)
         {
 
             var db = DatabaseManager.Instance.New();
             try
             {
+                //
+                List<DatabaseResultItemSet>? list = null;
+            
                 // 
                 string sql =
                     $"SELECT  " +
@@ -2732,21 +2757,16 @@ namespace Server
                     $"FROM `t_hol` AS h " +
                     $"LEFT JOIN `t_user` AS u ON u.`id` = h.`id` AND u.`status` > 0  " +
                     $"WHERE h.`id` = ? AND h.`season` = ? AND h.`status` > 0";
-                var result_code = db?.Query(sql, user_id,
+                var result_code = db?.QueryWithList(sql, out list, user_id,
                         GameSettingsInstance.Settings.Season.Code);
-                if (result_code < 0)
+                if (result_code < 0 || list == null)
                 {
-                    return null;
+                    return -1;
                 }
 
                 //
-                var data = db?.ResultItems.To<UserPassData>();
-                if (data == null)
-                {
-                    return null;
-                }
-
-                return data;
+                pass_list.AddRange(this.ToGamePassDataList(list));
+                return pass_list.Count;
             }
             catch (Exception e)
             {
@@ -2756,7 +2776,7 @@ namespace Server
             {
                 DatabaseManager.Instance.Free(db);
             }
-            return null;
+            return -1;
         }
 
         #endregion

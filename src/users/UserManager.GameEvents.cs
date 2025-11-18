@@ -33,6 +33,7 @@ namespace Server
         public int season = 0;
         public int status = 0;
 
+        public List<AMToolkits.Game.GeneralItemData> Items => this._items;
 
         public bool IsCompleted
         {
@@ -54,7 +55,7 @@ namespace Server
         /// 初始化
         /// </summary>
         /// <param name="items"></param>
-        public void InitGeneralItems(AMToolkits.Game.GeneralItemData[]? items)
+        public void InitGeneralItems(IEnumerable<AMToolkits.Game.GeneralItemData>? items)
         {
             this._items.Clear();
 

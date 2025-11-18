@@ -268,7 +268,7 @@ namespace Server
         [JsonPropertyName("code")]
         public int Code;
         [JsonPropertyName("data")]
-        public UserPassData? Data = null;
+        public UserGamePassData? Data = null;
     }
     #endregion
 
@@ -317,76 +317,76 @@ namespace Server
 
             using (new AMSX.StatisticalEvent("handle_user_auth", true))
             {
-                
-            // PlayFab验证
-            int result_code = await PlayFabService.Instance.PFUserAuthentication(request?.UID ?? "",
-                    request?.SessionUID ?? "",
-                    request?.SessionToken ?? "",
-                    request?.LinkName ?? "", request?.LinkID ?? "");
-            if (result_code < 0)
-            {
 
-                _logger?.LogWarning($"(User) Auth User (ClientUID:{request?.UID} - {request?.SessionUID}) Failed, Result: {result_code}" +
-                        $"{link_print}");
-                if (result_code == (int)AMToolkits.APIResultCode.TooMany)
+                // PlayFab验证
+                int result_code = await PlayFabService.Instance.PFUserAuthentication(request?.UID ?? "",
+                        request?.SessionUID ?? "",
+                        request?.SessionToken ?? "",
+                        request?.LinkName ?? "", request?.LinkID ?? "");
+                if (result_code < 0)
                 {
-                    await context.ResponseError(HttpStatusCode.TooManyRequests, ErrorMessage.NotAllowAccess_Unauthorized_TooMany);
+
+                    _logger?.LogWarning($"(User) Auth User (ClientUID:{request?.UID} - {request?.SessionUID}) Failed, Result: {result_code}" +
+                            $"{link_print}");
+                    if (result_code == (int)AMToolkits.APIResultCode.TooMany)
+                    {
+                        await context.ResponseError(HttpStatusCode.TooManyRequests, ErrorMessage.NotAllowAccess_Unauthorized_TooMany);
+                    }
+                    else
+                    {
+                        //
+                        await context.ResponseError(HttpStatusCode.Unauthorized, ErrorMessage.NotAllowAccess_Unauthorized_NotLogin);
+                    }
+                    return;
                 }
-                else
+
+                // 1: 验证用户
+                var user_data = new UserAuthenticationData()
                 {
+                    server_uid = uid,
+                    client_uid = request?.UID ?? "",
+                    custom_id = request?.SessionUID ?? "",
+                    passphrase = passphrase,
+                    token = token,
+                    datetime = DateTime.Now,
+                    device = $"{platform}",
+
                     //
-                    await context.ResponseError(HttpStatusCode.Unauthorized, ErrorMessage.NotAllowAccess_Unauthorized_NotLogin);
+                    jwt_token = "",
+
+                    //
+                    link_name = request?.LinkName ?? "",
+                    link_id = request?.LinkID ?? "",
+                    link_token = request?.LinkToken ?? "",
+
+                };
+                if (result_code == 0)
+                {
+                    user_data.is_test_user = true;
                 }
-                return;
-            }
 
-            // 1: 验证用户
-            var user_data = new UserAuthenticationData()
-            {
-                server_uid = uid,
-                client_uid = request?.UID ?? "",
-                custom_id = request?.SessionUID ?? "",
-                passphrase = passphrase,
-                token = token,
-                datetime = DateTime.Now,
-                device = $"{platform}",
+                result_code = await this.AuthenticationAndInitUser(user_data);
+                if (result_code <= 0)
+                {
+                    _logger?.LogWarning($"(User) Auth User (ClientUID:{user_data.client_uid} - {user_data.server_uid}) Failed, Result: {result_code}" +
+                        $"{link_print}");
+                }
 
                 //
-                jwt_token = "",
+                var result = new NAuthUserResponse
+                {
+                    Code = result_code,
+                    UID = user_data.client_uid,
+                    ServerUID = user_data.server_uid,
+                    Passphrase = user_data.passphrase,
+                    Token = user_data.token,
+                    DateTime = date_time,
+                    Hash = user_data.jwt_token,
+                    PrivilegeLevel = user_data.privilege_level,
+                };
 
                 //
-                link_name = request?.LinkName ?? "",
-                link_id = request?.LinkID ?? "",
-                link_token = request?.LinkToken ?? "",
-
-            };
-            if (result_code == 0)
-            {
-                user_data.is_test_user = true;
-            }
-
-            result_code = await this.AuthenticationAndInitUser(user_data);
-            if (result_code <= 0)
-            {
-                _logger?.LogWarning($"(User) Auth User (ClientUID:{user_data.client_uid} - {user_data.server_uid}) Failed, Result: {result_code}" +
-                    $"{link_print}" );
-            }
-            
-            //
-            var result = new NAuthUserResponse
-            {
-                Code = result_code,
-                UID = user_data.client_uid,
-                ServerUID = user_data.server_uid,
-                Passphrase = user_data.passphrase,
-                Token = user_data.token,
-                DateTime = date_time,
-                Hash = user_data.jwt_token,
-                PrivilegeLevel = user_data.privilege_level,
-            };
-
-            //
-            await context.ResponseResult(result);
+                await context.ResponseResult(result);
             }
         }
 
@@ -812,15 +812,16 @@ namespace Server
             };
 
             // 成功返回
-            UserPassData? extend = await this.GetUserGamePass(auth_data.id);
-            if (extend == null)
+            List<UserGamePassData> pass_list = new List<UserGamePassData>();
+            int result_code = await this.GetUserGamePass(auth_data.id, pass_list);
+            if (result_code <= 0)
             {
-                result.Code = -1;
+                result.Code = result_code;
             }
             else
             {
                 result.Code = 1;
-                result.Data = extend;
+                result.Data = pass_list.FirstOrDefault();
             }
 
             //

@@ -31,3 +31,6 @@ ADD INDEX `idx` (`user_id` ASC, `id` ASC, `season` ASC) VISIBLE;
 
 ALTER TABLE `t_gameevents` 
 ADD COLUMN `virtual_currency` VARCHAR(64) NULL DEFAULT NULL AFTER `count`;
+
+ALTER TABLE `t_gameevents` 
+CHANGE COLUMN `value` `value` VARCHAR(64) NULL DEFAULT NULL ;

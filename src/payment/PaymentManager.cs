@@ -18,7 +18,8 @@ namespace Server
     public enum PaymentMethod
     {
         None = 0,
-        Alipay = 200,
+        Alipay = 200, // 支付宝
+        Wechat = 100, // 微信支付
     }
 
     [System.Serializable]

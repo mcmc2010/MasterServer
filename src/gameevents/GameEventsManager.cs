@@ -224,10 +224,11 @@ namespace Server
                 // 1000: 通行证
                 case (int)GameEventType.Pass:
                     {
-                        result_code = await GameEventFinal_GamePass(r_user, id, template_item, result_events);
+                        List<AMToolkits.Game.GeneralItemData> output_item_list = new List<AMToolkits.Game.GeneralItemData>();
+                        result_code = await GameEventFinal_GamePass(r_user, id, template_item, result_events, output_item_list);
                         if (result_code > 0)
                         {
-                            result_code = await GameEventFinal_Result(r_user, id, template_item, result_events, result);
+                            result_code = await GameEventFinal_Result(r_user, id, template_item, result_events, result, output_item_list);
                         }
                         break;
                     }
