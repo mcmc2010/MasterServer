@@ -12,6 +12,70 @@ namespace Server
     /// </summary>
     public partial class PaymentManager
     {
+        #region Wechat
+        public async Task<T?> WechatOpenAPIGet<T>(string endpoint,
+                        Dictionary<string, object>? arguments = null,
+                        Dictionary<string, object>? headers = null)
+                        where T : HTTPResponseResult
+        {
+            if (_wx_client_factory == null)
+            {
+                return default(T);
+            }
+
+
+            Dictionary<string, object> additional_headers = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            if (headers != null)
+            {
+                foreach (var v in headers)
+                {
+                    additional_headers[v.Key] = v.Value;
+                }
+            }
+
+            return await _wx_client_factory.GetAsync<T>(endpoint, arguments, additional_headers);
+        }
+
+        public async Task<T?> WechatOpenAPIPost<T>(string endpoint,
+                        Dictionary<string, object?>? payload,
+                        Dictionary<string, object>? arguments = null,
+                        Dictionary<string, object>? headers = null)
+                        where T : HTTPResponseResult
+        {
+            if (_wx_client_factory == null)
+            {
+                return default(T);
+            }
+
+            Dictionary<string, object> additional_headers = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            additional_headers.Add("accept", "application/json");
+            if (headers != null)
+            {
+                foreach (var v in headers)
+                {
+                    additional_headers[v.Key] = v.Value;
+                }
+            }
+
+            if(payload == null)
+            {
+                payload = new Dictionary<string, object?>();
+            }
+            if (_settings.Wechat.IsSandbox)
+            {
+                payload.Set("appid", _settings.Wechat.SandBoxAppID);
+            }
+            else
+            {
+                payload.Set("appid", _settings.Wechat.AppID);
+            }
+            
+
+            return await _wx_client_factory.PostAsync<T>(endpoint, payload, additional_headers, arguments);
+        }
+        #endregion
+
+        #region Alipay
         /// <summary>
         /// https://openapi-sandbox.dl.alipaydev.com/gateway.do?method=alipay.trade.query
         /// </summary>
@@ -26,7 +90,7 @@ namespace Server
                         Dictionary<string, object>? headers = null)
                         where T : HTTPResponseResult
         {
-            if (_client_factory == null)
+            if (_al_client_factory == null)
             {
                 return default(T);
             }
@@ -84,8 +148,9 @@ namespace Server
                 arguments?.Set("biz_content", biz_content);
             }
             
-            return await _client_factory.GetAsync<T>(endpoint, arguments, additional_headers);
+            return await _al_client_factory.GetAsync<T>(endpoint, arguments, additional_headers);
         }
+        #endregion
 
     }
 }

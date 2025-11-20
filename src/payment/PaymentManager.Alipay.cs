@@ -99,7 +99,8 @@ namespace Server
         /// </summary>
         public const string RESULT_REASON_TRADE_NOT_EXIST = "TRADE_NOT_EXIST";
 
-
+        private HTTPClientFactory? _al_client_factory = null;
+        
         /// <summary>
         /// 
         /// </summary>

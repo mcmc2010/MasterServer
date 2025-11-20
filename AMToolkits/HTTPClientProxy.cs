@@ -535,6 +535,9 @@ namespace AMToolkits.Net
             try
             {
 
+                request.Headers.UserAgent.Clear();
+                request.Headers.UserAgent.ParseAdd($".NET/8.0.20 (.NET/{System.Environment.Version};" +
+                        $"AspNetCore/{System.Environment.Version})");
                 var response = await client._http_client.SendAsync(request, client._cts.Token);
                 client._status_code = response.StatusCode;
                 client._request_duration = (float)(HTTPClientProxy.PrecisionTimestamp - timestamp) * 0.001f;

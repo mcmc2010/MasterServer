@@ -3,6 +3,19 @@
     "ssl_key": "certs/payment.pem.unsecure",
     // 订单超时时间，一分钟内未完成支付，按超时处理。
     "transaction_timeout": 300,
+    "wechat": {
+        "enabled": true,
+        "is_sandbox": true,
+        "sandbox_url": "https://api.mch.weixin.qq.com",
+        "url": "https://api.mch.weixin.qq.com",
+        "sandbox_app_id": "wx9fa8acf808811f3f",
+        "app_id": "wx9fa8acf808811f3f",
+        // 方法
+        "method": "",
+        // 商户ID
+        "merchant_id": "123456",
+        "notify_url": "https://47.98.229.74:5443/openapi/payment/final"
+    },
     "alipay": {
         "enabled": true,
         "is_sandbox": true,

@@ -45,6 +45,9 @@ namespace Server
         [JsonPropertyName("count")]
         public int Count = 0;
 
+        [JsonPropertyName("value")]
+        public string Value = "";
+
         [JsonPropertyName("items")]
         public string Items = "";
 

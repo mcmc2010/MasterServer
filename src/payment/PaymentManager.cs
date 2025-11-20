@@ -22,8 +22,11 @@ namespace Server
         Wechat = 100, // 微信支付
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
     [System.Serializable]
-    public class PaymentSettingItem_Ailpay
+    public class PaymentSettingItem
     {
         [JsonPropertyName("enabled")]
         public bool Enabled = false;
@@ -46,9 +49,18 @@ namespace Server
         public string SandBoxAppID { get; set; } = "";
         [JsonPropertyName("app_id")]
         public string AppID { get; set; } = "";
-        
+
         [JsonPropertyName("method")]
         public string Method { get; set; } = "";
+
+        /// <summary>
+        /// 商户ID
+        /// </summary>
+        [JsonPropertyName("merchant_id")]
+        public string MerchantID { get; set; } = "";
+
+        [JsonPropertyName("notify_url")]
+        public string NotifyURL { get; set; } = "";
     }
 
     [System.Serializable]
@@ -65,12 +77,17 @@ namespace Server
         [JsonPropertyName("transaction_timeout")]
         public float TransactionTimeout = 30.0f;
 
+        /// <summary>
+        /// 
+        /// </summary>
+        [JsonPropertyName("wechat")]
+        public PaymentSettingItem Wechat = new PaymentSettingItem();
 
         /// <summary>
         /// 
         /// </summary>
         [JsonPropertyName("alipay")]
-        public PaymentSettingItem_Ailpay Alipay = new PaymentSettingItem_Ailpay();
+        public PaymentSettingItem Alipay = new PaymentSettingItem();
     }
 
 
@@ -196,7 +213,6 @@ namespace Server
 
         private System.Security.Cryptography.X509Certificates.X509Certificate2? _certificate = null;
 
-        private HTTPClientFactory? _client_factory = null;
 
         //
         private object _transactions_queue_locked = new object();
@@ -230,22 +246,41 @@ namespace Server
             this.LoadCertificate(_settings.SSLCertificates, _settings.SSLKey);
 
             //
-            _client_factory = HTTPClientFactory.CreateFactory<HTTPClientFactory>();
             if (_settings.Alipay.Enabled)
             {
+                var client_factory = HTTPClientFactory.CreateFactory<HTTPClientFactory>();
                 string base_url = _settings.Alipay.URL;
                 if (_settings.Alipay.IsSandbox)
                 {
                     base_url = _settings.Alipay.SandBoxURL;
                 }
-                _client_factory.APICreate(base_url, 1.0f);
-                _client_factory.OnLogOutput = (client, message) =>
+                client_factory.APICreate(base_url, 1.0f);
+                client_factory.OnLogOutput = (client, message) =>
                 {
-                    _logger?.Log($"{TAGName} [{client?.Index ?? -1}:{_client_factory.PoolCount()}]: {message}");
+                    _logger?.Log($"{TAGName} (Alipay Proxy) [{client?.Index ?? -1}:{client_factory.PoolCount()}]: {message}");
                 };
+                _al_client_factory = client_factory;
             }
-
             //
+            if (_settings.Wechat.Enabled)
+            {
+                var client_factory = HTTPClientFactory.CreateFactory<HTTPClientFactory>();
+                string base_url = _settings.Wechat.URL;
+                if (_settings.Wechat.IsSandbox)
+                {
+                    base_url = _settings.Wechat.SandBoxURL;
+                }
+                client_factory.APICreate(base_url, 10.0f);
+                client_factory.OnLogOutput = (client, message) =>
+                {
+                    _logger?.Log($"{TAGName} (Wechat Proxy) [{client?.Index ?? -1}:{client_factory.PoolCount()}]: {message}");
+                };
+
+                _wx_client_factory = client_factory;
+            }
+            
+            //
+            
         }
 
         private void InitLogger(string name)
@@ -375,6 +410,18 @@ namespace Server
 
         private async Task<int> ProcessWorking()
         {
+            await this._WechatPrepay("", new TransactionItem()
+            {
+                name = "s1赛季高级通行证",
+                order_id = "EY5LXGSZ6X",
+                product_id = "id_items_2010",
+                amount = 1.00,
+                currency = AMToolkits.Game.CurrencyUtils.CNY,
+                price = 1.00,
+                count = 1
+            });
+
+            //
             float delay = 5.0f;
             //
             while (!ServerApplication.Instance.HasQuiting)

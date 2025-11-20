@@ -84,6 +84,7 @@ namespace Server
                 LastTime = this.last_time,
                 CompletedTime = this.completed_time,
                 Items = "",
+                Value = this.value ?? "",
                 Season = this.season,
             };
         }

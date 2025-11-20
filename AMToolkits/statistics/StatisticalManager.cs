@@ -45,7 +45,7 @@ namespace AMToolkits.Statistics
                     }
                     else
                     {
-                        if(item.time < value.time_min)
+                        if(value.time_min == 0 || item.time < value.time_min)
                         {
                             value.time_min = item.time;
                         }

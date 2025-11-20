@@ -50,7 +50,7 @@ namespace Server
             int total = 0;
             foreach(var item in template_data)
             {
-                total += item.Exp;
+                total += item.BattlePassExp;
                 if(pass_value < total)
                 {
                     level = item.Level;
