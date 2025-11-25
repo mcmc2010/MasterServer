@@ -415,12 +415,21 @@ namespace Server
                 return 0;
             }
 
+            // 9 - 0: 默认装备
             var default_equipment = inventory_items.FirstOrDefault(v => v.index == GameSettingsInstance.Settings.User.ItemDefaultEquipmentIndex ||
                     v.expired_time == null);
             if (default_equipment == null)
             {
                 List<AMToolkits.Game.GeneralItemData> kit_items = new List<AMToolkits.Game.GeneralItemData>();
                 await _GrantBeginnerKitItems(user_data.server_uid, "1000", kit_items);
+            }
+
+            if(GameSettingsInstance.Settings.Mission.DailyEnabled)
+            {
+                await GameEventsManager.Instance._GameEventFinal(user_data.server_uid, GameSettingsInstance.Settings.Mission.DailyGameEventCode,
+                                new GameEventDataResult()
+                                {
+                                });
             }
             return 1;
         }

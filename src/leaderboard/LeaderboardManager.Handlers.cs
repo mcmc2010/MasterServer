@@ -55,6 +55,16 @@ namespace Server
             }
 
             //
+            using var statistical = new AMToolkits.Statistics.StatisticalEvent("leaderboard_list");
+            using var enhancer = AMToolkits.Net.HTTPEnhancer.Event("leaderboard_list", null, true);
+            if (enhancer == null)
+            {
+                await context.ResponseError(HttpStatusCode.TooManyRequests, ErrorMessage.TOO_MANY_REQUESTS);
+                return;
+            }
+            
+
+            //
             var result = new NLeaderboardResponse
             {
                 Code = 0,

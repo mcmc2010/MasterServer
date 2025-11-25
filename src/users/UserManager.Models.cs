@@ -788,16 +788,21 @@ namespace Server
             {
                 condition_update_count = $" `count` = `count` - {count}, ";
             }
+            string condition_using = "`using_time` = NULL, ";
+            if(is_using)
+            {
+                condition_using = "`using_time` = CURRENT_TIMESTAMP, ";
+            }
 
             // 
             string sql =
                 $"UPDATE `t_inventory` " +
                 $"SET " +
-                $"  { condition_update_count } " +
-                $"  `using_time` = ?,  `remaining_time` = ?, `last_time` = CURRENT_TIMESTAMP " +
+                $"  {condition_update_count} " +
+                $"  {condition_using} " +
+                $"  `remaining_time` = ?, `last_time` = CURRENT_TIMESTAMP " +
                 $"WHERE `id` = ? AND `tid` = ? AND `user_id` = ? ";
             var result_code = query?.Query(sql,
-                !is_using ? null : DateTime.Now,
                 item.remaining_time,
                 item.iid, item.index, user_uid);
             if (result_code < 0)
@@ -932,6 +937,12 @@ namespace Server
                     result_code = await DBGetUserInventoryItems(db, user_uid, list, template_data.Type,
                             null, new int[] { template_data.Group });
                 }
+                // 装备就获取全部装备物品
+                else if (template_data.Type == (int)AMToolkits.Game.ItemType.Equipment)
+                {
+                    result_code = await DBGetUserInventoryItems(db, user_uid, list, template_data.Type,
+                            null, null);
+                }
                 else
                 {
                     result_code = await DBGetUserInventoryItems(db, user_uid, list, template_data.Type,
@@ -968,7 +979,13 @@ namespace Server
 
 
                 // 移除已经在使用的物品
-                var using_item_list = list.Where(v => v.index == template_data.Id && v.using_time != null).ToList();
+                var using_item_list = list.Where(v => {
+                    if(template_data.Type == (int)AMToolkits.Game.ItemType.Equipment)
+                    {
+                        return v.using_time != null;
+                    }
+                    return v.index == template_data.Id && v.using_time != null;
+                }).ToList();
                 using_item_list.Remove(using_item);
 
                 foreach (var v in using_item_list)
@@ -1417,7 +1434,18 @@ namespace Server
         /// <returns></returns>
         public async Task<int> _DBAddUserInventoryItems(string user_uid, List<AMToolkits.Game.GeneralItemData> items)
         {
-            if (items.Count == 0)
+
+            // 0: 检测物品列表中是否有无效物品
+            var invalid_items = items.Where(v => v.IID.IsNullOrWhiteSpace()).ToList();
+            if (invalid_items.Count > 0)
+            {
+                var print = string.Join(";", invalid_items.Select(v => $"[{v.NID}] {v.ID} - {v.GetTemplateData<Game.TItems>()?.Name} ({v.Count})"));
+                items.RemoveAll(v => invalid_items.Contains(v));
+
+                _logger?.LogWarning($"{TAGName} (AddUserInventoryItems) (User:{user_uid}) Invalid Items: " + print);
+            }
+            
+            if(items.Count == 0)
             {
                 return 0;
             }
@@ -2150,12 +2178,16 @@ namespace Server
                 condition_case_group_index = $" AND (e.`group` = {group_index}) ";
             }
 
+            // 判断是否为记录事件
+            var condition_case_record = $" AND ((`record` IS NULL) OR (`type` = {GameEventType.Record} AND DATE(`record`) = CURRENT_DATE )) ";
+
             string condition_case = "";
             if (is_season)
             {
                 condition_case = $" AND `season` = {GameSettingsInstance.Settings.Season.Code} ";
             }
 
+            
 
             //
             List<DatabaseResultItemSet>? list = null;
@@ -2163,7 +2195,7 @@ namespace Server
             // 
             string sql =
                 $"SELECT " +
-                $"    `uid`, id AS `id`, `name`, `value`, " +
+                $"    `uid`, id AS `id`, `name`, `value`, `record`, " +
                 $"    `type` as `event_type`, `sub_type` as `event_sub_type`, `group` as `group_index`, " +
                 $"    `user_id` AS `server_uid`, " +
                 $"    `create_time`, `last_time`, `completed_time`, " +
@@ -2171,6 +2203,7 @@ namespace Server
                 $"FROM `t_gameevents` e " +
                 $"WHERE " +
                 $" `user_id` = ? AND `status` > 0 " +
+                $" {condition_case_record} " +
                 $" {condition_case_type} " +
                 $" {condition_case_group_index} " +
                 $" {condition_case} " +
@@ -2240,10 +2273,17 @@ namespace Server
                             NGameEventData data)
         {
             // 
+            string record_data = "";
+            if(template_data.EventType == (int)GameEventType.Record)
+            {
+                record_data = $"`record` = CURRENT_DATE,";
+            }
+            // 
             string sql =
             $"UPDATE `t_gameevents` " +
             $"SET " +
             $" `name` = ?,`count` = ?, `group` = ?, " +
+            $" {record_data} " +
             $" `completed_time` = NULL , `last_time` = CURRENT_TIMESTAMP " +
             $"WHERE `id` = ? AND `user_id` = ? AND `season` = ? ";
             var result_code = query?.Query(sql,
@@ -2522,7 +2562,7 @@ namespace Server
 
 
                 List<GameEventItem> list = new List<GameEventItem>();
-                if (await DBGetGameEvents(db, user_uid, list, -1) < 0)
+                if (await DBGetGameEvents(db, user_uid, list, data.EventType) < 0)
                 {
                     db?.Rollback();
                     return -1;

@@ -34,3 +34,6 @@ ADD COLUMN `virtual_currency` VARCHAR(64) NULL DEFAULT NULL AFTER `count`;
 
 ALTER TABLE `t_gameevents` 
 CHANGE COLUMN `value` `value` VARCHAR(64) NULL DEFAULT NULL ;
+
+ALTER TABLE `t_gameevents` 
+ADD COLUMN `record` VARCHAR(32) NULL DEFAULT NULL COMMENT '记录性事件，比如每日任务时，此处记录每日任务值。关联索引，不可以重复。' AFTER `items`;

@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using AMToolkits.Net;
 
 
 
@@ -8,7 +9,7 @@ namespace AMToolkits.Statistics
     /// 
     /// </summary>
     [System.Serializable]
-    public class StatisticalItem 
+    public class StatisticalItem : JsonSerializerItem<StatisticalItem>
     {
         public string name = "";
         public long timestamp = 0;
@@ -18,29 +19,6 @@ namespace AMToolkits.Statistics
         public float time_max = 0;
         // 
         public int count = 0;
-
-        public string JsonString
-        {
-            get
-            {
-                try
-                {
-                    string json = System.Text.Json.JsonSerializer.Serialize<StatisticalItem>(this, 
-                                new System.Text.Json.JsonSerializerOptions()
-                                {
-                                    IgnoreReadOnlyFields = true,
-                                    IgnoreReadOnlyProperties = true,
-                                    IncludeFields = true,
-                                    PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower
-                                });
-                    return json;
-                } 
-                catch (Exception ex)
-                {
-                    return "(JSON) (StatisticalItem) Error :" + ex.Message;
-                }
-            }
-        }
     }
 
     public class StatisticalEvent : IDisposable

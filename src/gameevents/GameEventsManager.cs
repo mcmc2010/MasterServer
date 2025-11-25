@@ -12,7 +12,8 @@ namespace Server
     public enum GameEventType
     {
         None = 0,
-        Normal = 1,
+        Normal = 1,     //普通事件
+        Record = 4,     //记录性事件
         Economy = 7,
         Payment = 10,
         Rank = 100,     //排位段位
@@ -50,6 +51,9 @@ namespace Server
 
         [JsonPropertyName("items")]
         public string Items = "";
+
+        [JsonPropertyName("record")]
+        public string Record = "";
 
         [JsonPropertyName("season")]
         public int Season = 0;
@@ -126,25 +130,42 @@ namespace Server
                 ID = id,
             };
 
+            //
+            int result_code = await _GameEventFinal(user_uid, id, result);
+            if (result_code <= 0)
+            {
+                result.Code = result_code;
+                return result;
+            }
+
+            result.Code = result_code;
+            return result;
+        }
+        
+
+        public async System.Threading.Tasks.Task<int> _GameEventFinal(string user_uid, int id,
+                        GameEventDataResult result)
+        {
+            result.ID = id;
+
             // 必须
             var template_data = AMToolkits.Utility.TableDataManager.GetTableData<Game.TGameEvents>();
-            if (template_data == null)
+            if (template_data == null || id <= 0)
             {
-                return result;
+                return -1;
             }
             // 
             var template_item = template_data.First(v => v.Id == id);
             if (template_item == null)
             {
-                return result;
+                return -1;
             }
 
             //
             var r_user = UserManager.Instance.GetUserT<UserBase>(user_uid);
             if (r_user == null)
             {
-                result.Code = -2; //未验证
-                return result;
+                return -2;
             }
 
             var event_data = new NGameEventData()
@@ -163,16 +184,14 @@ namespace Server
             double t_start = (template_item.StartDateTime - DateTime.Now).TotalSeconds;
             if (t_start > 0)
             {
-                result.Code = -3;
                 _logger?.LogWarning($"{TAGName} (GameEventFinal) (User:{user_uid}) {id} - {template_item.Name} Date: {template_item.StartDateTime} Not Start");
-                return result;
+                return -3;
             }
             double t_end = (template_item.EndDateTime - DateTime.Now).TotalSeconds;
             if (t_end <= 0)
             {
-                result.Code = -3;
                 _logger?.LogWarning($"{TAGName} (GameEventFinal) (User:{user_uid}) {id} - {template_item.Name} Date: {template_item.EndDateTime} End");
-                return result;
+                return -3;
             }
 
             // 添加数据库记录
@@ -180,14 +199,13 @@ namespace Server
             if ((result_code = await UserManager.Instance._UpdateGameEventData(r_user.ID, r_user.CustomID, event_data)) < 0)
             {
                 _logger?.LogWarning($"{TAGName} (GameEventFinal) (User:{user_uid}) {id} - {template_item.Name} Failed");
-                return result;
+                return result_code;
             }
 
             if (result_code == 0)
             {
-                result.Code = 0;
                 _logger?.LogWarning($"{TAGName} (GameEventFinal) (User:{user_uid}) {id} - {template_item.Name} Repeat Final");
-                return result;
+                return 0;
             }
 
             List<GameEventItem> result_events = new List<GameEventItem>();
@@ -201,6 +219,11 @@ namespace Server
                         {
                             result_code = await GameEventFinal_Result(r_user, id, template_item, result_events, result);
                         }
+                        break;
+                    }
+                // 4 :
+                case (int)GameEventType.Record:
+                    {
                         break;
                     }
                 // 10 : 付费或充值
@@ -239,15 +262,13 @@ namespace Server
 
             if (result_code <= 0)
             {
-                result.Code = result_code;
-                return result;
+                return result_code;
             }
 
             
             //
             _logger?.Log($"{TAGName} (GameEventFinal) (User:{user_uid}) {id} - {template_item.Name} Completed");
-            result.Code = 1;
-            return result;
+            return 1;
         }
 
     }

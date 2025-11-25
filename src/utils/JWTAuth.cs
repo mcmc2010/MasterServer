@@ -135,7 +135,7 @@ namespace AMToolkits.Utility
                 }
                 return 1;
             } catch (Exception e) {
-                System.Console.WriteLine(e.Message);
+                System.Console.WriteLine($"(JWTVerify) " + e.Message);
                 return -1;
             }
         }

@@ -130,7 +130,7 @@ namespace AMToolkits.Extensions
             }
             catch (Exception e)
             {
-                System.Console.WriteLine($"{e.Message}");
+                System.Console.WriteLine($"(HTTP) {e.Message}");
                 return default(T);
             }
         }
@@ -160,7 +160,7 @@ namespace AMToolkits.Extensions
             }
             catch (Exception e)
             {
-                System.Console.WriteLine($"{e.Message}");
+                System.Console.WriteLine($"(HTTP) {e.Message}");
                 return default(T);
             }
         }

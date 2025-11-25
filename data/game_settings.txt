@@ -47,5 +47,12 @@
         "gems_limit_min_monthly": 10000,
         // 上榜最小段位
         "game_rank_min_level": 1001
+    },
+
+    // 每日任务
+    "mission":
+    {
+        "daily_enabled": true,
+        "daily_event_code": 1000
     }
 }

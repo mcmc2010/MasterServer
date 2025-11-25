@@ -4,6 +4,7 @@ using AMToolkits.Extensions;
 using AMToolkits.Game;
 using Logger;
 
+
 namespace Server
 {
 
@@ -84,6 +85,13 @@ namespace Server
         {
             string? value = null;
             _custom_data?.TryGetValue($"{key}", out value);
+            return value;
+        }
+
+        public string? GetAttributeValue(string key)
+        {
+            string? value = null;
+            _custom_data?.TryGetValue(key.Trim(), out value);
             return value;
         }
 
@@ -529,7 +537,7 @@ namespace Server
             items.AddRange(consumable_items);
             return result_code;
         }
-        
+
         /// <summary>
         /// 
         /// </summary>
@@ -566,7 +574,7 @@ namespace Server
                 return false;
             });
 
-            if(has_item_invalid)
+            if (has_item_invalid)
             {
                 return -10;
             }
@@ -575,18 +583,20 @@ namespace Server
             // 获取道具物品列表
             if ((result_code = await DBGetUserInventoryItems(user_uid, list, item_list)) < 0)
             {
-                _logger?.LogError($"{TAGName} (ConsumableUserInventoryItems) (User:{user_uid}) Failed");
+                _logger?.LogError($"{TAGName} (ConsumableUserInventoryItems) (User:{user_uid}) Failed ");
                 return -1;
             }
 
 
-            foreach(var item in list)
+            foreach (var item in list)
             {
+                string print = $"{item.ID} - {item.GetTemplateData<Game.TItems>()?.Name} ({item.Count})";
                 List<UserInventoryItem> consumable_items = new List<UserInventoryItem>();
                 result_code = await _ConsumableUserInventoryItem(user_uid,
                     item.ID, item.Count, item_list, consumable_items, reason);
                 if (result_code < 0)
                 {
+                    _logger?.LogError($"{TAGName} (ConsumableUserInventoryItems) (User:{user_uid}) {print} Failed ");
                     return -1;
                 }
 
@@ -867,7 +877,7 @@ namespace Server
                         consumable_items.Add(using_item);
                         if (await this._ConsumableUserInventoryItems(user_uid, consumable_items, "using") < 0)
                         {
-                            _logger?.LogError($"{TAGName} (UsingUserInventoryItems) (User:{user_uid}) " + 
+                            _logger?.LogError($"{TAGName} (UsingUserInventoryItems) (User:{user_uid}) " +
                                 $" Consumable Item ({using_item.iid}:{using_item.index}) {using_item.name} x{using_item.count} Failed");
                         }
 
@@ -899,16 +909,86 @@ namespace Server
                 if (await GameEffectsManager.Instance._AddUserEffects(user_uid, effect_list, template_item.Remaining,
                                 list) < 0)
                 {
-                    _logger?.LogWarning($"{TAGName} (UsingUserInventoryItem) (User:{user_uid}) {item_iid} - {item_index} {template_item.Name} " + 
+                    _logger?.LogWarning($"{TAGName} (UsingUserInventoryItem) (User:{user_uid}) {item_iid} - {item_index} {template_item.Name} " +
                                         $" Add Effect:${AMToolkits.Game.ValuesUtils.ToValues(effects)} Failed");
                 }
             }
 
-            
+
             return result_code;
 
         }
+        
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="item"></param>
+        /// <param name="prerequisite"></param>
+        /// <returns></returns>
+        public (int, int) _GetUserInventoryUpgradeItems(UserInventoryItem item,
+                    List<AMToolkits.Game.GeneralItemData> prerequisite)
+        {
+            var items_template_data = AMToolkits.Utility.TableDataManager.GetTableData<Game.TItems>();
+            var template_data = AMToolkits.Utility.TableDataManager.GetTableData<Game.TItemEquipment>();
+            if (template_data == null || items_template_data == null)
+            {
+                return (-1, -1);
+            }
 
+            var list = template_data.All(v => v.ItemId == item.index)?.ToList()
+                                .OrderBy(v => v.Level)
+                                .ToList();
+            if (list == null || list.Count == 0)
+            {
+                return (0, -1);
+            }
+
+            int attribute_value = 0;
+            var value = item.GetAttributeValue($"{(int)InventoryItemAttributeIndex.Upgrade}");
+            if (!value.IsNullOrWhiteSpace())
+            {
+                if (!int.TryParse(value, out attribute_value))
+                {
+                    attribute_value = -1;
+                }
+            }
+            if (attribute_value < 0)
+            {
+                _logger?.LogError($"{TAGName} (GetUserInventoryUpgradeItems) {item.iid} {item.index} - {item.name} Attribute:{value} Error");
+                return (-1, -1);
+            }
+
+            int index = 0;
+            if (attribute_value > 0)
+            {
+                index = list.FindIndex(v => v.Id == attribute_value);
+                index = index + 1; //当前属性的下一级
+            }
+
+            // 已经满级了
+            if(index >= list.Count)
+            {
+                return (-100, list[list.Count-1].Id);
+            }
+
+            var upgrade_items = AMToolkits.Game.ItemUtils.ParseGeneralItem(list[index].UpgradeCost);
+            if (upgrade_items == null)
+            {
+                return (0, list[index].Id);
+            }
+
+            // 需要初始化模版数据
+            foreach (var v in upgrade_items)
+            {
+                var template_item = items_template_data.Get(v.ID);
+                v.InitTemplateData<Game.TItems>(template_item);
+            }
+            
+            prerequisite.AddRange(upgrade_items);
+            return (prerequisite.Count, list[index].Id);
+        }
+
+        
         /// <summary>
         /// 升级物品
         /// 
@@ -919,7 +999,9 @@ namespace Server
         /// <param name="items"></param>
         /// <returns></returns>
         public async Task<int> UpgradeUserInventoryItem(string? user_uid, string item_iid, int item_index,
-                                    List<NUserInventoryItem> items)
+                                    List<NUserInventoryItem> items,
+                                    List<NUserInventoryItem> consumed,
+                                    Dictionary<string, object?> attach_data)
         {
             if (user_uid == null || user_uid.IsNullOrWhiteSpace())
             {
@@ -951,29 +1033,126 @@ namespace Server
                 return -1;
             }
 
-            // 物品不存在
-            if (result_code == 0 || list.Count == 0)
+            // 1. 物品不存在
+            var item = list.FirstOrDefault();
+            if (result_code == 0 || list.Count == 0 || item == null)
             {
                 return 0;
             }
 
-            List<NUserInventoryItem> consumable_items = new List<NUserInventoryItem>();
-            if ((result_code = await this.ConsumableUserInventoryItem(user_uid, 4001, 1, consumable_items, "upgrade")) < 0)
+            // 2. 
+            int upgrade_index = -1;
+            List<AMToolkits.Game.GeneralItemData> prerequisite_items = new List<GeneralItemData>();
+            (result_code, upgrade_index) = _GetUserInventoryUpgradeItems(item, prerequisite_items);
+            if (result_code <= 0 || upgrade_index < 0)
             {
-                _logger?.LogError($"{TAGName} (UpgradeUserInventoryItems) (User:{user_uid}) {item_template_data.Id} - {item_template_data.Name} Failed");
-                return -1;
+                return result_code;
             }
 
-            // 没有物品可消耗
-            if (result_code == 0)
+            var vc_list = prerequisite_items.Where(v => AMToolkits.Game.ItemUtils.HasVirtualCurrency(v.ID)).ToList();
+            if (vc_list.Count > 0)
             {
-                _logger?.LogError($"{TAGName} (UpgradeUserInventoryItems) (User:{user_uid}) {item_template_data.Id} - {item_template_data.Name} Failed");
-                return 0;
+                prerequisite_items.RemoveAll(v => vc_list.Contains(v));
+
+                //
+                bool is_all_vc = true;
+                foreach (var vc in vc_list)
+                {
+                    Dictionary<string, object?>? result_vc = null;
+                    if (vc.ID == AMToolkits.Game.ItemConstants.ID_GD && vc.Count > 0 &&
+                        (result_vc = await UserManager.Instance._CheckVirtualCurrency(user_uid, vc.Count, VirtualCurrency.GD)) != null)
+                    {
+                    }
+                    else if (vc.ID == AMToolkits.Game.ItemConstants.ID_GM && vc.Count > 0 &&
+                        (result_vc = await UserManager.Instance._CheckVirtualCurrency(user_uid, vc.Count, VirtualCurrency.GM)) != null)
+                    {
+                    }
+                    else
+                    {
+                        is_all_vc = false;
+                    }
+
+                }
+
+                if (!is_all_vc)
+                {
+                    return -101; // 条件不满足
+                }
+            }
+
+            // 获取背包物品
+            List<UserInventoryItem> inventory_list = new List<UserInventoryItem>();
+            if (prerequisite_items.Count > 0)
+            {
+                if ((result_code = await DBGetUserInventoryItems(user_uid, prerequisite_items, inventory_list)) < 0)
+                {
+                    _logger?.LogError($"{TAGName} (UpgradeUserInventoryItems) (User:{user_uid}) {item_template_data.Id} - {item_template_data.Name} Failed");
+                    return -1;
+                }
+
+                // 
+                bool is_all_items = true;
+                foreach (var v in prerequisite_items)
+                {
+                    var vlist = inventory_list.Where(vi => vi.index == v.ID).ToList();
+                    int count = vlist.Sum(vi => vi.count);
+                    if (count < v.Count) // 只要有一个物品不满足就直接返回条件不足
+                    {
+                        is_all_items = false;
+                        break;
+                    }
+                }
+
+                if (!is_all_items)
+                {
+                    return -101; // 条件不满足
+                }
+            }
+
+            // 消耗物品
+            List<UserInventoryItem> consumable_items = new List<UserInventoryItem>();
+            if (prerequisite_items.Count > 0)
+            {
+                // 
+                if ((result_code = await this._ConsumableUserInventoryItems(user_uid, prerequisite_items, consumable_items, "upgrade")) < 0)
+                {
+                    _logger?.LogError($"{TAGName} (UpgradeUserInventoryItems) (User:{user_uid}) {item_template_data.Id} - {item_template_data.Name} Failed");
+                    return -1;
+                }
+
+
+                // 没有物品可消耗
+                if (result_code == 0)
+                {
+                    _logger?.LogError($"{TAGName} (UpgradeUserInventoryItems) (User:{user_uid}) {item_template_data.Id} - {item_template_data.Name} Failed");
+                    return 0;
+                }
+
+            }
+
+            // 消耗货币
+            if(vc_list.Count > 0)
+            {
+                Dictionary<string, object?> result_vc = new Dictionary<string, object?>();
+                if ((result_code = await this._UpdateVirtualCurrency(user_uid, vc_list, result_vc, "upgrade")) < 0)
+                {
+                    _logger?.LogError($"{TAGName} (UpgradeUserInventoryItems) (User:{user_uid}) {item_template_data.Id} - {item_template_data.Name} VirtualCurrency Failed");
+                    return -1;
+                }
+
+                // 没有物品可消耗
+                if (result_code == 0)
+                {
+                    _logger?.LogError($"{TAGName} (UpgradeUserInventoryItems) (User:{user_uid}) {item_template_data.Id} - {item_template_data.Name} VirtualCurrency Failed");
+                    return 0;
+                }
+
+                attach_data.AddRange(result_vc);
             }
 
             // 需要根据配置表里物品升级属性对应索引来写这个值
             // Fixed bugs：这里是数值，不是文本
-            list[0].SetAttributeValue($"{(int)InventoryItemAttributeIndex.Upgrade}", $"{0}");
+            item.SetAttributeValue($"{(int)InventoryItemAttributeIndex.Upgrade}", $"{upgrade_index}");
 
             //
             result_code = await DBUpdateUserInventoryItemCustomData(user_uid, list);
@@ -983,12 +1162,22 @@ namespace Server
                 return -1;
             }
 
-            // 转换为可通用的物品类
+            // 装备
             foreach (var v in list)
             {
                 item_template_data = template_data?.Get(v.index);
                 items.Add(v.ToNItem());
             }
+
+            // 消耗道具
+            // 转换为可通用的物品类
+            foreach (var v in consumable_items)
+            {
+                item_template_data = template_data?.Get(v.index);
+                consumed.Add(v.ToNItem());
+            }
+
+            
 
             return result_code;
 

@@ -356,7 +356,7 @@ namespace AMToolkits.Net
             }
             catch (Exception e)
             {
-                System.Console.WriteLine($"{e.Message}");
+                System.Console.WriteLine($"(HTTPClientProxy) {e.Message}");
                 return default(T);
             }
         }

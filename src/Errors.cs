@@ -6,6 +6,8 @@ namespace Server
         public const string ERROR = "Error";
         public const string UNKNOW = "Unknow";
         public const string NOT_FOUND = "Not Found";
+        public const string TOO_MANY_REQUESTS = "Too Many Requests";
+        
         /// <summary>
         /// 
         /// </summary>

@@ -166,8 +166,10 @@ namespace Server
     {
         [JsonPropertyName("code")]
         public int Code;
+
         [JsonPropertyName("items")]
         public List<NUserInventoryItem>? Items = null;
+
     }
 
     /// <summary>
@@ -189,6 +191,12 @@ namespace Server
         public int Code;
         [JsonPropertyName("items")]
         public List<NUserInventoryItem>? Items = null;
+
+        [JsonPropertyName("consumed")]
+        public List<NUserInventoryItem>? Consumed = null;  // 修改：使用NUserInventoryItem表示消耗的物品
+
+        [JsonPropertyName("attach_data")]
+        public Dictionary<string, object?>? AttachData = null;  // 新增钱包数据
     }
     #endregion
 
@@ -538,7 +546,7 @@ namespace Server
             var result = new NGetUserInventoryItemsResponse
             {
                 Code = 0,
-                Items = null
+                Items = null,
             };
 
             List<NUserInventoryItem> list = new List<NUserInventoryItem>();
@@ -621,17 +629,34 @@ namespace Server
             }
 
             //
+            using var statistical = new AMToolkits.Statistics.StatisticalEvent("user_inventoryitem_upgrade");
+            using var enhancer = AMToolkits.Net.HTTPEnhancer.Event("user_inventoryitem_upgrade", null, true);
+            if (enhancer == null)
+            {
+                await context.ResponseError(HttpStatusCode.TooManyRequests, ErrorMessage.TOO_MANY_REQUESTS);
+                return;
+            }
+
+            //
             var result = new NUpgradeUserInventoryItemsResponse
             {
                 Code = 0,
-                Items = null
+                Items = null,
+                Consumed = null,
+                AttachData = null  // 初始化钱包数据
             };
 
+
+            Dictionary<string, object?> attach_data = new Dictionary<string, object?>();
+            List<NUserInventoryItem> consumed = new List<NUserInventoryItem>();
+
             List<NUserInventoryItem> list = new List<NUserInventoryItem>();
-            int result_code = await this.UpgradeUserInventoryItem(auth_data.id, request.IID, request.Index, list);
+            int result_code = await this.UpgradeUserInventoryItem(auth_data.id, request.IID, request.Index, list, consumed, attach_data);
             if (result_code > 0)
             {
                 result.Items = list;
+                result.Consumed = consumed;
+                result.AttachData = attach_data;
             }
 
             result.Code = result_code;

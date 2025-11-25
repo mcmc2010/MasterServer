@@ -73,6 +73,16 @@ namespace Server
     }
 
     [System.Serializable]
+    public class GameSettings_Mission
+    {
+        [JsonPropertyName("daily_enabled")]
+        public bool DailyEnabled = true; 
+
+        [JsonPropertyName("daily_event_code")]
+        public int DailyGameEventCode = 0; //每日任务关联事件ID
+    }
+
+    [System.Serializable]
     public class GameSettings
     {
         [JsonPropertyName("user")]
@@ -83,6 +93,9 @@ namespace Server
 
         [JsonPropertyName("leaderboard")]
         public GameSettings_Leaderboard Leaderboard = new GameSettings_Leaderboard();
+
+        [JsonPropertyName("mission")]
+        public GameSettings_Mission Mission = new GameSettings_Mission();
     }
 
     public class GameSettingsInstance

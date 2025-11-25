@@ -1,10 +1,11 @@
 ﻿
 //
+using AMToolkits.Net;
 using Logger;
 using Server;
 
 using AMSX = AMToolkits.Statistics;
-
+using AMEX = AMToolkits.Net;
 
 bool is_development = true;
 
@@ -53,6 +54,11 @@ try
     AMSX.StatisticalManager.OnLogOutput = (v) =>
     {
         logger.Log("(AMSX) Event : " + v);
+    };
+    // 0 - 2:
+    AMEX.HTTPEnhancer.OnLogOutput = (v) =>
+    {
+        logger.Log("(AMEX) Event : " + v);
     };
 
     // 1 - 0:
