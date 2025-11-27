@@ -166,16 +166,13 @@ namespace Server
                 }
             }
             
-            if (result_product?.Data?.ItemList != null)
+            print_items = string.Join(";", result_product?.Data?.ItemList?.Select(v => $"{v.IID} - {v.ID}({v.Count})") ?? new List<string>(){ });
+            // 添加数据库记录
+            if (await UserManager.Instance._CashshopBuyProduct(user_uid, transaction.custom_id, result_product?.Data) <= 0)
             {
-                print_items = string.Join(";", result_product.Data.ItemList.Select(v => $"{v.IID} - {v.ID}({v.Count})"));
-                // 添加数据库记录
-                if (await UserManager.Instance._CashshopBuyProduct(user_uid, transaction.custom_id, result_product.Data) <= 0)
-                {
-                    _logger?.LogWarning($"{TAGName} (ExtractTransaction_V2) (User:{user_uid}) {transaction.order_id} - {shop_template_item.Name} " +
-                                        $" {print_items} Failed");
-                    //return result;
-                }
+                _logger?.LogWarning($"{TAGName} (ExtractTransaction_V2) (User:{user_uid}) {transaction.order_id} - {shop_template_item.Name} " +
+                                    $" {print_items} Failed");
+                //return result;
             }
 
             //

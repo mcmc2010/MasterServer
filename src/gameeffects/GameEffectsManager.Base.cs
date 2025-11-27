@@ -131,6 +131,16 @@ namespace Server
                         }
                         break;
                     }
+                default:
+                    {
+                        result_code = await UserManager.Instance._GetUserGameEffects(user.ID, list, (int)GameEffectType.None, template_data.Group);
+                        var effect = list.FirstOrDefault();
+                        if (effect != null && template_data.GroupType == (int)AMToolkits.Game.GameGroupType.OnlyOne)
+                        {
+                            return -100;
+                        }
+                        break;
+                    }
 
             }
 
@@ -259,6 +269,10 @@ namespace Server
             {
                 effect_data.EndTime = DateTime.Now.AddSeconds(remaining_time);
             }
+            else if(template_data.Expired > 0)
+            {
+                effect_data.EndTime = DateTime.Now.AddSeconds(template_data.Expired);
+            }
 
             int result_code = 0;
             List<GameEffectItem> list = new List<GameEffectItem>();
@@ -282,7 +296,11 @@ namespace Server
                         result_code = await UserManager.Instance._GetUserGameEffects(user.ID, list, (int)GameEffectType.Pass, template_data.Group);
                         break;
                     }
-
+                default:
+                    {
+                        result_code = await UserManager.Instance._GetUserGameEffects(user.ID, list, (int)GameEffectType.None, template_data.Group);
+                        break;
+                    }
             }
 
             if (result_code < 0)
@@ -291,7 +309,8 @@ namespace Server
             }
 
             // 已经有该特效，不能再添加其它同类的
-            if (template_data.EffectType == (int)GameEffectType.Pass)
+            if (template_data.GroupType == (int)AMToolkits.Game.GameGroupType.OnlyOne
+                || template_data.EffectType == (int)GameEffectType.Pass)
             {
                 var effect = list.FirstOrDefault();
                 if (effect != null)

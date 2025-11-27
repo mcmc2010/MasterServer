@@ -1768,7 +1768,7 @@ namespace Server
         /// <returns></returns>
         protected async Task<int> DBGetGameEffects(DatabaseQuery? query, string user_uid,
                             List<GameEffectItem> items,
-                            int type = -1, int group_index = -1)
+                            int type = -1, int group_index = -1, bool is_include_expired = false)
         {
 
             // type 条件
@@ -1782,6 +1782,12 @@ namespace Server
             if (group_index >= 0)
             {
                 condition_case_group_index = $" AND (e.`group` = {group_index}) ";
+            }
+
+            string condition_case_expired = "";
+            if (!is_include_expired)
+            {
+                condition_case_expired = $" AND ((`end_time` IS NOT NULL AND `end_time` >= CURRENT_TIMESTAMP) OR (`end_time` IS NULL)) ";
             }
 
 
@@ -1802,7 +1808,7 @@ namespace Server
                 $" AND `season` = ? " +
                 $" {condition_case_type} " +
                 $" {condition_case_group_index} " +
-                $" AND ((`end_time` IS NOT NULL AND `end_time` >= CURRENT_TIMESTAMP) OR (`end_time` IS NULL)) " +
+                $" {condition_case_expired} " +
                 $" ;";
             var result_code = query?.QueryWithList(sql, out list,
                 user_uid,
@@ -1857,6 +1863,48 @@ namespace Server
             // 必须增加
             item.uid = (int)query.LastID;
 
+            return 1;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="query"></param>
+        /// <param name="user_uid"></param>
+        /// <param name="item"></param>
+        /// <returns></returns>
+        protected int DBRevokeGameEffect(DatabaseQuery? query, string user_uid,
+                            GameEffectItem item, string reason = "")
+        {
+            // 
+            string sql =
+            $"UPDATE `t_gameeffects` " +
+            $"SET " +
+            $" `last_time` = CURRENT_TIMESTAMP, `reason` = ?, " +
+            $" `status` = 0 " +
+            $"WHERE `uid` = ? AND `id` = ? AND `user_id` = ? AND `season` = ? ;";
+            var result_code = query?.Query(sql,
+                reason,
+                item.uid, item.id, user_uid,
+                GameSettingsInstance.Settings.Season.Code);
+            if (result_code < 0)
+            {
+                return -1;
+            }
+            return 1;
+        }
+
+        protected async Task<int> DBRevokeGameEffects(DatabaseQuery? query, string user_uid,
+                            List<GameEffectItem> items, string reason = "")
+        {
+            // 
+            foreach(var item in items)
+            {
+                if(DBRevokeGameEffect(query, user_uid, item, reason) < 0)
+                {
+                    return -1;
+                }
+            }
             return 1;
         }
 
@@ -1934,18 +1982,33 @@ namespace Server
             var db = DatabaseManager.Instance.New();
             try
             {
-                int result_code = await DBGetGameEffects(db, user_uid, items, type, group_index);
+                db?.Transaction();
+
+                int result_code = await DBGetGameEffects(db, user_uid, items, type, group_index, true);
                 if (result_code < 0)
                 {
+                    db?.Rollback();
                     return -1;
                 }
 
-                if(items.Count > 0)
+                var expired_items = items.Where(v => v.end_time != null && (DateTime.Now - v.end_time).Value.TotalSeconds >= 0).ToList();
+                items.RemoveAll(v => expired_items.Contains(v));
+                if (expired_items.Count > 0)
                 {
-                    foreach(var item in items)
+                    if(await DBRevokeGameEffects(db, user_uid, expired_items, "expired") < 0)
+                    {
+                        db?.Rollback();
+                        return -1;
+                    }
+                }
+
+                db?.Commit();
+                if (items.Count > 0)
+                {
+                    foreach (var item in items)
                     {
                         var template_item = template_data?.Get(item.id);
-                        if(template_item != null)
+                        if (template_item != null)
                         {
                             item.InitTemplateData<TGameEffects>(template_item);
                         }
@@ -2179,7 +2242,7 @@ namespace Server
             }
 
             // 判断是否为记录事件
-            var condition_case_record = $" AND ((`record` IS NULL) OR (`type` = {GameEventType.Record} AND DATE(`record`) = CURRENT_DATE )) ";
+            var condition_case_record = $" AND ((`record` IS NULL) OR (`type` = {(int)GameEventType.Record} AND DATE(`record`) = CURRENT_DATE )) ";
 
             string condition_case = "";
             if (is_season)
@@ -2274,10 +2337,14 @@ namespace Server
         {
             // 
             string record_data = "";
-            if(template_data.EventType == (int)GameEventType.Record)
+            string condition_case_record = "";
+            if (template_data.EventType == (int)GameEventType.Record)
             {
                 record_data = $"`record` = CURRENT_DATE,";
+                condition_case_record = $" AND ((`record` IS NULL) OR (`type` = {(int)GameEventType.Record} AND DATE(`record`) = CURRENT_DATE )) ";
             }
+            
+
             // 
             string sql =
             $"UPDATE `t_gameevents` " +
@@ -2285,11 +2352,14 @@ namespace Server
             $" `name` = ?,`count` = ?, `group` = ?, " +
             $" {record_data} " +
             $" `completed_time` = NULL , `last_time` = CURRENT_TIMESTAMP " +
-            $"WHERE `id` = ? AND `user_id` = ? AND `season` = ? ";
-            var result_code = query?.Query(sql,
+            $"WHERE " +
+            $" `user_id` = ? " +
+            $" {condition_case_record} " +
+            $" AND `id` = ? AND `season` = ? ";
+            var result_code = query?.Query(sql, 
                 template_data?.Name ?? data.Name, data.Count,
                 template_data?.Group ?? (int)AMToolkits.Game.GameGroupType.None,
-                data.ID, user_uid,
+                user_uid, data.ID,
                 GameSettingsInstance.Settings.Season.Code);
             if (result_code < 0)
             {

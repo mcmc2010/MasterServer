@@ -25,3 +25,6 @@ ADD COLUMN `season` INT NOT NULL DEFAULT '0' COMMENT '赛季或赛年周期性�
 
 ALTER TABLE `t_gameeffects` 
 ADD INDEX `idx` (`id` ASC, `season` ASC, `user_id` ASC, `type` ASC, `group` ASC) VISIBLE;
+
+ALTER TABLE `t_gameeffects` 
+ADD COLUMN `reason` VARCHAR(16) NULL DEFAULT NULL AFTER `season`;

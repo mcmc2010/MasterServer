@@ -37,3 +37,14 @@ CHANGE COLUMN `value` `value` VARCHAR(64) NULL DEFAULT NULL ;
 
 ALTER TABLE `t_gameevents` 
 ADD COLUMN `record` VARCHAR(32) NULL DEFAULT NULL COMMENT '记录性事件，比如每日任务时，此处记录每日任务值。关联索引，不可以重复。' AFTER `items`;
+
+ALTER TABLE `t_gameevents` 
+ADD UNIQUE INDEX `idx_record` (`id` ASC, `user_id` ASC, `type` ASC, `record` ASC, `group` ASC, `season` ASC) VISIBLE;
+
+ALTER TABLE `t_gameevents` 
+DROP INDEX `idx_record` ,
+ADD UNIQUE INDEX `idx_record` USING BTREE (`id`, `user_id`, `type`, `group`, `season`, `record`) VISIBLE;
+
+
+
+
