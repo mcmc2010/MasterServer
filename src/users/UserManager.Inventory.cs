@@ -1133,6 +1133,7 @@ namespace Server
             // 消耗货币
             if(vc_list.Count > 0)
             {
+                vc_list.ForEach(v => v.Count = -v.Count); //需要扣钱
                 Dictionary<string, object?> result_vc = new Dictionary<string, object?>();
                 if ((result_code = await this._UpdateVirtualCurrency(user_uid, vc_list, result_vc, "upgrade")) < 0)
                 {
