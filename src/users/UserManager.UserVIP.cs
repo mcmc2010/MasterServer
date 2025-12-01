@@ -224,6 +224,10 @@ namespace Server
             }
 
             vips?.Add(data);
+
+            _logger?.Log($"{TAGName} (UserVIPData) : ({user_uid})  " +
+                                $"Amount : {amount} {currency} " +
+                                $"Update : {level} - {(int)experience} Success");
             return 1;
         }
 

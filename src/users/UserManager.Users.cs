@@ -106,6 +106,19 @@ namespace Server
         [JsonPropertyName("experience_max")]
         public long ExperienceMax = 0;
 
+
+        /// <summary>
+        /// 当前赛季 VIP
+        /// </summary>
+        [JsonPropertyName("vip_level")]
+        public int VIPLevel = 0;
+
+        /// <summary>
+        /// 当前赛季 VIP值，
+        /// </summary>
+        [JsonPropertyName("vip_value")]
+        public int VIPValue = 0;
+
         /// <summary>
         /// 当前赛季 段位
         /// </summary>
@@ -520,6 +533,8 @@ namespace Server
 
             //
             _InitUserLevelAndExperiences(db_profile_1, profile);
+            profile.VIPLevel = db_profile_1.VIPLevel;
+            profile.VIPValue = db_profile_1.VIPValue;
 
             //
             profile.CPValue = db_profile_1.CPValue;
