@@ -77,6 +77,7 @@ try
     // 1 - 2:
     AMToolkits.Utility.TableDataManager.NewInstance(args);
     AMToolkits.Utility.TableDataManager.GetTableData<Game.TPlayerLevel>();
+    AMToolkits.Utility.TableDataManager.GetTableData<Game.TPlayerVip>();
     AMToolkits.Utility.TableDataManager.GetTableData<Game.TItems>();
     AMToolkits.Utility.TableDataManager.GetTableData<Game.TItemEquipment>();
     AMToolkits.Utility.TableDataManager.GetTableData<Game.TAIPlayers>();
@@ -173,6 +174,7 @@ try
     app.CreateWSServer();
 
     logger.Finish();
+
 
     //
     room_manager.StartWorking();

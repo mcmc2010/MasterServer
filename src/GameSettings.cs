@@ -13,7 +13,7 @@ namespace Server
         [JsonPropertyName("using_user_level_experiences_table")]
         public bool UsingUserLevelExperiencesTable = false;
         [JsonPropertyName("user_level_experiences")]
-        public long[] UserLevelExperiences = new long[]{ 0, 100 };
+        public long[] UserLevelExperiences = new long[] { 0, 100 };
 
         /// <summary>
         /// 
@@ -31,6 +31,19 @@ namespace Server
         /// </summary>
         [JsonPropertyName("need_change_name_time")]
         public int NeedChangeNameTime = 0;
+    }
+    
+    [System.Serializable]
+    public class GameSettings_VIP
+    {
+        [JsonPropertyName("enabled")]
+        public bool Enabled = true; 
+
+        [JsonPropertyName("code")]
+        public int Code = 0; //VIP buff oode
+
+        [JsonPropertyName("experience_ratio")]
+        public float ExperienceRatio = 1.0f; //
     }
 
     [System.Serializable]
@@ -87,6 +100,9 @@ namespace Server
     {
         [JsonPropertyName("user")]
         public GameSettings_User User = new GameSettings_User();
+
+        [JsonPropertyName("vip")]
+        public GameSettings_VIP VIP = new GameSettings_VIP();
 
         [JsonPropertyName("season")]
         public GameSettings_Season Season = new GameSettings_Season();

@@ -28,6 +28,13 @@
 
     },
 
+    "vip":
+    {
+        "enabled": true,
+        "code": 100001,
+        "experience_ratio": 10.0
+    },
+
     "season":
     {
         "index": 1,

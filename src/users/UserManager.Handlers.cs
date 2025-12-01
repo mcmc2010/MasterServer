@@ -130,6 +130,26 @@ namespace Server
 
     #endregion
 
+    
+    #region User VIP NProtocols
+    /// <summary>
+    /// 
+    /// </summary>
+    [System.Serializable]
+    public class NGetUserVIPDataRequest
+    {
+    }
+
+    [System.Serializable]
+    public class NGetUserVIPDataResponse
+    {
+        [JsonPropertyName("code")]
+        public int Code;
+        [JsonPropertyName("data")]
+        public NUserVIPData? Data = null;
+    }
+    #endregion
+    
     #region User Inventory NProtocols
     /// <summary>
     /// 
@@ -519,6 +539,54 @@ namespace Server
         }
 
         #endregion
+
+        #region User VIP
+              /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        protected async Task HandleGetUserVIPData(HttpContext context)
+        {
+            SessionAuthData auth_data = new SessionAuthData();
+            if (await ServerApplication.Instance.AuthSessionAndResult(context, auth_data) <= 0)
+            {
+                return;
+            }
+
+            // 解析 JSON
+            var request = await context.Request.JsonBodyAsync<NGetUserVIPDataRequest>();
+            if (request == null)
+            {
+                await context.ResponseError(HttpStatusCode.BadRequest, ErrorMessage.UNKNOW);
+                return;
+            }
+
+            //
+            var result = new NGetUserVIPDataResponse
+            {
+                Code = 0,
+                Data = null
+            };
+
+            // 成功返回
+            List<UserVIPData> list = new List<UserVIPData>();
+            int result_code = await this.GetUserVIPData(auth_data.id, list);
+            if (result_code <= 0)
+            {
+                result.Code = result_code;
+            }
+            else
+            {
+                result.Code = 1;
+                result.Data = list.FirstOrDefault()?.ToNItem();
+            }
+
+            //
+            await context.ResponseResult(result);
+        }  
+        #endregion
+
 
         #region User Inventory
         /// <summary>

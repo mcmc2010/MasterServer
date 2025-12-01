@@ -60,6 +60,20 @@ namespace Server
         [JsonPropertyName("experience")]
         public int Experience = 0;
 
+
+        /// <summary>
+        /// 当前赛季 VIP
+        /// </summary>
+        [JsonPropertyName("vip_level")]
+        public int VIPLevel = 0;
+
+        /// <summary>
+        /// 当前赛季 VIP值，
+        /// </summary>
+        [JsonPropertyName("vip_value")]
+        public int VIPValue = 0;
+
+
         /// <summary>
         /// 隐藏分
         /// </summary>
@@ -493,6 +507,7 @@ namespace Server
                     $"    `uid`as nid, " +
                     $"    `id` as uid, " +
                     $"    `level`, `experience`, `cp_value`, " +
+                    $"    `vip_level`, `vip_value`,  " +  
                     $"    `last_rank_level`, `last_rank_value`, `rank_level`, `rank_value`, `season_max_rank_level` AS rank_level_best, " +
                     $"    `challenger_reals`, `season`, `season_time`, " +
                     $"    `played_count`, `played_win_count`, `season_played_count`, `season_played_win_count`, " +
@@ -664,6 +679,110 @@ namespace Server
         }
         #endregion
 
+        #region VIP
+
+        /// <summary>
+        /// 数据库结果集转换为事件列表
+        /// </summary>
+        /// <param name="rows"></param>
+        /// <returns></returns>
+        protected List<UserVIPData> ToUserVIPDataList(List<DatabaseResultItemSet>? rows)
+        {
+            List<UserVIPData> items = new List<UserVIPData>();
+            if (rows != null)
+            {
+                foreach (var v in rows)
+                {
+                    UserVIPData? item = v.To<UserVIPData>();
+                    if (item == null) { continue; }
+
+                    items.Add(item);
+                }
+            }
+            return items;
+        }
+        
+        protected async Task<int> DBGetUserVIPData(string user_id, List<UserVIPData> vip_list)
+        {
+
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                //
+                List<DatabaseResultItemSet>? list = null;
+            
+                // 
+                string sql =
+                    $"SELECT  " +
+                    $"  h.`uid` as nid, " +
+                    $"  h.`id` as uid, " +
+                    $"  u.`name`, " +
+                    $"  h.`value`, " +
+                    $"  `level`, `experience`, " +
+                    $"  `vip_level`, `vip_value`,  " +
+                    $"  `season`, `season_time`, " +
+                    $"  h.`create_time`, h.`last_time`, " +
+                    $"  h.`status`  " +
+                    $"FROM `t_hol` AS h " +
+                    $"LEFT JOIN `t_user` AS u ON u.`id` = h.`id` AND u.`status` > 0  " +
+                    $"WHERE h.`id` = ? AND h.`season` = ? AND h.`status` > 0";
+                var result_code = db?.QueryWithList(sql, out list, user_id,
+                        GameSettingsInstance.Settings.Season.Code);
+                if (result_code < 0 || list == null)
+                {
+                    return -1;
+                }
+
+                //
+                vip_list.AddRange(this.ToUserVIPDataList(list));
+                return vip_list.Count;
+            }
+            catch (Exception e)
+            {
+                _logger?.LogError("(User) Error :" + e.Message);
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return -1;
+        }
+
+        protected int DBUpdateUserVIPData(string user_id, UserVIPData data)
+        {
+
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                // 
+                string sql =
+                    $"UPDATE `t_hol` AS h SET " +
+                    $"   " +
+                    $"  h.`vip_level` = ?, h.`vip_value` = ? " +
+                    $"WHERE h.`id` = ? AND h.`season` = ? AND h.`status` > 0; ";
+                var result_code = db?.Query(sql,
+                    data.VIPLevel, data.VIPValue,
+                    user_id,
+                    GameSettingsInstance.Settings.Season.Code);
+                if (result_code < 0)
+                {
+                    return -1;
+                }
+
+                return 1;
+            }
+            catch (Exception e)
+            {
+                _logger?.LogError("(User) Error :" + e.Message);
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return -1;
+        }
+
+        #endregion
 
         #region Inventory
 

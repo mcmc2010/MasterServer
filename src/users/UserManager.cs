@@ -131,6 +131,8 @@ namespace Server
             args.app?.Map("api/user/profile/data", HandleUserProfile);
             args.app?.Map("api/user/profile/update", HandleUserUpdateProfile);
             args.app?.MapPost("api/user/name/change", HandleUserChangeName);
+            // VIP
+            args.app?.MapPost("api/user/vip/data", HandleGetUserVIPData);
             //
             args.app?.Map("api/user/inventory/list", HandleGetUserInventoryItems);
             args.app?.MapPost("api/user/inventory/using", HandleUsingUserInventoryItem);

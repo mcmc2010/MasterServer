@@ -73,6 +73,7 @@ namespace Server
             transaction.virtual_amount = r_result.Data?.CurrentAmount ?? transaction.virtual_amount;
             transaction.virtual_currency = r_result.Data?.CurrentVirtualCurrency ?? transaction.virtual_currency;
 
+            await UserManager.Instance._UpdateUserVIPData(user_uid, transaction.amount, transaction.currency);
 
             _logger?.Log($"{TAGName} (ExtractTransaction_V1) : ({user_uid}) {transaction.order_id} " +
                                 $"Amount : {transaction.amount} {transaction.currency}, " +
@@ -111,6 +112,8 @@ namespace Server
 
             transaction.virtual_amount = r_result.Data?.CurrentAmount ?? transaction.virtual_amount;
             transaction.virtual_currency = r_result.Data?.CurrentVirtualCurrency ?? transaction.virtual_currency;
+
+            await UserManager.Instance._UpdateUserVIPData(user_uid, transaction.amount, transaction.currency);
 
             // 0:
             // 查看是否有特效

@@ -81,3 +81,6 @@ ADD COLUMN `season_max_rank_level` INT NOT NULL DEFAULT '0' COMMENT '游戏次�
 ALTER TABLE `t_hol` 
 ADD COLUMN `season_pass_value` INT NOT NULL DEFAULT '0' COMMENT '赛季通行证值' AFTER `winning_streak_highest`;
 
+ALTER TABLE `t_hol` 
+ADD COLUMN `vip_level` INT NULL DEFAULT '0' AFTER `experience`,
+ADD COLUMN `vip_value` INT NULL DEFAULT '0' AFTER `vip_level`;

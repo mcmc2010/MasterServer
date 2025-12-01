@@ -172,9 +172,15 @@ namespace Server
                 {
                     response.Status = RESULT_REASON_TRADE_NOT_EXIST;
                 }
-                _logger?.LogError($"{TAGName} (AlipayGetTransactionData) : {transaction.order_id} - {response.Data.Code} - {response.Data.Message}");
-                _logger?.LogError($"{TAGName} (AlipayGetTransactionData) : (TRACE) {transaction.order_id} - {response.Data.SubMessage} ({response.Data.SubCode})");
-
+                if (response.Status == RESULT_REASON_TRADE_NOT_EXIST)
+                {
+                    _logger?.LogWarning($"{TAGName} (AlipayGetTransactionData) : {transaction.order_id} - {response.Data.Code} - {response.Data.Message}");
+                }
+                else
+                {
+                    _logger?.LogError($"{TAGName} (AlipayGetTransactionData) : {transaction.order_id} - {response.Data.Code} - {response.Data.Message}");
+                    _logger?.LogError($"{TAGName} (AlipayGetTransactionData) : (TRACE) {transaction.order_id} - {response.Data.SubMessage} ({response.Data.SubCode})");
+                }
             }
             else
             {
