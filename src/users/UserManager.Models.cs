@@ -1310,24 +1310,31 @@ namespace Server
                     expired = DateTime.Now.AddSeconds(template_data?.Expired ?? 0);
                 }
 
+                int count = 1;
+                if(item.Count > 0)
+                {
+                    count = item.Count;
+                }
+
                 // 
                 string sql =
                     $"INSERT INTO `t_inventory` " +
                     $"  (`id`,`tid`,`name`, `type`, `group`, `user_id`, " +
                     $"  `create_time`, `last_time`, `expired_time`, `remaining_time`, `using_time`, " +
-                    $"  `custom_data`, " +
+                    $"  `count`, `custom_data`, " +
                     $"  `status`) " +
                     $"VALUES " +
                     $"(?, ?, ?, ?, ?, ?, " +
                     $"CURRENT_TIMESTAMP,CURRENT_TIMESTAMP, ?, NULL,NULL, " +
-                    $"NULL,1); ";
+                    $"?, NULL,1); ";
                 int result_code = query.Query(sql,
                         item.IID, item.ID,
                         item.GetTemplateData<TItems>()?.Name ?? "",
                         item.GetTemplateData<TItems>()?.Type ?? 0,
                         item.GetTemplateData<TItems>()?.Group ?? (int)AMToolkits.Game.GameGroupType.None,
                         user_uid,
-                        expired);
+                        expired,
+                        count);
                 if (result_code < 0)
                 {
                     return -1;

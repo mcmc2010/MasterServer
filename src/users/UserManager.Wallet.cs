@@ -110,13 +110,13 @@ namespace Server
             bool is_all_vc = true;
             foreach (var vc in list)
             {
-                if (vc.ID == AMToolkits.Game.ItemConstants.ID_GD && vc.Count > 0 &&
+                if (vc.ID == AMToolkits.Game.ItemConstants.ID_GD && vc.Count != 0 &&
                     (result_vc = await UserManager.Instance._UpdateVirtualCurrency(user_uid, vc.Count, AMToolkits.Game.VirtualCurrency.GD)) != null)
                 {
                     var (balance, currency) = this._GetVirtualCurrencyBalance(result_vc);
                     result.Set(AMToolkits.Game.CurrencyUtils.CURRENCY_GOLD, balance);
                 }
-                else if (vc.ID == AMToolkits.Game.ItemConstants.ID_GM && vc.Count > 0 &&
+                else if (vc.ID == AMToolkits.Game.ItemConstants.ID_GM && vc.Count != 0 &&
                     (result_vc = await UserManager.Instance._UpdateVirtualCurrency(user_uid, vc.Count, AMToolkits.Game.VirtualCurrency.GM)) != null)
                 {
                     var (balance, currency) = this._GetVirtualCurrencyBalance(result_vc);

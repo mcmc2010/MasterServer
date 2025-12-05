@@ -513,7 +513,7 @@ namespace Server
 
                 if (consume_amount < consumable_items[i].count)
                 {
-                    consumable_items[i].count = remaining;
+                    consumable_items[i].count = consume_amount;
                     updated.Add(consumable_items[i]);
                 }
                 else
