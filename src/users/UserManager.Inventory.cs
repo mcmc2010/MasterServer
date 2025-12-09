@@ -1072,6 +1072,13 @@ namespace Server
                         is_all_vc = false;
                     }
 
+                    if( result_vc == null ||
+                        !result_vc.TryGetValue(AMToolkits.ServiceConstants.KEY_RESULT, out var value_result) ||
+                        value_result is string value && value != AMToolkits.ServiceConstants.VALUE_SUCCESS)
+                    {
+                        is_all_vc = false;
+                    }
+
                 }
 
                 if (!is_all_vc)

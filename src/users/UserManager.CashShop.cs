@@ -21,9 +21,12 @@ namespace Server
             {
                 return -1;
             }
-            if (data == null || data.PlayFabUID != custom_uid) {
+            if (data == null || data.PlayFabUID != custom_uid)
+            {
                 return -1;
             }
+
+            UserManager.Instance._UpdateWalletData(user_uid, data);
 
             // 保存购买记录
             if (await _DBAddCashshopItems(user_uid, data) < 0)

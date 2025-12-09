@@ -59,6 +59,7 @@ http_server:
     - "10.182.207.180" #开发测试
 playfab:
   openapi_url: "https://127.0.0.1:15443"
+  # openapi_url: "https://8.210.51.145:15443"
   openapi_key: "C465B2315CF4A31ECA4F912D2723E08E0C8A84941DCCF4846B9E642366ADF1F03A2F650305324645F5060630A8FDB454"
 database:
    # 主数据库

@@ -623,7 +623,7 @@ namespace AMToolkits.Net
                 }
                 else if(e.InnerException is TaskCanceledException e_canceled)
                 {
-                    HandleUnknowException(client, e_canceled, true);
+                    HandleUnknowException(client, e_canceled, false);
                 }
                 else
                 {
@@ -667,7 +667,7 @@ namespace AMToolkits.Net
             client._status_code = HttpStatusCode.BadRequest;
             if(e is TaskCanceledException canceled)
             {
-                client._status_code = HttpStatusCode.TooManyRequests;
+                client._status_code = HttpStatusCode.RequestTimeout;
             }
             client._status_error = $"({e.HResult:X8}) {e.Message}";
             client.Log("[HTTP] (Request) Error:", e.Message, $"[{client.DurationTimeMS:F2}ms]");

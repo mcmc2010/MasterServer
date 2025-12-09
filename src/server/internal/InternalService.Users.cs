@@ -78,6 +78,7 @@ namespace Server
             wallet.gold = System.Convert.ToSingle(gold);
 
             //
+            UserManager.Instance._UpdateWalletData(user_uid, wallet);
             return wallet;
         }
 
@@ -120,7 +121,7 @@ namespace Server
 
             // 更新成功，更新本地数据库
             // 暂时不处理
-
+            UserManager.Instance._UpdateWalletData(user_uid, result);
             return result;
         }
 

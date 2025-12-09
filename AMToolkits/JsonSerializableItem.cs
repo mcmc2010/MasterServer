@@ -2,7 +2,7 @@
 using System.Text.Json;
 
 
-namespace AMToolkits.Net
+namespace AMToolkits
 {
     
     /// <summary>

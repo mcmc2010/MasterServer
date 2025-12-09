@@ -1,6 +1,7 @@
 
 using System.Reflection.Metadata;
 using AMToolkits.Extensions;
+using AMToolkits.Game;
 using Logger;
 
 namespace Server
@@ -9,11 +10,7 @@ namespace Server
     {
 
         #region Server Internal
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="user_uid"></param>
-        /// <returns></returns>
+
         public async Task<AMToolkits.Game.WalletData?> _GetWalletData(string user_uid)
         {
             if (user_uid == null || user_uid.IsNullOrWhiteSpace())
@@ -27,8 +24,34 @@ namespace Server
                 return null;
             }
 
+            //
+            var wallet = AMToolkits.MemoryCached.Get<WalletData>("wallet", user_uid);
+            if(wallet != null)
+            {
+                return wallet;
+            }
+
+            return await this._GetWalletData(user_uid, user.CustomID);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <returns></returns>
+        protected async Task<AMToolkits.Game.WalletData?> _GetWalletData(string user_uid, string custom_uid)
+        {
+            if (user_uid == null || user_uid.IsNullOrWhiteSpace())
+            {
+                return null;
+            }
+            if (custom_uid == null || custom_uid.IsNullOrWhiteSpace())
+            {
+                return null;
+            }
+
             // 首先要更新PlayFab 服务
-            var result = await PlayFabService.Instance.PFGetWalletData(user_uid, user.CustomID);
+            var result = await PlayFabService.Instance.PFGetWalletData(user_uid, custom_uid);
             if (result == null)
             {
                 _logger?.LogError($"{TAGName} (GetWalletData) (User:{user_uid}) Failed");
@@ -49,7 +72,85 @@ namespace Server
                 return null;
             }
             wallet.gold = System.Convert.ToSingle(gold);
+
+            this._UpdateWalletData(user_uid, wallet);
             return wallet;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="pairs"></param>
+        internal void _UpdateWalletData(string user_uid, WalletData wallet)
+        {
+            if (user_uid == null || user_uid.IsNullOrWhiteSpace())
+            {
+                return;
+            }
+            
+            AMToolkits.MemoryCached.Update("wallet", user_uid, wallet);
+        }
+        
+        internal void _UpdateWalletData(string user_uid, Dictionary<string, object?> pairs)
+        {
+            if (user_uid == null || user_uid.IsNullOrWhiteSpace())
+            {
+                return;
+            }
+
+            var (balance, currency) = this._GetVirtualCurrencyBalance(pairs);
+
+            //
+            var wallet = AMToolkits.MemoryCached.Get<WalletData>("wallet", user_uid, false);
+            if (wallet == null)
+            {
+                wallet = new WalletData()
+                {
+
+                };
+            }
+
+            if (currency == AMToolkits.Game.CurrencyUtils.CURRENCY_GOLD_SHORT || currency == AMToolkits.Game.CurrencyUtils.CURRENCY_GOLD)
+            {
+                wallet.gold = balance;
+            }
+            else if (currency == AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS_SHORT || currency == AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS)
+            {
+                wallet.gems = balance;
+            }
+
+            this._UpdateWalletData(user_uid, wallet);
+        }
+        
+        internal void _UpdateWalletData(string user_uid, PFNCashShopItemData? data)
+        {
+            if (data == null)
+            {
+                return;
+            }
+            
+                        
+            //
+            var wallet = AMToolkits.MemoryCached.Get<WalletData>("wallet", user_uid, false);
+            if (wallet == null)
+            {
+                wallet = new WalletData()
+                {
+
+                };
+            }
+
+            if (data.CurrentVirtualCurrency == AMToolkits.Game.CurrencyUtils.CURRENCY_GOLD_SHORT || data.CurrentVirtualCurrency == AMToolkits.Game.CurrencyUtils.CURRENCY_GOLD)
+            {
+                wallet.gold = data.CurrentBalance ?? wallet.gold;
+            }
+            else if (data.CurrentVirtualCurrency == AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS_SHORT || data.CurrentVirtualCurrency == AMToolkits.Game.CurrencyUtils.CURRENCY_GEMS)
+            {
+                wallet.gems = data.CurrentBalance ?? wallet.gems;
+            }
+
+            this._UpdateWalletData(user_uid, wallet);
         }
 
         /// <summary>
@@ -93,7 +194,7 @@ namespace Server
 
             // 更新成功，更新本地数据库
             // 暂时不处理
-
+            _UpdateWalletData(user_uid, result);
             return result;
         }
 

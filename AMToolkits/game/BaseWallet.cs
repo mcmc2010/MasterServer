@@ -3,7 +3,7 @@ namespace AMToolkits.Game
 
 
     [System.Serializable]
-    public class WalletData
+    public class WalletData : IMemoryCachedData
     {
         public float gold;
         public float gems;
