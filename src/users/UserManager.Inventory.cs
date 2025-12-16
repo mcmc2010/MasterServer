@@ -959,14 +959,15 @@ namespace Server
             }
 
             int index = 0;
+            int next_index = 0;
             if (attribute_value > 0)
             {
                 index = list.FindIndex(v => v.Id == attribute_value);
-                index = index + 1; //当前属性的下一级
             }
+            next_index = index + 1; //当前属性的下一级
 
             // 已经满级了
-            if(index >= list.Count)
+            if(index >= list.Count || next_index >= list.Count)
             {
                 return (-100, list[list.Count-1].Id);
             }
@@ -985,7 +986,7 @@ namespace Server
             }
             
             prerequisite.AddRange(upgrade_items);
-            return (prerequisite.Count, list[index].Id);
+            return (prerequisite.Count, list[next_index].Id);
         }
 
         

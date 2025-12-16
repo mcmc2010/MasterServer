@@ -416,7 +416,7 @@ namespace Server
             }
             catch (Exception e)
             {
-                _logger?.LogError($"{TAGName} (UpdateLeaderboardRecord) Error :" + e.Message);
+                _logger?.LogError($"{TAGName} (UpdateLeaderboardRecord) ({profile.UID}) Error :" + e.Message + ", URL:" + profile.AvatarUrl);
                 return -1;
             }
             finally

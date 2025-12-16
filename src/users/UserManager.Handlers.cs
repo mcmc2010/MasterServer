@@ -12,6 +12,20 @@ using AMSX = AMToolkits.Statistics;
 namespace Server
 {
     #region User
+
+    /// <summary>
+    /// 
+    /// </summary>
+    [System.Serializable]
+    public class NUserDataBaseResponse
+    {
+        [JsonPropertyName("code")]
+        public int Code;
+
+        [JsonPropertyName("attach_data")]
+        public Dictionary<string, object?>? AttachData = null;  // 新增钱包数据
+    }
+    
     /// <summary>
     /// 
     /// </summary>
@@ -149,8 +163,9 @@ namespace Server
         public NUserVIPData? Data = null;
     }
     #endregion
-    
+
     #region User Inventory NProtocols
+
     /// <summary>
     /// 
     /// </summary>
@@ -160,10 +175,8 @@ namespace Server
     }
 
     [System.Serializable]
-    public class NGetUserInventoryItemsResponse
+    public class NGetUserInventoryItemsResponse : NUserDataBaseResponse
     {
-        [JsonPropertyName("code")]
-        public int Code;
         [JsonPropertyName("items")]
         public List<NUserInventoryItem>? Items = null;
     }
@@ -182,11 +195,8 @@ namespace Server
     }
 
     [System.Serializable]
-    public class NUsingUserInventoryItemsResponse
+    public class NUsingUserInventoryItemsResponse : NUserDataBaseResponse
     {
-        [JsonPropertyName("code")]
-        public int Code;
-
         [JsonPropertyName("items")]
         public List<NUserInventoryItem>? Items = null;
 
@@ -205,18 +215,13 @@ namespace Server
     }
 
     [System.Serializable]
-    public class NUpgradeUserInventoryItemsResponse
+    public class NUpgradeUserInventoryItemsResponse : NUserDataBaseResponse
     {
-        [JsonPropertyName("code")]
-        public int Code;
         [JsonPropertyName("items")]
         public List<NUserInventoryItem>? Items = null;
 
         [JsonPropertyName("consumed")]
         public List<NUserInventoryItem>? Consumed = null;  // 修改：使用NUserInventoryItem表示消耗的物品
-
-        [JsonPropertyName("attach_data")]
-        public Dictionary<string, object?>? AttachData = null;  // 新增钱包数据
     }
     #endregion
 

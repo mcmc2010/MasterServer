@@ -136,6 +136,10 @@ try
     logger.Log("Init AIPlayerManager Completed");
 
     // 4:
+    var field_server = Server.Field.FieldServer.NewInstance(args, config);
+    logger.Log("Init FieldServer Completed");
+
+    // 4:
     var room_manager = Server.RoomManager.NewInstance(args, config);
     logger.Log("Init RoomManager Completed");
 
@@ -184,6 +188,9 @@ try
     Thread.Sleep(100);
     match_manager.StartWorking();
 
+    //
+    field_server.StartWorking();
+    
     //
     proxy_service.StartWorking();
     internal_service.StartWorking();
