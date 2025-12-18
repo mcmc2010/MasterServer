@@ -441,8 +441,10 @@ __pycache__/
 
 docs/test*.*
 
+certs/*.srl
 certs/redis*.*
 certs/payment*.*
+certs/www*.*
 
 data/DataTables/*.txt
 data/DataTables/*.xlsx

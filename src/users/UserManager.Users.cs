@@ -200,6 +200,23 @@ namespace Server
     public partial class UserManager
     {
         #region Server Internal
+        public bool _CheckUserPrivilegeLevel(string user_uid, PrivilegeLevel level)
+        {
+            if (user_uid.IsNullOrWhiteSpace())
+            {
+                return false;
+            }
+            
+            // 获取用户
+            var user = this.GetUserT<UserBase>(user_uid);
+            if (user == null)
+            {
+                return false;
+            }
+
+            return user.PrivilegeLevel >= (int)level;
+        }
+
         /// <summary>
         /// 获取用户信息
         /// </summary>

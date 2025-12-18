@@ -27,44 +27,7 @@ namespace Server.Services
             _session_id = "";
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
-        public (String key, String hash) GetAuthorizationData()
-        {
-            string token = this.QueryString["token"] ?? "";
-            string text = token.ToString().Trim();
-            if (text.Length == 0)
-            {
-                text = this.Headers["X-Authorization"] ?? "";
-                text = text.Trim();
-            }
 
-            string key = "";
-            string hash = "";
-
-            string[] values = text.Split(":");
-            if (values.Length > 0)
-            {
-                key = values[0].Trim();
-            }
-            if (values.Length > 1)
-            {
-                hash = values[1].Trim();
-            }
-
-            return (key, hash);
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="code"></param>
-        public void DoClose(CloseStatusCode code = CloseStatusCode.Normal, String reason = "none")
-        {
-            this.Close(code, reason);
-        }
         
 
         protected override void OnOpen()

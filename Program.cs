@@ -135,6 +135,10 @@ try
     var ai_manager = Server.AIPlayerManager.NewInstance(args, config);
     logger.Log("Init AIPlayerManager Completed");
 
+    //
+    var world_server = Server.World.WorldServer.NewInstance(args, config);
+    logger.Log("Init WorldServer Completed");
+
     // 4:
     var field_server = Server.Field.FieldServer.NewInstance(args, config);
     logger.Log("Init FieldServer Completed");
@@ -188,6 +192,8 @@ try
     Thread.Sleep(100);
     match_manager.StartWorking();
 
+    //
+    world_server.StartWorking();
     //
     field_server.StartWorking();
     

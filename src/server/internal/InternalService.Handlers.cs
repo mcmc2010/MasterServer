@@ -329,6 +329,8 @@ namespace Server
                 return;
             }
 
+            //
+            using var statistical = new AMToolkits.Statistics.StatisticalEvent("internal_handle_add_userinventoryitems", true);
 
             //
             var result = new NAddUserInventoryItemsResponse
@@ -371,7 +373,9 @@ namespace Server
                 return;
             }
 
-
+            //
+            using var statistical = new AMToolkits.Statistics.StatisticalEvent("internal_handle_consumable_userinventoryitems", true);
+            
             //
             var result = new NConsumableUserInventoryItemsResponse
             {

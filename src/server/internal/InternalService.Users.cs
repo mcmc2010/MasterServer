@@ -237,7 +237,7 @@ namespace Server
             var item_list = UserManager.Instance.InitGeneralItemData(items);
             if (item_list == null)
             {
-                _logger?.LogError($"{TAGName} (AddUserInventoryItems) (User:{user_uid}) Add Items {item_values} Failed ({reason})");
+                _logger?.LogError($"{TAGName} (ConsumableUserInventoryItems) (User:{user_uid}) Consumable Items {item_values} Failed ({reason})");
                 return -1;
             }
 
