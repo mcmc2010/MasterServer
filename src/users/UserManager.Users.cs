@@ -49,6 +49,10 @@ namespace Server
         public string? link_name;
         public string? link_id;
         public string? link_token;
+
+        // 是否为删除中的用户
+        public DateTime? deleted_time = null;
+        public bool is_deleted_user = false;
     }
 
 

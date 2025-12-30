@@ -71,6 +71,13 @@ namespace Server
         public string Hash = "";
         [JsonPropertyName("privilege_level")]
         public int PrivilegeLevel = 0;
+        /// <summary>
+        /// 
+        /// </summary>
+        [JsonPropertyName("is_deleted")]
+        public bool IsDeleted = false;
+        [JsonPropertyName("deleted_time")]
+        public string DeletedTime = "";
     }
 
     /// <summary>
@@ -415,7 +422,11 @@ namespace Server
                     Token = user_data.token,
                     DateTime = date_time,
                     Hash = user_data.jwt_token,
+                    //
                     PrivilegeLevel = user_data.privilege_level,
+                    //
+                    IsDeleted = user_data.is_deleted_user,
+                    DeletedTime = user_data.deleted_time?.ToLongDateString() ?? "",
                 };
 
                 //

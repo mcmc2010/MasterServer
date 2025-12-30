@@ -73,11 +73,8 @@ namespace Server
 
             await Task.Delay((int)(delay * 1000));
 
-            // this._SettlementGamePVPResult("125552063938238016", 1, 0, new NGamePVPPlayerData()
-            // {
-            //     UserID = "152328385189",
-            //     IsVictory = false,
-            // });
+            //var result_data = new NUserInventoryItemsResult();
+            //await this._AddUserInventoryItems("157248358170", "C982468BE34D7C0B", "7001|100", result_data, "mail");
             return 0;
         }
     }

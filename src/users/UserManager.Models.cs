@@ -183,6 +183,7 @@ namespace Server
                     $"  name, " +
                     $"  token, passphrase, last_time, privilege_level, " +
                     $"  link_id, " +
+                    $"  deleted, deleted_time, " +
                     $"  status " +
                     $"FROM t_user WHERE client_id = ? AND playfab_id = ? AND status >= 0;";
                 var result_code = db?.Query(sql, user_data.client_uid, user_data.custom_id);
@@ -243,16 +244,31 @@ namespace Server
                     //
                     privilege_level = (int)(db?.ResultItems["privilege_level"]?.Number ?? 0);
 
+                    // 是否注销
+                    user_data.is_deleted_user = (int)(db?.ResultItems["deleted"]?.Number ?? 0) == 1;
+                    user_data.deleted_time = db?.ResultItems["deleted_time"]?.AsDateTime() ?? null;
+                    if (user_data.deleted_time == null)
+                    {
+                        user_data.is_deleted_user = false;
+                    }
+                    if(user_data.is_deleted_user)
+                    {
+                        _logger?.Log($"(User) Deleted : (Reactivate) (ClientUID:{user_data.client_uid} - {user_data.server_uid}) {user_data.custom_id} Time: {user_data.deleted_time?.ToLocalTime()}");
+                    }
+                    
                     //
                     sql =
                         $"UPDATE `t_user` " +
                         $"SET " +
                         $"    `token` = ?, `passphrase` = ?, " +
+                        $"    `deleted` = ?, `deleted_time` = ?, " +
                         $"    `device` = ?, `last_time` = NOW(), " +
                         $"    `link_id` = ? " +
                         $"WHERE `id` = ? AND `uid` = ?;";
                     result_code = db?.Query(sql,
-                        user_data.token, user_data.passphrase, user_data.device,
+                        user_data.token, user_data.passphrase,
+                        false, null,
+                        user_data.device,
                         link_id,
                         user_data.server_uid, uid);
 

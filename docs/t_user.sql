@@ -65,4 +65,7 @@ ADD COLUMN `link_id` VARCHAR(64) NULL COMMENT '字母或数字，通常是16位,
 CHANGE COLUMN `client_id` `client_id` VARCHAR(32) NOT NULL COMMENT '字母或数字，通常是16位,第三方平台通常大于32位' ,
 ADD UNIQUE INDEX `link_id_UNIQUE` (`link_id` ASC) VISIBLE;
 
-
+-- 注销账号标志
+ALTER TABLE `t_user` 
+ADD COLUMN `deleted` INT NOT NULL DEFAULT 0 COMMENT '0:默认，1.注销账号标志' AFTER `link_id`,
+ADD COLUMN `deleted_time` INT NULL DEFAULT NULL COMMENT '注销账号时间' AFTER `deleted`;
