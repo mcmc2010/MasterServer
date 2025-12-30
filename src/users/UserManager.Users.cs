@@ -80,6 +80,14 @@ namespace Server
         [JsonPropertyName("avatar")]
         public string AvatarUrl = "";
 
+        /// <summary>
+        /// 
+        /// </summary>
+        [JsonPropertyName("is_deleted")]
+        public bool IsDeleted = false;
+        [JsonPropertyName("deleted_time")]
+        public DateTime? DeletedTime = null;
+
         public void InitFromDB(DBUserProfile? profile)
         {
             this.AvatarUrl = profile?.AvatarUrl ?? "";
@@ -87,6 +95,9 @@ namespace Server
             this.Region = profile?.Region ?? "";
 
             this.Name = profile?.Name ?? "";
+
+            this.IsDeleted = profile?.IsDeleted ?? false;
+            this.DeletedTime = profile?.DeletedTime;
         }
     }
 
@@ -472,7 +483,7 @@ namespace Server
         {
             profile.Level = db_profile.Level;
             profile.Experience = db_profile.Experience;
-                
+
             bool using_table = GameSettingsInstance.Settings.User.UsingUserLevelExperiencesTable;
             if (!using_table)
             {
@@ -489,21 +500,91 @@ namespace Server
             {
                 var templates_data = AMToolkits.Utility.TableDataManager.GetTableData<Game.TPlayerLevel>();
                 var levels = templates_data?.ToList();
-                if(levels != null && levels.Count > 0)
+                if (levels != null && levels.Count > 0)
                 {
                     levels = levels.OrderBy(v => v.Level).ToList();
-                    
+
                     var level_max = levels[levels.Count - 1];
                     profile.ExperienceMax = level_max.Exp;
-                    if(profile.Level + 1 <= level_max.Level)
+                    if (profile.Level + 1 <= level_max.Level)
                     {
                         profile.ExperienceMax = levels.FirstOrDefault(v => v.Level == profile.Level + 1)?.Exp ?? 0;
                     }
                 }
 
-            
+
             }
         }
+        
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="name"></param>
+        /// <param name="profile"></param>
+        /// <returns></returns>
+        protected async Task<int> DeleteUser(string? user_uid, string name, UserProfile profile)
+        {
+                        
+            if (user_uid == null || user_uid.IsNullOrWhiteSpace())
+            {
+                return -1;
+            }
+
+            if (name.IsNullOrWhiteSpace())
+            {
+                return 0;
+            }
+            // 如果返回负数
+            int result_code = 1;
+            if ((result_code = AMToolkits.Utils.CheckNameIsValid(name)) <= 0)
+            {
+                // 尝试非法字符
+                if (result_code <= -1000)
+                {
+
+                }
+                return -1;
+            }
+
+            // 获取用户
+            var user = UserManager.Instance.GetUserT<UserBase>(user_uid);
+            if (user == null)
+            {
+                return -1;
+            }
+
+            profile.UID = user_uid;
+            profile.IsDeleted = false;
+            profile.DeletedTime = null;
+            
+            // 不是同一个，这里暂时使用同一个
+            DBUserProfile? db_profile = null;
+            result_code = this.DBGetUserProfile(user.ID, profile.UID, out db_profile);
+            if (result_code < 0)
+            {
+                return -1;
+            }
+
+            profile.InitFromDB(db_profile);
+
+            // 名字不同无法注销
+            if (profile.Name != name)
+            {
+                return 0;
+            }
+
+            result_code = await this.DBDeleteUser(user.ID, profile);
+            if (result_code < 0)
+            {
+                return 0;
+            }
+            
+            _logger?.LogError($"{TAGName} (DeletedUser) (User:{user_uid}) Delete {name}," +
+                                    $", {profile.DeletedTime}");
+            return 1;
+        }
+
         
         /// <summary>
         /// 获取用户信息

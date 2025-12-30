@@ -37,6 +37,14 @@ namespace Server
 
         [JsonPropertyName("changed_time")]
         public DateTime? ChangedTime = null;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        [JsonPropertyName("is_deleted")]
+        public bool IsDeleted = false;
+        [JsonPropertyName("deleted_time")]
+        public DateTime? DeletedTime = null;
     }
 
 
@@ -168,7 +176,7 @@ namespace Server
             user_data.is_new_user = false;
 
             string? link_id = null;
-            if(user_data.link_name?.Trim().IsNullOrWhiteSpace() == false)
+            if (user_data.link_name?.Trim().IsNullOrWhiteSpace() == false)
             {
                 link_id = $"{user_data.link_name}_openid_{user_data.link_id}";
             }
@@ -236,7 +244,7 @@ namespace Server
 
                     //
                     string? openid = (db?.ResultItems["link_id"]?.String);
-                    if(!openid.IsNullOrWhiteSpace() && openid != link_id)
+                    if (!openid.IsNullOrWhiteSpace() && openid != link_id)
                     {
                         return -5;
                     }
@@ -251,11 +259,11 @@ namespace Server
                     {
                         user_data.is_deleted_user = false;
                     }
-                    if(user_data.is_deleted_user)
+                    if (user_data.is_deleted_user)
                     {
                         _logger?.Log($"(User) Deleted : (Reactivate) (ClientUID:{user_data.client_uid} - {user_data.server_uid}) {user_data.custom_id} Time: {user_data.deleted_time?.ToLocalTime()}");
                     }
-                    
+
                     //
                     sql =
                         $"UPDATE `t_user` " +
@@ -295,6 +303,78 @@ namespace Server
             }
             catch (Exception e)
             {
+                _logger?.LogError("(User) Error :" + e.Message);
+            }
+            finally
+            {
+                DatabaseManager.Instance.Free(db);
+            }
+            return -1;
+        }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="user_id"></param>
+        /// <param name="profile"></param>
+        /// <returns></returns>
+        protected async Task<int> DBDeleteUser(string user_id, UserProfile profile)
+        {
+            var db = DatabaseManager.Instance.New();
+            try
+            {
+                db?.Transaction();
+                // 已经封了的用户是无法获取信息的
+                string sql =
+                    $"SELECT " +
+                    $"    `uid` AS nid, " +
+                    $"    `id`, " +
+                    $"    `name`,  " +
+                    $"    `create_time`, `last_time`, " +
+                    $"    `status` " +
+                    $"FROM `t_user` " +
+                    $"WHERE `id` = ? AND `name` = ?;";
+                var result_code = db?.Query(sql,
+                    user_id, profile.Name);
+                if (result_code < 0)
+                {
+                    db?.Rollback();
+                    return -1;
+                }
+
+                // 
+                string? nid = db?.ResultItems["nid"]?.AsString("");
+                if (!nid.IsNullOrWhiteSpace())
+                {
+                    db?.Rollback();
+                    return -3;
+                }
+
+                //
+                sql =
+                    $"UPDATE `t_user` " +
+                    $"SET " +
+                    $"    `deleted` = 1, `deleted_time` = CURRENT_TIMESTAMP " +
+                    $"WHERE `uid` = ? AND `id` = ? AND `status` > 0;";
+                result_code = db?.Query(sql,
+                    nid, user_id);
+                if (result_code < 0)
+                {
+                    db?.Rollback();
+                    return -1;
+                }
+
+                db?.Commit();
+
+                profile.IsDeleted = true;
+                profile.DeletedTime = DateTime.Now;
+                //
+                return 1;
+            }
+            catch (Exception e)
+            {
+                db?.Rollback();
                 _logger?.LogError("(User) Error :" + e.Message);
             }
             finally
@@ -641,7 +721,7 @@ namespace Server
                 string sql =
                     $"SELECT " +
                     $"    `uid`as nid, " +
-                    $"    `id` as uid, " +
+                    $"    `id`, " +
                     $"    `name`,  " +
                     $"    `create_time`, `last_time`, " +
                     $"    `status` " +
@@ -655,8 +735,8 @@ namespace Server
                 }
 
                 // 已经存在，无路是否删除
-                string? id = db?.ResultItems["id"]?.AsString("");
-                if (!id.IsNullOrWhiteSpace())
+                string? nid = db?.ResultItems["nid"]?.AsString("");
+                if (!nid.IsNullOrWhiteSpace())
                 {
                     db?.Rollback();
                     return -3;
@@ -667,10 +747,10 @@ namespace Server
                     $"UPDATE `t_user` " +
                     $"SET " +
                     $"    `name` = ?, `changed_time` = CURRENT_TIMESTAMP " +
-                    $"WHERE `id` = ? AND `status` > 0;";
+                    $"WHERE `uid` = ? AND `id` = ? AND `status` > 0;";
                 result_code = db?.Query(sql,
                     to_name,
-                    user.UID);
+                    nid, user.UID);
                 if (result_code < 0)
                 {
                     db?.Rollback();

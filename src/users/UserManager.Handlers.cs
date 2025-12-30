@@ -81,6 +81,30 @@ namespace Server
     }
 
     /// <summary>
+    /// 注销账号
+    /// </summary>
+    [System.Serializable]
+    public class NUserDeleteRequest
+    {
+        /// <summary>
+        /// 玩家需要输入自己的名称
+        /// </summary>
+        [JsonPropertyName("name")]
+        public string Name = "";
+    }
+
+    [System.Serializable]
+    public class NUserDeleteResponse
+    {
+        [JsonPropertyName("code")]
+        public int Code;
+
+        [JsonPropertyName("data")]
+        public UserProfile? Profile = null;
+    }
+
+
+    /// <summary>
     /// 
     /// </summary>
     [System.Serializable]
@@ -432,6 +456,46 @@ namespace Server
                 //
                 await context.ResponseResult(result);
             }
+        }
+
+
+        /// <summary>
+        /// 用户注销
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        protected async Task HandleUserDelete(HttpContext context)
+        {
+            SessionAuthData auth_data = new SessionAuthData();
+            if (await ServerApplication.Instance.AuthSessionAndResult(context, auth_data) <= 0)
+            {
+                return;
+            }
+
+            // 解析 JSON
+            var request = await context.Request.JsonBodyAsync<NUserDeleteRequest>();
+            if (request == null)
+            {
+                await context.ResponseError(HttpStatusCode.BadRequest, ErrorMessage.UNKNOW);
+                return;
+            }
+
+            //
+            var result = new NUserDeleteResponse
+            {
+                Code = 0,
+            };
+
+            UserProfile profile = new UserProfile();
+            int result_code = await DeleteUser(auth_data.id, request.Name, profile);
+            if (result_code > 0)
+            {
+                result.Profile = profile;
+            }
+
+            result.Code = result_code;
+
+            await context.ResponseResult(result);
         }
 
 
