@@ -83,7 +83,8 @@ namespace Server
                 "/local",
                 "/internal",
                 "/api/internal",
-                "/api/local"
+                "/api/local",
+                "/api/v1"
             };
 
             string[] shared = new string[] {

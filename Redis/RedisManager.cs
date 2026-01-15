@@ -452,7 +452,8 @@ namespace AMToolkits.Redis
         /// <param name="expired"></param>
         public void SetKeyValue(string node, string key, object? val, int expired = -1)
         {
-            SetKeyValue(node, key, this.ToJsonSerializer(val), expired);
+            key = $"{node}:{key.Trim()}";
+            SetKeyValue(key, this.ToJsonSerializer(val), expired);
         }
 
         public void SetKeyValue(string key, string? val, int expired = -1)
@@ -462,7 +463,7 @@ namespace AMToolkits.Redis
                 return;
             }
 
-            _database.StringSet(key, val ?? RedisValue.Null,
+            _database.StringSet(key.Trim(), val ?? RedisValue.Null,
                 expired < 0 ? null : TimeSpan.FromSeconds(expired), false, When.Always, CommandFlags.None);
         }
 
@@ -645,20 +646,38 @@ namespace AMToolkits.Redis
             return this.ToJsonDeserialize<T>(json);
         }
 
-        public string? GetKeyValue(string key, string? val, int expired = -1)
+        public string? GetKeyValue(string node, string key)
         {
             if (_database == null || key.IsNullOrWhiteSpace())
             {
                 return null;
             }
 
-            var value = _database.StringGet(key, CommandFlags.None);
+            key = $"{node}:{key.Trim()}";
+
+            var value = _database.StringGet(key.Trim(), CommandFlags.None);
             if (value.IsNullOrEmpty)
             {
                 return null;
             }
 
             return value.ToString();
+        }
+
+        public void DeleteKeyValue(string node, string key)
+        {
+            if (_database == null || key.IsNullOrWhiteSpace())
+            {
+                return ;
+            }
+            
+            key = $"{node}:{key.Trim()}";
+            var value = _database.StringGetDelete(key, CommandFlags.None);
+            if (value.IsNullOrEmpty)
+            {
+                return;
+            }
+            
         }
 
         /// <summary>

@@ -146,18 +146,36 @@ namespace Server
             // 限制IP权限,实现域访问
             _webserver.UseMiddleware<HTTPPrivateDomainMiddleware>(this);
 
-            // 捕获所有未匹配的路由，返回默认 JSON
-            _webserver.MapFallback(async context =>
-            {
-                await context.ResponseStatusAsync("error", "Not Found", HttpStatusCode.NotFound);
-            });
-
 
             //
             if (RegisterHandlersListner != null)
             {
                 RegisterHandlersListner(this, new HandlerEventArgs() { app = _webserver });
             }
+
+            // 捕获所有未匹配的路由，返回默认 JSON
+            _webserver.MapFallback(async context =>
+            {
+                // 检查响应是否已经被其他中间件处理过
+                if (context.Response.HasStarted)
+                {
+                    // 如果响应已开始或状态码不是200，说明前面已经处理了
+                    _logger?.LogDebug($"Fallback skipped - Response already handled. Status: {context.Response.StatusCode}, Started: {context.Response.HasStarted}");
+                    return; // 响应已开始，不做任何处理
+                }
+
+                // 检查是否已经有终结点匹配（除了fallback）
+                var endpoint = context.GetEndpoint();
+                if (endpoint != null && endpoint.DisplayName?.Contains("Fallback") != true)
+                {
+                    _logger?.LogDebug($"Run middleware skipped - Endpoint matched: {endpoint.DisplayName}");
+                    return;
+                }
+
+                //
+                await context.ResponseStatusAsync("error", "Not Found", HttpStatusCode.NotFound);
+                await context.Response.CompleteAsync();
+            });
 
             //
             _logger?.Log("[Server] Starting HTTPServer");

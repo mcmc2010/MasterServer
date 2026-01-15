@@ -1,6 +1,11 @@
 using System.Security.Cryptography.X509Certificates;
 
 using AMToolkits.Extensions;
+
+#if USING_REDIS
+using AMToolkits.Redis;
+#endif
+
 using Logger;
 
 namespace Server
@@ -10,6 +15,9 @@ namespace Server
     /// </summary>
     public partial class PaymentManager
     {
+        public const string KEY_TRANSACTIONS = "transactions";
+        // 1天
+        public const int KEY_EXPIRED = 1 * 24 * 60 * 60;
 
         /// <summary>
         /// 
@@ -96,9 +104,11 @@ namespace Server
             /// 支付方法：需要设置
             transaction.result_code = null;
             if (transaction.payment_method == "none" ||
-               (!_settings.Alipay.Enabled && transaction.payment_method?.Contains("alipay") == true))
+               (!_settings.Alipay.Enabled && transaction.payment_method?.Contains("alipay") == true) ||
+               (!_settings.Wechat.Enabled && transaction.payment_method?.Contains("wechat") == true))
             {
                 transaction.result_code = "none";
+                return -10; //支付未开启
             }
 
             var r_result = await DBCreateTransaction(r_user.ID, transaction);
@@ -106,6 +116,11 @@ namespace Server
             {
                 return -1;
             }
+
+            //
+#if USING_REDIS
+            AMToolkits.Redis.RedisManager.Instance.SetKeyValue(KEY_TRANSACTIONS, transaction.id, transaction, KEY_EXPIRED);
+#endif
 
 
             _logger?.Log($"{TAGName} (StartTransaction) : {transaction.id} - {transaction.name} " +
@@ -182,9 +197,10 @@ namespace Server
 
             /// 支付方法：需要设置
             if (transaction.payment_method == "none" ||
-               (!_settings.Alipay.Enabled && transaction.payment_method?.Contains("alipay") == true))
+               (!_settings.Alipay.Enabled && transaction.payment_method?.Contains("alipay") == true) ||
+               (!_settings.Wechat.Enabled && transaction.payment_method?.Contains("wechat") == true) )
             {
-                return -5;
+                return -10;
             }
 
             //

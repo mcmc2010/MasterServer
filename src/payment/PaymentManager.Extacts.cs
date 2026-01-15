@@ -10,6 +10,13 @@ namespace Server
     /// </summary>
     public partial class PaymentManager
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="user_uid"></param>
+        /// <param name="transaction"></param>
+        /// <param name="reason"></param>
+        /// <returns></returns>
         public async System.Threading.Tasks.Task<int> ExtractTransaction_V0(string user_uid, TransactionItem transaction,
                         string reason = "review")
         {
@@ -168,8 +175,8 @@ namespace Server
                                         $" Effects:{print_effects} Failed");
                 }
             }
-            
-            print_items = string.Join(";", result_product?.Data?.ItemList?.Select(v => $"{v.IID} - {v.ID}({v.Count})") ?? new List<string>(){ });
+
+            print_items = string.Join(";", result_product?.Data?.ItemList?.Select(v => $"{v.IID} - {v.ID}({v.Count})") ?? new List<string>() { });
             // 添加数据库记录
             if (await UserManager.Instance._CashshopBuyProduct(user_uid, transaction.custom_id, result_product?.Data) <= 0)
             {
@@ -184,6 +191,82 @@ namespace Server
                                 $"Update : {transaction.virtual_amount} {transaction.virtual_currency}, " +
                                 $"Effects: {print_effects}, Items: {print_items} Success");
             return 1;
+        }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public async System.Threading.Tasks.Task<int> ExtractTransaction_VX100(Dictionary<string, string?>? order_data,
+                        Dictionary<string, string?> custom_data,
+                        string reason = "review")
+        {
+            // 物品必须是可以解绑货币
+            if (order_data == null)
+            {
+                return -1;
+            }
+
+            string? nid = "";
+            string? order_id = "";
+            string? product_id = "";
+            order_data.TryGetValue("id", out nid);
+            order_data.TryGetValue("order_id", out order_id);
+            order_data.TryGetValue("product_id", out product_id);
+
+            nid = nid?.Trim();
+            order_id = order_id?.Trim();
+            product_id = product_id?.Trim();
+            if (string.IsNullOrWhiteSpace(nid) || string.IsNullOrWhiteSpace(order_id) || string.IsNullOrWhiteSpace(product_id))
+            {
+                return -1;
+            }
+#if USING_REDIS
+            var transaction = AMToolkits.Redis.RedisManager.Instance.GetKeyValueT<TransactionItem>(KEY_TRANSACTIONS, nid);
+            if(transaction == null)
+            {
+                return -2;
+            }
+#endif
+            //
+            List<TransactionItem> transactions = new List<TransactionItem>();
+            var r_result = await DBGetTransactions(transaction.user_id, transactions, transaction.id, transaction.order_id, "completed");
+            if (r_result < 0)
+            {
+                return -1;
+            }
+
+            var item = transactions.FirstOrDefault();
+            if (item?.order_id != order_id || item?.id != nid || item?.product_id != product_id)
+            {
+                _logger?.Log($"{TAGName} (ExtractTransaction_VX100) : ({transaction.user_id}) {item?.order_id} - {order_id} Error order data [Error]");
+                return -5;
+            }
+            transaction = item;
+
+            // 
+            if ((r_result = await ExtractTransaction_V0(transaction.user_id, transaction, "review")) < 0)
+            {
+                await DBReviewTransaction(transaction.user_id, transaction, "review", "pending");
+            }
+            else
+            {
+                await DBReviewTransaction(transaction.user_id, transaction, "review");
+            }
+
+            //从队列中释放
+            lock (_transactions_queue_locked)
+            {
+                _transactions_queue.RemoveAll(v => v.id == transaction.id);
+            }
+
+#if USING_REDIS
+            AMToolkits.Redis.RedisManager.Instance.DeleteKeyValue(KEY_TRANSACTIONS, nid);
+
+#endif
+            _logger?.Log($"{TAGName} (ExtractTransaction_VX100) : ({transaction.user_id}) {transaction.order_id} ({r_result}) Final [Review]");
+            return 0;
         }
     }
 }

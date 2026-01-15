@@ -9,6 +9,10 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 
+#if USING_REDIS
+using AMToolkits.Redis;   
+#endif
+
 namespace Server
 {
 
@@ -278,9 +282,11 @@ namespace Server
 
                 _wx_client_factory = client_factory;
             }
-            
+
             //
-            
+#if USING_REDIS
+            RedisManager.Instance.SetNodeKey(KEY_TRANSACTIONS);
+#endif
         }
 
         private void InitLogger(string name)
@@ -439,7 +445,7 @@ namespace Server
                     {
                         transaction = _transactions_queue.ElementAt(0);
                     }
-                    
+
                     if (await _UpdateTransactionItem(transaction) >= 0)
                     {
                         lock (_transactions_queue_locked)
@@ -483,7 +489,8 @@ namespace Server
 
             transaction.ReviewCount++;
             var result = await AlipayGetTransactionData(transaction.user_id, transaction);
-            if (result == null) {
+            if (result == null)
+            {
                 return -1;
             }
 

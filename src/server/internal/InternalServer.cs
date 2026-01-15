@@ -51,6 +51,10 @@ namespace Server
             //
             args.app?.Map("api/internal/game/pvp/completed", HandleGamePVPCompleted);
 
+            // 下面API为代理服务
+            args.app?.Map("api/v1/sandbox/payment", HandleOpenAPIPaymentResult);
+            args.app?.Map("api/v1/openapp/payment", HandleOpenAPIPaymentResult);
+
         }
 
 

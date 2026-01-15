@@ -139,7 +139,7 @@ namespace Server
     public partial class PaymentManager
     {
         /// <summary>
-        /// 
+        /// 创建订单
         /// </summary>
         /// <param name="context"></param>
         /// <returns></returns>
@@ -326,6 +326,11 @@ namespace Server
             await context.ResponseResult(result);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
         protected async Task HandleCheckTransactionV1(HttpContext context)
         {
             SessionAuthData auth_data = new SessionAuthData();
