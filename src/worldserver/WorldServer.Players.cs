@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Text.Json.Serialization;
 using AMToolkits.Extensions;
+using Logger;
 
 
 namespace Server.World
@@ -33,22 +34,30 @@ namespace Server.World
                 return 0;
             }
 
-            if (_user_list.TryGetValue(user.UserID, out var value) && value != null)
+            // 检查是否已经在线（重复连接）
+            if (IsPlayerOnline(user.UserID))
             {
                 service.DoClose(WebSocketSharp.CloseStatusCode.Abnormal, "repeated");
                 return -1;
             }
 
-            //
-            var user_data = new Dictionary<string, object?>()
-            {
-                { "session_id", session_id},
-                { "user_id", user.UserID }
-            };
-
+            // 初始化会话
             service.InitSession(session_id, user.UserID);
+            
+            // 添加到连接列表
             _list.AddOrUpdate(session_id, service, (k, v) => service);
-            _user_list.AddOrUpdate(user.UserID, user_data, (k, v) => user_data);
+            
+            // 添加到在线玩家列表
+            AddOnlinePlayer(session_id, user.UserID);
+
+            // 广播上线通知
+            var playerData = GetPlayerOnlineData(user.UserID);
+            if (playerData != null)
+            {
+                _ = BroadcastPlayerOnlineNotify(playerData);
+            }
+
+            _logger?.Log($"[WorldServer] Player {user.UserID} connected");
             return 1;
         }
 
@@ -59,11 +68,23 @@ namespace Server.World
                 return;
             }
 
-            //
+            // 获取玩家数据用于通知
+            var playerData = GetPlayerOnlineData(service.UserID);
+
+            // 从连接列表中移除
             _list.TryRemove(service.SessionID, out _);
-            _user_list.TryRemove(service.UserID, out _);
+            
+            // 从在线玩家列表中移除
+            RemoveOnlinePlayer(service.UserID);
 
             service.FreeSession();
+
+            // 广播下线通知
+            if (playerData != null)
+            {
+                _ = BroadcastPlayerOfflineNotify(playerData);
+                _logger?.Log($"[WorldServer] Player {service.UserID} disconnected");
+            }
         }
         
 

@@ -80,10 +80,23 @@ namespace Server.Services
                     World.WorldServer.Instance.HandleChatMessage(this, this.GetPacketT<Protocols.World.Chat.ChatMessage>());
                     break;
 
-                ////
                 case PacketHandleIndex.GMNotice:
                     World.WorldServer.Instance.HandleGMNotice(this, this.GetPacketT<Protocols.World.Admin.GMNoticeRequest>());
                     break;
+
+                // Heartbeat & Online Status
+                case PacketHandleIndex.Heartbeat:
+                    World.WorldServer.Instance.HandleHeartbeat(this, this.GetPacketT<Protocols.World.Heartbeat.HeartbeatRequest>());
+                    break;
+
+                case PacketHandleIndex.PlayerOnlineStatusRequest:
+                    World.WorldServer.Instance.HandlePlayerOnlineStatusRequest(this, this.GetPacketT<Protocols.World.Heartbeat.PlayerOnlineStatusRequest>());
+                    break;
+
+                case PacketHandleIndex.BatchOnlineStatusRequest:
+                    World.WorldServer.Instance.HandleBatchOnlineStatusRequest(this, this.GetPacketT<Protocols.World.Heartbeat.BatchOnlineStatusRequest>());
+                    break;
+
                 default:
                     Logger.LoggerFactory.Instance?.LogError($"[Service] (WorldService) Packet : Unknow Header (0x{index:X})");
                     break;

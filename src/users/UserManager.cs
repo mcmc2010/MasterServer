@@ -148,6 +148,9 @@ namespace Server
             args.app?.Map("api/user/game/events/list", HandleGetUserGameEvents);
             // Game Effects
             args.app?.Map("api/user/game/effects/list", HandleGetUserGameEffects);
+            
+            // Online Status
+            this.RegisterOnlineStatusHandlers(sender, args);
         }
 
         public TU AllocT<TU>() where TU : UserBase, new()

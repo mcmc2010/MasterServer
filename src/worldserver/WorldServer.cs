@@ -52,6 +52,9 @@ namespace Server.World
         {
             _logger?.Log("[WorldServer] Start Working");
 
+            // 启动心跳检查任务
+            _ = StartHeartbeatChecker();
+
             //
             float delay = 5.0f;
             //
@@ -61,6 +64,28 @@ namespace Server.World
             }
             //
             return 0;
+        }
+
+        /// <summary>
+        /// 启动心跳检查任务
+        /// </summary>
+        private async Task StartHeartbeatChecker()
+        {
+            _logger?.Log("[WorldServer] Heartbeat Checker Started");
+
+            while (!ServerApplication.Instance.HasQuiting)
+            {
+                await Task.Delay(30 * 1000); // 每30秒检查一次
+                
+                try
+                {
+                    CheckHeartbeatTimeouts();
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogError($"[WorldServer] Heartbeat Checker Error: {ex.Message}");
+                }
+            }
         }
     }
 }
