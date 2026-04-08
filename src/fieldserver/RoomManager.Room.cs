@@ -102,10 +102,7 @@ namespace Server.Field
         private readonly Logger.LoggerEntry? _logger = Logger.LoggerFactory.Instance;
 
         // 帧同步相关
-        private long _frame_interval = 33;  // 帧间隔（毫秒）
         private int _current_frame = 0;     // 当前帧ID
-        private long _last_tick_time = 0;   // 上次Tick时间
-        private bool _is_running = false;   // 是否正在运行
         private readonly object _frame_lock = new object();
 
         // 输入缓冲区
@@ -151,16 +148,13 @@ namespace Server.Field
             _room_name = name;
             _players_maxnum = players_maxnum;
 
-            // 计算帧间隔
-            _frame_interval = (long)(1000.0f / _config.TickRate);
-
             // 初始化玩家列表
             _players = new ConcurrentDictionary<string, PlayerData>();
 
             // 初始化游戏状态
             InitializeGameState();
 
-            _logger?.Log($"[Room] Room {_room_id} created with tick rate {_config.TickRate}");
+            _logger?.Log($"[Room] Room {_room_id} created");
         }
 
         /// <summary>
@@ -188,7 +182,6 @@ namespace Server.Field
             }
 
             _is_disposed = true;
-            _is_running = false;
 
             // 清理事件
             OnFrameUpdate = null;
@@ -390,57 +383,10 @@ namespace Server.Field
         #region 帧同步核心
 
         /// <summary>
-        /// 启动帧循环
-        /// </summary>
-        public async System.Threading.Tasks.Task StartFrameLoop()
-        {
-            if (_is_running)
-            {
-                return;
-            }
-
-            _is_running = true;
-            _last_tick_time = AMToolkits.Utils.GetLongTimestamp();
-            _current_frame = 0;
-
-            _logger?.Log($"[Room] Room {_room_id} frame loop started");
-
-            while (_is_running && _status == RoomStatus.Running && !_is_disposed)
-            {
-                var currentTime = AMToolkits.Utils.GetLongTimestamp();
-                var elapsed = currentTime - _last_tick_time;
-
-                // 检查是否到达下一Tick
-                if (elapsed >= _frame_interval)
-                {
-                    // 处理当前帧
-                    await ProcessFrame(_current_frame);
-
-                    // 更新帧ID和时间
-                    _current_frame++;
-                    _last_tick_time = currentTime;
-                }
-
-                // 短暂休眠，避免CPU占用过高
-                await System.Threading.Tasks.Task.Delay(1);
-            }
-
-            _logger?.Log($"[Room] Room {_room_id} frame loop stopped");
-        }
-
-        /// <summary>
-        /// 停止帧循环
-        /// </summary>
-        public void StopFrameLoop()
-        {
-            _is_running = false;
-        }
-
-        /// <summary>
-        /// 处理单帧
+        /// 处理单帧（由 Field 统一调用）
         /// </summary>
         /// <param name="frameId">帧ID</param>
-        private async System.Threading.Tasks.Task ProcessFrame(int frameId)
+        public async System.Threading.Tasks.Task ProcessFrame(int frameId)
         {
             try
             {
@@ -828,9 +774,6 @@ namespace Server.Field
 
             // 触发游戏开始事件
             OnGameStart?.Invoke();
-
-            // 启动帧循环
-            _ = StartFrameLoop();
         }
 
         /// <summary>
@@ -843,7 +786,6 @@ namespace Server.Field
                 return;
             }
 
-            _is_running = false;
             _status = RoomStatus.Ended;
 
             // 广播游戏结束消息
@@ -870,7 +812,6 @@ namespace Server.Field
             if (_status == RoomStatus.Running)
             {
                 _status = RoomStatus.Paused;
-                _is_running = false;
                 _logger?.Log($"[Room] Room {_room_id} game paused");
             }
         }
@@ -884,7 +825,6 @@ namespace Server.Field
             {
                 _status = RoomStatus.Running;
                 _logger?.Log($"[Room] Room {_room_id} game resumed");
-                _ = StartFrameLoop();
             }
         }
 

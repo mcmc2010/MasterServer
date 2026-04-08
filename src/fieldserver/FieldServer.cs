@@ -40,6 +40,12 @@ namespace Server.Field
 #pragma warning disable CS4014
         public int StartWorking()
         {
+            // 初始化帧管理器
+            InitializeFrameManager();
+            
+            // 启动帧循环
+            StartFrameLoop();
+            
             //
             this.ProcessWorking();
             return 0;
@@ -62,6 +68,9 @@ namespace Server.Field
                 _room_manager.UpdateHeartbeat();
                 await Task.Delay((int)(delay * 1000));
             }
+            
+            // 停止帧循环
+            StopFrameLoop();
             //
             return 0;
         }

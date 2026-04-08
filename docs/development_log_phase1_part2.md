@@ -80,6 +80,44 @@
 - 如果 World 基数变大，可能需要将 Field 服务分离出去
 - 保持命名空间独立有利于未来的架构扩展
 
+### 架构调整：统一帧管理
+
+#### 问题
+原实现中每个房间独立管理帧循环，导致：
+- 资源浪费（多个定时器）
+- 难以统一控制
+- 难以实现全局帧同步
+
+#### 解决方案
+将帧循环从房间移到 Field 服务统一管理：
+
+1. **FieldServer.Frames.cs**：
+   - 实现统一的帧管理器
+   - 以固定频率（30fps）运行
+   - 管理所有运行中的房间
+
+2. **Room 类**：
+   - 移除独立的帧循环（StartFrameLoop/StopFrameLoop）
+   - 添加 `ProcessFrame(int frameId)` 方法供外部调用
+   - 房间只负责处理游戏逻辑
+
+3. **RoomManager**：
+   - 添加 `ProcessAllRoomsFrame(int frameId)` 方法
+   - 统一驱动所有运行中的房间处理帧
+
+4. **FieldServer**：
+   - 在 StartWorking 中初始化帧管理器并启动帧循环
+   - 在退出时停止帧循环
+
+#### 架构流程
+```
+Field 服务（统一帧循环）
+    ↓ 每秒30次
+RoomManager.ProcessAllRoomsFrame()
+    ↓ 并行处理
+Room.ProcessFrame() × N个房间
+```
+
 ### 下一步工作
 1. 实现 Field 服务器的消息处理逻辑
 2. 集成客户端输入处理

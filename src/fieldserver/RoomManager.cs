@@ -331,6 +331,24 @@ namespace Server.Field
         #region 游戏逻辑
 
         /// <summary>
+        /// 处理所有运行中的房间的帧（由 Field 统一调用）
+        /// </summary>
+        /// <param name="frameId">全局帧ID</param>
+        public async System.Threading.Tasks.Task ProcessAllRoomsFrame(int frameId)
+        {
+            var runningRooms = _rooms.Values.Where(r => r.Status == RoomStatus.Running).ToList();
+            
+            if (runningRooms.Count == 0)
+            {
+                return;
+            }
+            
+            // 并行处理所有运行中的房间
+            var tasks = runningRooms.Select(room => room.ProcessFrame(frameId));
+            await System.Threading.Tasks.Task.WhenAll(tasks);
+        }
+
+        /// <summary>
         /// 开始房间游戏
         /// </summary>
         /// <param name="rid">房间ID</param>
