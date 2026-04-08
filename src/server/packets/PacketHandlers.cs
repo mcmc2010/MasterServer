@@ -31,6 +31,13 @@ namespace Server.Services
         RoomLeave = 0x2030,
         RoomLeaveResponse = 0x2031,
 
+        // Field (Frame Synchronization)
+        FrameUpdate = 0x3000,
+        GameStart = 0x3001,
+        GameEnd = 0x3002,
+        PlayerInputRequest = 0x3003,
+        PlayerInputResponse = 0x3004,
+
         // Admin
         GMNotice = 0x7000,
         GMNoticeResponse = 0x7001

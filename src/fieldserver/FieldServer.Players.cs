@@ -84,5 +84,19 @@ namespace Server.Field
             session_id = session.UserID;
             return 1;
         }
+
+        /// <summary>
+        /// 获取玩家的 FieldService 连接
+        /// </summary>
+        /// <param name="userId">用户ID</param>
+        /// <returns>FieldService 实例，如果未找到则返回 null</returns>
+        public Services.FieldService? GetPlayerService(string userId)
+        {
+            if (_list.TryGetValue(userId, out var service))
+            {
+                return service;
+            }
+            return null;
+        }
     }
 }

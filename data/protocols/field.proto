@@ -1,0 +1,51 @@
+syntax = "proto3";
+package protocols.field;
+
+// 玩家输入数据
+message PlayerInputData
+{
+    string user_id = 1;          // 用户唯一标识符
+    bytes input_data = 2;        // 输入数据（二进制）
+}
+
+// 帧更新消息
+message FrameUpdateMessage
+{
+    int32 frame_id = 1;          // 帧ID
+    int64 timestamp = 2;         // 时间戳
+    repeated PlayerInputData inputs = 3;  // 玩家输入列表
+    bytes state_data = 4;        // 游戏状态数据（二进制）
+}
+
+// 游戏开始消息
+message GameStartMessage
+{
+    int32 room_id = 1;           // 房间ID
+    int32 tick_rate = 2;         // Tick率（次/秒）
+    int64 timestamp = 3;         // 时间戳
+}
+
+// 游戏结束消息
+message GameEndMessage
+{
+    int32 room_id = 1;           // 房间ID
+    bytes final_state = 2;       // 最终游戏状态（二进制）
+    int64 timestamp = 3;         // 时间戳
+}
+
+// 玩家输入请求（客户端发送）
+message PlayerInputRequest
+{
+    int32 room_id = 1;           // 房间ID
+    string user_id = 2;          // 用户唯一标识符
+    bytes input_data = 3;        // 输入数据（二进制）
+}
+
+// 玩家输入响应
+message PlayerInputResponse
+{
+    int32 room_id = 1;           // 房间ID
+    string user_id = 2;          // 用户唯一标识符
+    int32 result_code = 3;       // 结果码
+    int64 timestamp = 4;         // 时间戳
+}
